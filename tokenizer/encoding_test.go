@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/sermo/normalizer"
-	"github.com/sugarme/sermo/tokenizer"
+	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func TestTokenizer_MergeWith(t *testing.T) {

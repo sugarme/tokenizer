@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/sugarme/sermo/normalizer"
+	"github.com/sugarme/tokenizer/normalizer"
 )
 
 type PaddingDirection int

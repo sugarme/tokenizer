@@ -8,8 +8,8 @@ import (
 	// "strings"
 	"testing"
 
-	bpe "github.com/sugarme/sermo/tokenizer/model/bpe"
-	"github.com/sugarme/sermo/util"
+	bpe "github.com/sugarme/tokenizer/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/util"
 )
 
 func TestBPE_FromFiles(t *testing.T) {

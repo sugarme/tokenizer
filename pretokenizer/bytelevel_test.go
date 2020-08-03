@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sugarme/sermo/normalizer"
-	"github.com/sugarme/sermo/pretokenizer"
-	"github.com/sugarme/sermo/tokenizer"
+	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/pretokenizer"
+	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func TestBytesChar(t *testing.T) {

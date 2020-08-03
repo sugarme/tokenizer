@@ -17,8 +17,8 @@ import (
 	progressbar "github.com/schollz/progressbar/v2"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/sugarme/sermo/normalizer"
-	"github.com/sugarme/sermo/util"
+	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/util"
 )
 
 const mb = 1024 * 1024

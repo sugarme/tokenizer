@@ -1,3 +1,3 @@
-# SERMO - Natural Language Processing Tool Kit Written In Go
+# Tokenizer - Natural Language Processing Tokenizer Written In Go
 
 TODO(TT): update

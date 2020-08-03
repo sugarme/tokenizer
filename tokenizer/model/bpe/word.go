@@ -9,7 +9,7 @@ import (
 	"github.com/emirpasic/gods/trees/binaryheap"
 	"github.com/emirpasic/gods/utils"
 
-	"github.com/sugarme/sermo/tokenizer"
+	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 const DefaultCacheCapacity uint = 10000

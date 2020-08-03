@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/sugarme/sermo/pretokenizer"
-	"github.com/sugarme/sermo/tokenizer"
-	bpe "github.com/sugarme/sermo/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/pretokenizer"
+	"github.com/sugarme/tokenizer/tokenizer"
+	bpe "github.com/sugarme/tokenizer/tokenizer/model/bpe"
 )
 
 func main() {

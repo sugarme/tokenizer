@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	slice "github.com/sugarme/sermo/utils/slice"
+	slice "github.com/sugarme/tokenizer/util/slice"
 )
 
 func TestInsertInt(t *testing.T) {

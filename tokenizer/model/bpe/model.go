@@ -13,8 +13,8 @@ import (
 	// "strconv"
 	"strings"
 
-	"github.com/sugarme/sermo/tokenizer"
-	"github.com/sugarme/sermo/util"
+	"github.com/sugarme/tokenizer/tokenizer"
+	"github.com/sugarme/tokenizer/util"
 )
 
 type Vocab map[string]uint32

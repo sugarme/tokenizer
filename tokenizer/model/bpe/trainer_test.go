@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	bpe "github.com/sugarme/sermo/tokenizer/model/bpe"
+	bpe "github.com/sugarme/tokenizer/tokenizer/model/bpe"
 )
 
 func TestBpeTrainer_Train(t *testing.T) {

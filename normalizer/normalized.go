@@ -10,7 +10,7 @@ import (
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/sugarme/sermo/util"
+	"github.com/sugarme/tokenizer/util"
 )
 
 // NormalizedString keeps both versions of an input string and

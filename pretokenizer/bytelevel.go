@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/sugarme/sermo/normalizer"
-	"github.com/sugarme/sermo/tokenizer"
-	slice "github.com/sugarme/sermo/util/slice"
+	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/tokenizer"
+	slice "github.com/sugarme/tokenizer/util/slice"
 )
 
 // Regular epxression to split string to `word` token
