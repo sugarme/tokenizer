@@ -1,4 +1,4 @@
-module github.com/sugarme/sermo
+module github.com/sugarme/tokenizer
 
 go 1.13
 
