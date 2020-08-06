@@ -13,12 +13,11 @@ import (
 	// "strconv"
 	"strings"
 
+	"github.com/sugarme/tokenizer/model"
 	"github.com/sugarme/tokenizer/tokenizer"
 	"github.com/sugarme/tokenizer/util"
 )
 
-type Vocab map[string]uint32
-type VocabR map[uint32]string
 type Merges map[Pair]PairVal
 
 type ConfigFiles struct {
@@ -28,7 +27,7 @@ type ConfigFiles struct {
 
 type Config struct {
 	Files                   *ConfigFiles
-	Vocab                   *Vocab
+	Vocab                   *model.Vocab
 	Merges                  *Merges
 	CacheCapacity           uint
 	Dropout                 *float32
@@ -45,8 +44,8 @@ type BpeBuilder struct {
 
 func NewBpeBuilder() *BpeBuilder {
 	var (
-		vocab  *Vocab  = new(Vocab)
-		merges *Merges = new(Merges)
+		vocab  *model.Vocab = new(model.Vocab)
+		merges *Merges      = new(Merges)
 	)
 	return &BpeBuilder{
 		Config: Config{
@@ -68,7 +67,7 @@ func (bb *BpeBuilder) Files(vocab string, merges string) {
 }
 
 // VocabAndMerges sets vocab and merges
-func (bb *BpeBuilder) VocabAndMerges(vocab Vocab, merges Merges) {
+func (bb *BpeBuilder) VocabAndMerges(vocab model.Vocab, merges Merges) {
 	bb.Config.Vocab = &vocab
 	bb.Config.Merges = &merges
 }
@@ -103,9 +102,9 @@ func (bb *BpeBuilder) EndOfWordSuffix(endOfWordSuffix string) {
 func (bb *BpeBuilder) Build() (*BPE, error) {
 	var (
 		err    error
-		vocab  *Vocab
+		vocab  *model.Vocab
 		merges *Merges
-		vocabR VocabR = make(map[uint32]string)
+		vocabR model.VocabR = make(map[uint32]string)
 		cache  *Cache
 		bpe    BPE
 	)
@@ -163,10 +162,10 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 // Ref. https://www.aclweb.org/anthology/P16-1162/
 type BPE struct {
 	// Vocab is the vocabulary assigns a number to each token.
-	Vocab *Vocab
+	Vocab *model.Vocab
 
 	// VocabR is Reversed vocabulary, to rebuild sentences.
-	VocabR *VocabR
+	VocabR *model.VocabR
 
 	// Merges contains the mapping between Pairs and their (rank, newId).
 	Merges *Merges
@@ -224,7 +223,7 @@ func NewBpeFromFiles(vocab, merges string) (*BPE, error) {
 }
 
 // New creates new BPE model with given vocab and merges
-func (b *BPE) New(vocab Vocab, merges Merges) {
+func (b *BPE) New(vocab model.Vocab, merges Merges) {
 	b.new()
 	b.Vocab = &vocab
 	b.Merges = &merges
@@ -238,7 +237,7 @@ func (b *BPE) FromFiles(vocab string, merges string) *BpeBuilder {
 }
 
 // ReadFiles read the given files to extract vocab and merges
-func (b *BPE) ReadFiles(vocabF string, mergesF string) (*Vocab, *Merges, error) {
+func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, error) {
 	var err error
 	// read json file
 	vocabBytes, err := ioutil.ReadFile(vocabF)
@@ -247,7 +246,7 @@ func (b *BPE) ReadFiles(vocabF string, mergesF string) (*Vocab, *Merges, error) 
 	}
 
 	var (
-		vocab  Vocab
+		vocab  model.Vocab
 		merges Merges = make(map[Pair]PairVal)
 	)
 
@@ -338,7 +337,7 @@ func (b *BPE) ClearCache() {
 }
 
 // GetVocab returns BPE vocab
-func (b *BPE) GetVocab() *Vocab {
+func (b *BPE) GetVocab() *model.Vocab {
 	return b.Vocab
 }
 

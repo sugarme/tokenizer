@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	bpe "github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/tokenizer"
-	bpe "github.com/sugarme/tokenizer/tokenizer/model/bpe"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 
 	fmt.Printf("Sentence: '%v'\n", sentence)
 
-	fmt.Printf("Tokens: %v\n", en.GetTokens())
+	fmt.Printf("Tokens: %+v\n", en.GetTokens())
 
 	// for _, tok := range en.GetTokens() {
 	// fmt.Printf("'%v'\n", tok)

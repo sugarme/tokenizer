@@ -8,7 +8,7 @@ import (
 	// "strings"
 	"testing"
 
-	bpe "github.com/sugarme/tokenizer/tokenizer/model/bpe"
+	bpe "github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/util"
 )
 
