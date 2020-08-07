@@ -534,17 +534,18 @@ func (b *BPE) Tokenize(sentence []tokenizer.PreToken) ([]tokenizer.Token, error)
 	return encoded, nil
 }
 
-func (b *BPE) TokenToId(token string) uint32 {
-	return (*b.Vocab)[token]
+func (b *BPE) TokenToId(token string) (id uint32, ok bool) {
+	id, ok = (*b.Vocab)[token]
+	return id, ok
 }
 
-func (b *BPE) IdToToken(id uint32) string {
-	return (*b.VocabR)[id]
+func (b *BPE) IdToToken(id uint32) (token string, ok bool) {
+	token, ok = (*b.VocabR)[id]
+	return token, ok
 }
 
-func (b *BPE) GetVocabSize() uint {
-	vocabLen := len(*b.Vocab)
-	return uint(vocabLen)
+func (b *BPE) GetVocabSize() int {
+	return len(*b.Vocab)
 }
 
 func (b *BPE) Save(dir string, nameOpt ...string) error {
@@ -600,8 +601,8 @@ func (b *BPE) Save(dir string, nameOpt ...string) error {
 	// Create lines of merges
 	for _, p := range pairRanks {
 		// line := fmt.Sprintf("%v %v", p.Pair.C1, p.Pair.C2)
-		c1 := b.IdToToken(p.Pair.C1)
-		c2 := b.IdToToken(p.Pair.C2)
+		c1, _ := b.IdToToken(p.Pair.C1)
+		c2, _ := b.IdToToken(p.Pair.C2)
 		line := fmt.Sprintf("%v %v", c1, c2)
 		lines = append(lines, line)
 	}

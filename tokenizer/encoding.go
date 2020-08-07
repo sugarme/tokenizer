@@ -200,7 +200,7 @@ func (e *Encoding) MergeWith(pair Encoding) {
 	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
 	e.Tokens = append(e.Tokens, pair.Tokens...)
 	// Offsets
-	var startingOffset uint = 0
+	var startingOffset int = 0
 	for _, o := range e.Offsets {
 		if o.End > startingOffset {
 			startingOffset = o.End

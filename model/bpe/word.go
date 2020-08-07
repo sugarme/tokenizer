@@ -66,7 +66,7 @@ type Symbol struct {
 	C    uint32
 	Prev int
 	Next int
-	Len  uint
+	Len  int
 }
 
 // Some slice methods to manipulate slice struct Symbol
@@ -138,7 +138,7 @@ func (w *Word) Add(c uint32) {
 		}
 	}
 
-	var sLen uint = 1 // NOTE: assign 1 to a variable so that we can take address of it.
+	var sLen int = 1 // NOTE: assign 1 to a variable so that we can take address of it.
 
 	w.Symbols = append(w.Symbols, Symbol{
 		C:    c,
@@ -404,7 +404,7 @@ func (w *Word) GetChars() []uint32 {
 func (w *Word) GetOffsets() []tokenizer.Offsets {
 	var offsets []tokenizer.Offsets
 
-	var pos uint = 0
+	var pos int = 0
 	for _, s := range w.Symbols {
 		end := pos + s.Len
 		offsets = append(offsets, tokenizer.Offsets{

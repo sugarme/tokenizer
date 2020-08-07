@@ -171,7 +171,7 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.Normalized) (*normalizer
 			start -= 1
 		}
 
-		positions = append(positions, tokenizer.Offsets{Start: uint(start), End: uint(end)})
+		positions = append(positions, tokenizer.Offsets{Start: start, End: end})
 
 	}
 
@@ -232,15 +232,15 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.Normalized) (*normalizer
 	// Collect splits and their offsets
 	var totalLen = 0
 	for _, split := range changedToks {
-		var len = 0
+		var length = 0
 		var chars []string
 		for _, c := range split {
 			chars = append(chars, c.Char)
-			len += 1
+			length += 1
 		}
-		totalLen += len
+		totalLen += length
 		tok := strings.Join(chars, "")
-		offsets := tokenizer.Offsets{Start: uint(totalLen - len), End: uint(totalLen)}
+		offsets := tokenizer.Offsets{Start: totalLen - length, End: totalLen}
 		res = append(res, tokenizer.PreToken{
 			Value:   tok,
 			Offsets: offsets,
@@ -297,8 +297,8 @@ func processOffsets(isTrimOffsets bool, encoding tokenizer.Encoding) tokenizer.E
 	}
 
 	type Modif struct {
-		LeadingSpaces uint
-		TrailingSpace uint
+		LeadingSpaces int
+		TrailingSpace int
 	}
 
 	var modifs []Modif
@@ -308,7 +308,7 @@ func processOffsets(isTrimOffsets bool, encoding tokenizer.Encoding) tokenizer.E
 
 	for _, tok := range toks {
 
-		var leadingSpaces uint = 0
+		var leadingSpaces int = 0
 		chars := strings.Split(tok, "")
 		for _, c := range chars {
 			if c != "Ġ" {
@@ -317,7 +317,7 @@ func processOffsets(isTrimOffsets bool, encoding tokenizer.Encoding) tokenizer.E
 			leadingSpaces += 1
 		}
 
-		var trailingSpaces uint = 0
+		var trailingSpaces int = 0
 		for i := len(chars) - 1; i >= 0; i-- {
 			if chars[i] != "Ġ" {
 				break
@@ -338,12 +338,12 @@ func processOffsets(isTrimOffsets bool, encoding tokenizer.Encoding) tokenizer.E
 
 		if m.LeadingSpaces > 0 {
 			minVal := math.Min(float64(offsets.Start+m.LeadingSpaces), float64(offsets.End))
-			offsets.Start = uint(minVal)
+			offsets.Start = int(minVal)
 		}
 
 		if m.TrailingSpace > 0 {
 			maxVal := math.Max(float64(offsets.End-m.TrailingSpace), float64(offsets.Start))
-			offsets.End = uint(maxVal)
+			offsets.End = int(maxVal)
 		}
 
 		newOffsets = append(newOffsets, offsets)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/sugarme/tokenizer/model"
 	"github.com/sugarme/tokenizer/model/bpe"
@@ -19,7 +20,7 @@ type config struct {
 	vocab                   *model.Vocab
 	unkToken                string
 	continuingSubwordPrefix string
-	maxInputCharsPerWord    uint
+	maxInputCharsPerWord    int
 }
 
 // WordPieceBuilder can be used to create a WordPiece model with a custom
@@ -70,7 +71,7 @@ func (wpb WordPieceBuilder) ContinuingSubwordPrefix(continueSubwordPrefix string
 }
 
 // Set the maximum number of input characters per word.
-func (wpb WordPieceBuilder) MaxInputCharsPerWord(maxInputCharsPerWord uint) (retVal WordPieceBuilder) {
+func (wpb WordPieceBuilder) MaxInputCharsPerWord(maxInputCharsPerWord int) (retVal WordPieceBuilder) {
 	wpb.config.maxInputCharsPerWord = maxInputCharsPerWord
 
 	return wpb
@@ -113,7 +114,7 @@ type WordPiece struct {
 	vocabR                *model.VocabR
 	unkToken              string
 	continueSubwordPrefix string
-	maxInputCharsPerWord  uint
+	maxInputCharsPerWord  int
 }
 
 // NewWordPiece initiates a new WordPiece with default values.
@@ -192,8 +193,9 @@ func NewWordPieceFromBPE(bpe bpe.BPE) (retVal WordPiece) {
 	return wp
 }
 
-// Implement Model for WordPiece:
-// ==============================
+// Implement Model interface for WordPiece:
+// ========================================
+
 func (wp WordPiece) GetVocab() (retVal *model.Vocab) {
 	return wp.vocab
 }
@@ -202,9 +204,153 @@ func (wp WordPiece) VocabSize() (retVal int) {
 	return len(*wp.vocab)
 }
 
-func (wp WordPiece) Tokenize(sentence tokenizer.PreToken) (retVal []tokenizer.Token) {
+func (wp WordPiece) Tokenize(sentence []tokenizer.PreToken) (retVal []tokenizer.Token, err error) {
 
-	// TODO. continue
+	var outputTokens []tokenizer.Token
 
+	for _, preTok := range sentence {
+		chars := []rune(preTok.Value)
+		charLen := len([]rune(preTok.Value))
+		if charLen > wp.maxInputCharsPerWord {
+			id, ok := (*wp.vocab)[wp.unkToken]
+			if !ok {
+				return retVal, MissingUnkToken
+			}
+			token := tokenizer.Token{
+				Value:   wp.unkToken,
+				Id:      id,
+				Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+			}
+			outputTokens = append(outputTokens, token)
+			continue
+		}
+
+		var (
+			isBad     bool = false
+			start     int  = 0
+			subTokens []tokenizer.Token
+		)
+
+		for start < charLen {
+			end := charLen
+			var currStr *tokenizer.Token
+
+			for start < end {
+				substr := string(chars[start:end])
+				if start > 0 {
+					substr = fmt.Sprintf("%v%v", wp.continueSubwordPrefix, substr)
+				}
+
+				if id, ok := (*wp.vocab)[substr]; ok {
+					currStr = &tokenizer.Token{
+						Id:      id,
+						Value:   substr,
+						Offsets: tokenizer.Offsets{Start: start, End: end},
+					}
+					break
+				}
+				end -= 1
+			}
+			if currStr == nil {
+				isBad = true
+				break
+			}
+
+			subTokens = append(subTokens, *currStr)
+			start = end
+		}
+
+		if isBad {
+			id, ok := (*wp.vocab)[wp.unkToken]
+			if !ok {
+				return retVal, MissingUnkToken
+			}
+			token := tokenizer.Token{
+				Value:   wp.unkToken,
+				Id:      id,
+				Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+			}
+
+			outputTokens = append(outputTokens, token)
+		} else {
+			outputTokens = append(outputTokens, subTokens...)
+		}
+	}
+
+	return outputTokens, nil
+}
+
+func (wp WordPiece) TokenToId(token string) (retVal uint32, ok bool) {
+	retVal, ok = (*wp.vocab)[token]
 	return
+}
+
+func (wp WordPiece) IdToToken(id uint32) (retVal string, ok bool) {
+	retVal, ok = (*wp.vocabR)[id]
+	return retVal, ok
+}
+
+func (wp WordPiece) Save(dir string, nameOpt ...string) (err error) {
+	var vfile string
+	if len(nameOpt) > 0 {
+		vfile = fmt.Sprintf("%v/%v-vocab.txt", dir, nameOpt[0])
+	} else {
+		vfile = fmt.Sprintf("%v/vocab.txt", dir)
+	}
+
+	// make filepath
+	err = makeFilePath(vfile)
+	if err != nil {
+		return err
+	}
+
+	// Write vocab.txt
+	// each line is a pair separated by a space
+	var lines []string
+	vocab := *wp.vocab
+
+	// sort vocab by map's value (uint32)
+	type kv struct {
+		Key   string
+		Value uint32
+	}
+	var sVocab []kv
+	for k, v := range vocab {
+		sVocab = append(sVocab, kv{k, v})
+	}
+
+	// sort sVocab by `Rank` field in-place
+	sort.Slice(sVocab, func(i, j int) bool {
+		return sVocab[i].Value < sVocab[j].Value
+	})
+
+	// Create vocab lines
+	for _, item := range sVocab {
+		line := fmt.Sprintf("%v", item.Key)
+		lines = append(lines, line)
+	}
+
+	// write to file
+	file, err := os.Create(vfile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	for _, line := range lines {
+		fmt.Fprintln(w, line)
+	}
+	return w.Flush()
+
+}
+
+// makeFilePath creates a filePath. If dir not existing, create it
+func makeFilePath(filename string) error {
+	var err error
+	dirName := filepath.Dir(filename)
+	if _, err = os.Stat(dirName); err != nil {
+		return err
+	}
+	return os.MkdirAll(dirName, os.ModePerm)
 }

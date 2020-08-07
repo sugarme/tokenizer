@@ -25,8 +25,8 @@ const mb = 1024 * 1024
 const gb = 1024 * mb
 
 type Offsets struct {
-	Start uint
-	End   uint
+	Start int
+	End   int
 }
 
 type PreToken struct {
@@ -49,18 +49,18 @@ type PreTokenizer interface {
 // Model represents a model used during tokenization (i.e., BPE, Word, or Unigram)
 type Model interface {
 	Tokenize(tokens []PreToken) ([]Token, error)
-	TokenToId(token string) uint32
-	IdToToken(id uint32) string
-	GetVocabSize() uint
+	TokenToId(token string) (id uint32, ok bool)
+	IdToToken(id uint32) (token string, ok bool)
+	GetVocabSize() int
 	Save(path string, nameOpt ...string) error
 }
 
 type PostProcessor interface {
 	// Returns the number of tokens that will be added during the processing step
-	AddedTokens(isPair bool) uint
+	AddedTokens(isPair bool) int
 	// Process processes both encodings and returns a new merged one
-	// NOTE: pairEncoding is optional
-	Process(...Encoding) Encoding
+	// NOTE: pairEncodingOpt is optional
+	Process(encoding Encoding, pairEncodingOpt ...Encoding) Encoding
 }
 
 // Decoder takes care of (merges) the given slice of tokens to string
@@ -239,32 +239,20 @@ func (t *Tokenizer) WithPadding(padding PaddingParams) {
 	t.Padding = &padding
 }
 
-func (t *Tokenizer) GetVocabSize(withAddedToken bool) uint {
+func (t *Tokenizer) GetVocabSize(withAddedToken bool) int {
 	if withAddedToken {
-		return (*t.Model).GetVocabSize() + uint(len(t.AddedTokens))
+		return (*t.Model).GetVocabSize() + len(t.AddedTokens)
 	}
 
 	return (*t.Model).GetVocabSize()
 }
 
-func (t *Tokenizer) TokenToId(token string) uint32 {
-
-	addedToken := AddedTokenFrom(token)
-
-	id, ok := t.AddedTokens[addedToken]
-	if ok {
-		return id
-	}
+func (t *Tokenizer) TokenToId(token string) (id uint32, ok bool) {
 
 	return (*t.Model).TokenToId(token)
-
 }
 
-func (t *Tokenizer) IdToToken(id uint32) string {
-	tok, ok := t.AddedTokensR[id]
-	if ok {
-		return tok.Content
-	}
+func (t *Tokenizer) IdToToken(id uint32) (token string, ok bool) {
 	return (*t.Model).IdToToken(id)
 }
 
@@ -323,7 +311,7 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 	for _, s := range splits {
 		// If this is one of our added tokens, return an encoding directly
 		if s.Found {
-			e := NewEncoding(*normalizer.NewNormalizedFrom(s.Content), []uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, uint(len(s.Content))}}, []uint32{0}, []uint32{1}, []Encoding{})
+			e := NewEncoding(*normalizer.NewNormalizedFrom(s.Content), []uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{})
 
 			encodings = append(encodings, e)
 
@@ -347,10 +335,10 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 				_, preTokenized = (*t.PreTokenizer).PreTokenize(normalized)
 			} else {
 				str := normalized.GetNormalized()
-				start := uint(0)
-				end := uint(len(str))
+				start := 0
+				end := len(str)
 				preToks := []PreToken{
-					PreToken{
+					{
 						Value: normalized.GetNormalized(),
 						Offsets: Offsets{
 							Start: start,
@@ -362,6 +350,7 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 			}
 
 			// 3. Model
+
 			output, err := (*t.Model).Tokenize(*preTokenized)
 			if err != nil {
 				log.Fatal(err)
@@ -441,7 +430,7 @@ func (t *Tokenizer) Decode(ids []uint32, skipSpecialTokens bool) string {
 		tok, ok := t.AddedTokensR[id]
 		if !ok {
 			// Look up at model
-			token = t.IdToToken(id)
+			token, _ = t.IdToToken(id)
 		}
 
 		token = tok.Content
@@ -866,7 +855,7 @@ func (t *Tokenizer) preTokenize(sentence string) []PreToken {
 		return []PreToken{
 			{
 				Value:   sentence,
-				Offsets: Offsets{0, uint(len(sentence))},
+				Offsets: Offsets{0, len(sentence)},
 			},
 		}
 	}
@@ -885,15 +874,15 @@ func (t *Tokenizer) normalize(sequence string) normalizer.NormalizedString {
 
 // AddSpecialTokens registers give tokens as special tokens. This is especially useful
 // for removing them while decoding.
-func (t *Tokenizer) AddSpecialTokens(tokens []string) uint {
+func (t *Tokenizer) AddSpecialTokens(tokens []string) int {
 	var addedTokens []AddedToken
 	for _, tok := range tokens {
 		addedTok := AddedTokenFrom(tok)
 		addedTokens = append(addedTokens, addedTok)
 
 		// add to special tokens
-		id := t.TokenToId(tok)
-		if id > 0 {
+		id, ok := t.TokenToId(tok)
+		if ok {
 			t.SpecialTokens[tok] = id
 		}
 	}
@@ -907,32 +896,32 @@ func (t *Tokenizer) AddSpecialTokens(tokens []string) uint {
 }
 
 // AddTokens adds given tokens to added vocabulary
-func (t *Tokenizer) AddTokens(tokens []AddedToken) uint {
+func (t *Tokenizer) AddTokens(tokens []AddedToken) int {
 	var ignored = 0
 	for _, tok := range tokens {
-		ok := t.TokenToId(tok.Content)
-		if len(tok.Content) == 0 || ok > 0 {
+		_, ok := t.TokenToId(tok.Content)
+		if len(tok.Content) == 0 || ok {
 			ignored += 1
 			continue
 		}
 
 		newId := uint32((*t.Model).GetVocabSize()) + uint32(len(t.AddedTokens))
-		id := t.AddedTokens[tok]
+		_, ok = t.AddedTokens[tok]
 		// found
-		if id > 0 {
+		if ok {
 			ignored += 1
+		} else {
+			// not found. Add it
+			t.AddedTokens[tok] = newId
+			// update the current revert map
+			t.AddedTokensR[newId] = tok
 		}
-		// not found. Add it
-		t.AddedTokens[tok] = newId
-		// update the current revert map
-		t.AddedTokensR[newId] = tok
-
 	}
 
 	t.refreshAddedTokens()
 
 	// Return the number of added tokens
-	return uint(len(tokens) - ignored)
+	return len(tokens) - ignored
 }
 
 // PostProcess processes the case where there is no PostProcessor set

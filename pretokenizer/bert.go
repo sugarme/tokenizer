@@ -20,7 +20,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 
 	var (
 		words  []tokenizer.PreToken
-		offset uint   = 0
+		offset int    = 0
 		word   []rune = make([]rune, 0)
 	)
 
@@ -28,7 +28,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 		if shouldSplit(r) {
 			if len(word) > 0 {
 				offsets := tokenizer.Offsets{
-					Start: offset - uint(len(word)),
+					Start: offset - len(word),
 					End:   offset,
 				}
 				words = append(words, tokenizer.PreToken{
@@ -58,7 +58,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 	// Potential last word
 	if len(word) > 0 {
 		offsets := tokenizer.Offsets{
-			Start: offset - uint(len(word)),
+			Start: offset - len(word),
 			End:   offset,
 		}
 
