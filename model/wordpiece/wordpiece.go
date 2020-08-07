@@ -200,7 +200,7 @@ func (wp WordPiece) GetVocab() (retVal *model.Vocab) {
 	return wp.vocab
 }
 
-func (wp WordPiece) VocabSize() (retVal int) {
+func (wp WordPiece) GetVocabSize() (retVal int) {
 	return len(*wp.vocab)
 }
 

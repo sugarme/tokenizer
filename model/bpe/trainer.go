@@ -579,10 +579,9 @@ func (bt *BpeTrainer) Train(wordCounts map[string]uint32) (tokenizer.Model, []st
 
 	// fmt.Printf("Word Counts: %v\n", wordCounts)
 
-	model, merges := bt.train(wordCounts)
+	bpe, merges := bt.train(wordCounts)
 
-	return model.(tokenizer.Model), merges
-
+	return bpe, merges
 }
 
 // Process a bunch of tokens, counting them
@@ -595,7 +594,7 @@ func (bt *BpeTrainer) ProcessTokens(words map[string]uint32, tokens []string) {
 }
 
 // Train a BPE model
-func (bt *BpeTrainer) train(wordCounts map[string]uint32) (interface{}, []string) {
+func (bt *BpeTrainer) train(wordCounts map[string]uint32) (BPE, []string) {
 	// return bt.Train(wordCounts)
 	var (
 		wordToId map[string]uint32 = make(map[string]uint32)
@@ -883,7 +882,7 @@ func (bt *BpeTrainer) train(wordCounts map[string]uint32) (interface{}, []string
 		fmt.Println(err)
 	}
 
-	return bpe, bt.SpecialTokens
+	return *bpe, bt.SpecialTokens
 }
 
 // Whether we should show progress

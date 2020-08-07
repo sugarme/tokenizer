@@ -453,7 +453,7 @@ func (b *BPE) WordToTokens(word Word, initialOffsets tokenizer.Offsets) ([]token
 
 // Tokenize tokenizes sentences into tokens
 // NOTE: sentence is []PreToken struct{Value string, Offsets Offsets}
-func (b *BPE) Tokenize(sentence []tokenizer.PreToken) ([]tokenizer.Token, error) {
+func (b BPE) Tokenize(sentence []tokenizer.PreToken) ([]tokenizer.Token, error) {
 
 	if len(sentence) == 0 {
 		return []tokenizer.Token{}, nil
@@ -534,21 +534,21 @@ func (b *BPE) Tokenize(sentence []tokenizer.PreToken) ([]tokenizer.Token, error)
 	return encoded, nil
 }
 
-func (b *BPE) TokenToId(token string) (id uint32, ok bool) {
+func (b BPE) TokenToId(token string) (id uint32, ok bool) {
 	id, ok = (*b.Vocab)[token]
 	return id, ok
 }
 
-func (b *BPE) IdToToken(id uint32) (token string, ok bool) {
+func (b BPE) IdToToken(id uint32) (token string, ok bool) {
 	token, ok = (*b.VocabR)[id]
 	return token, ok
 }
 
-func (b *BPE) GetVocabSize() int {
+func (b BPE) GetVocabSize() int {
 	return len(*b.Vocab)
 }
 
-func (b *BPE) Save(dir string, nameOpt ...string) error {
+func (b BPE) Save(dir string, nameOpt ...string) error {
 	var vfile string
 	var mfile string
 	var err error

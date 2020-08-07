@@ -256,7 +256,7 @@ func (t *Tokenizer) IdToToken(id uint32) (token string, ok bool) {
 	return (*t.Model).IdToToken(id)
 }
 
-func (t *Tokenizer) NumAddedTokens(isPair bool) uint {
+func (t *Tokenizer) NumAddedTokens(isPair bool) int {
 	return (*t.PostProcessor).AddedTokens(isPair)
 }
 
@@ -933,7 +933,7 @@ func (t *Tokenizer) postProcess(encoding Encoding, pairEncodings ...Encoding) En
 	)
 	// 1. Truncate if needed
 	if t.Trunc != nil {
-		var nAddedTokens uint
+		var nAddedTokens int
 		if t.PostProcessor == nil {
 			nAddedTokens = 0
 		}
@@ -946,7 +946,7 @@ func (t *Tokenizer) postProcess(encoding Encoding, pairEncodings ...Encoding) En
 
 		if nAddedTokens > 0 {
 			params := t.Trunc
-			params.MaxLength = t.Trunc.MaxLength - nAddedTokens
+			params.MaxLength = t.Trunc.MaxLength - uint(nAddedTokens)
 			TruncateEncodings(encoding, *params, pairEncoding)
 		} else {
 			TruncateEncodings(encoding, *t.Trunc, pairEncoding)
