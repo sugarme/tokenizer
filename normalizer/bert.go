@@ -22,17 +22,13 @@ func NewBertNormalizer(cleanText, lowercase, handleChineseChars, stripAccents bo
 
 // IsWhitespace checks whether rune c is a BERT whitespace character
 func isWhitespace(c rune) bool {
+	// NOTE. `unicode.IsSpace(c rune)` has more cases
 	switch c {
-	case ' ':
+	case ' ', '\t', '\n', '\r':
 		return true
-	case '\t':
-		return true
-	case '\n':
-		return true
-	case '\r':
-		return true
+	default:
+		return false
 	}
-	return unicode.Is(unicode.Zs, c)
 }
 
 // IsControl checks whether rune c is a BERT control character
