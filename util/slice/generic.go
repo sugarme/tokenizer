@@ -20,3 +20,15 @@ func Contain(item interface{}, slice interface{}) bool {
 
 	return false
 }
+
+// Reverse reverses any slice
+// Source: https://stackoverflow.com/questions/28058278
+func Reverse(s interface{}) (retVal interface{}) {
+	n := reflect.ValueOf(s).Len()
+	swap := reflect.Swapper(s)
+	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
+		swap(i, j)
+	}
+
+	return s
+}

@@ -102,7 +102,7 @@ func (n *Normalized) OriginalOffsets(r []int) []int {
 
 func (n *Normalized) RangeOf(s string, r []int) (string, error) {
 	start := r[0]
-	end := r[len(r)]
+	end := r[len(r)-1]
 
 	if start >= len(s) || end > len(s) {
 
@@ -111,7 +111,6 @@ func (n *Normalized) RangeOf(s string, r []int) (string, error) {
 	}
 
 	return s[start:end], nil
-
 }
 
 // Range returns a range of the normalized string (indexing on character not byte)
@@ -142,7 +141,6 @@ type ChangeMap struct {
 // `change` should never be more than `1`. If multiple runes are added, each of
 // them has a `change` of `1`, but more doesn't make any sense.
 // We treat any value above `1` as `1`.
-// func (n *Normalized) Transform(m []ChangeMap, initialOffset int) {
 func (n *Normalized) Transform(m []ChangeMap, initialOffset int) {
 	offset := 0
 	remainingOffset := initialOffset
@@ -182,29 +180,29 @@ func (n *Normalized) Transform(m []ChangeMap, initialOffset int) {
 
 		var align Alignment
 
-		switch c := changes; { // Recall: Using switch with no condition. Ref: https://yourbasic.org/golang/switch-statement/
-		// Newly added `character`
-		case c > 0:
-			offset += 1
+		switch c := changes; {
+		case c > 0: // newly added `character`
+			offset += 1 // Or + changes?
 			if idx < 1 {
 				align = Alignment{
 					Pos:     0,
 					Changes: 0,
 				}
+			} else {
+				// Get alignment from previous index
+				align = n.normalizedString.Alignments[idx-1]
 			}
-			// Get alignment from previous index
-			align = n.normalizedString.Alignments[idx-1]
 
-		// No changes
-		case c == 0:
-			align = n.normalizedString.Alignments[idx]
+		case c == 0: // no changes
+			align = n.normalizedString.Alignments[idx-initialOffset]
 
 		// Some `characters` were removed. We merge our range with one from the
 		// removed `characters` as the new alignment
 		case c < 0:
 			var uch = -changes
 			offset += changes
-			aligns := n.normalizedString.Alignments[idx:(idx + uch + 1)]
+			// aligns := n.normalizedString.Alignments[idx:(idx + uch + 1)]
+			aligns := n.normalizedString.Alignments[idx:(idx + uch)]
 
 			// Find max, min from this slice
 			// TODO: improve algorithm? gonum?
@@ -462,7 +460,6 @@ func (n *Normalized) Filter(fr rune) {
 	fmt.Printf("%v\n", unrevMap)
 
 	n.Transform(unrevMap, removed)
-
 }
 
 func (n *Normalized) RemoveAccents() {
@@ -470,7 +467,7 @@ func (n *Normalized) RemoveAccents() {
 	s := n.normalizedString.Normalized
 	b := make([]byte, len(s))
 
-	tf := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
+	tf := transform.Chain(transform.RemoveFunc(isMn))
 
 	_, _, err := tf.Transform(b, []byte(s), true)
 	if err != nil {
@@ -478,7 +475,6 @@ func (n *Normalized) RemoveAccents() {
 	}
 
 	n.normalizedString.Normalized = string(b)
-
 }
 
 // Lowercase transforms string to lowercase
