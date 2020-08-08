@@ -40,7 +40,7 @@ func NewNormalizedFrom(s string) *Normalized {
 	var alignments []Alignment
 
 	// Break down string to slice of runes
-	for i, _ := range []rune(s) {
+	for i := range []rune(s) {
 		alignments = append(alignments, Alignment{
 			Pos:     i,
 			Changes: i + 1,

@@ -72,12 +72,17 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 	return words
 }
 
-type BertTokenizer struct{}
+type BertPreTokenizer struct{}
+
+func NewBertPreTokenizer() (retVal BertPreTokenizer) {
+	return BertPreTokenizer{}
+}
 
 // Implement PreTokenizer interface for BertTokenizer:
 // ===================================================
 
-func (bt *BertTokenizer) PreTokenize(normalized *normalizer.Normalized) (retVal []tokenizer.PreToken) {
+// PreTokenize(*normalizer.Normalized) (*normalizer.Normalized, *[]PreToken)
+func (bt BertPreTokenizer) PreTokenize(normalized *normalizer.Normalized) (n *normalizer.Normalized, preTokens *[]tokenizer.PreToken) {
 
 	var splitTokens []tokenizer.PreToken
 
@@ -107,5 +112,5 @@ func (bt *BertTokenizer) PreTokenize(normalized *normalizer.Normalized) (retVal 
 		splitTokens = append(splitTokens, splitToks...)
 	}
 
-	return splitTokens
+	return normalized, &splitTokens
 }

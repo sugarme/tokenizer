@@ -90,7 +90,7 @@ func (wpb WordPieceBuilder) Build() (retVal WordPiece) {
 	}
 
 	vocab := *wpb.config.vocab
-	var vocabR model.VocabR
+	var vocabR model.VocabR = make(map[uint32]string)
 	for k, v := range vocab {
 		vocabR[v] = k
 	}
@@ -172,6 +172,47 @@ func NewWordPieceBuilderFromFile(filename string) (retVal WordPieceBuilder) {
 	wpb := wp.Builder()
 
 	return wpb.Files(filename)
+}
+
+// NewWordPieceFromFile initializes a WordPiece model from a mapping file
+func NewWordPieceFromFile(vocabFile string, unkToken string, maxInputCharsPerWordOpt ...int) (retVal WordPiece, err error) {
+
+	filePath, err := filepath.Abs(vocabFile)
+	if err != nil {
+		return retVal, err
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return retVal, err
+	}
+	defer file.Close()
+
+	var (
+		vocab model.Vocab = make(map[string]uint32)
+		line  string
+		idx   uint32 = 0
+	)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line = scanner.Text()
+		vocab[line] = idx
+		idx += 1
+	}
+
+	if err := scanner.Err(); err != nil {
+		return retVal, err
+	}
+
+	wp := NewWordPiece()
+	builder := wp.Builder().Vocab(&vocab).UnkToken(unkToken)
+	if len(maxInputCharsPerWordOpt) > 0 {
+		maxInputCharsPerWord := maxInputCharsPerWordOpt[0]
+		builder = builder.MaxInputCharsPerWord(maxInputCharsPerWord)
+	}
+
+	return builder.Build(), nil
 }
 
 // WordPieceBuilderFromBPE create a WordPieceBuilder from BPE model

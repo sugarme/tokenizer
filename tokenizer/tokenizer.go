@@ -59,8 +59,8 @@ type PostProcessor interface {
 	// Returns the number of tokens that will be added during the processing step
 	AddedTokens(isPair bool) int
 	// Process processes both encodings and returns a new merged one
-	// NOTE: pairEncodingOpt is optional
-	Process(encoding Encoding, pairEncodingOpt ...Encoding) Encoding
+	// NOTE: pairEncoding is optional
+	Process(encoding Encoding, encodingOpt ...Encoding) Encoding
 }
 
 // Decoder takes care of (merges) the given slice of tokens to string
@@ -247,12 +247,24 @@ func (t *Tokenizer) GetVocabSize(withAddedToken bool) int {
 	return (*t.Model).GetVocabSize()
 }
 
-func (t *Tokenizer) TokenToId(token string) (id uint32, ok bool) {
+func (t *Tokenizer) TokenToId(token string) (uint32, bool) {
+
+	addedToken := AddedTokenFrom(token)
+
+	id, ok := t.AddedTokens[addedToken]
+	if ok {
+		return id, true
+	}
 
 	return (*t.Model).TokenToId(token)
+
 }
 
-func (t *Tokenizer) IdToToken(id uint32) (token string, ok bool) {
+func (t *Tokenizer) IdToToken(id uint32) (string, bool) {
+	tok, ok := t.AddedTokensR[id]
+	if ok {
+		return tok.Content, true
+	}
 	return (*t.Model).IdToToken(id)
 }
 
@@ -338,7 +350,7 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 				start := 0
 				end := len(str)
 				preToks := []PreToken{
-					{
+					PreToken{
 						Value: normalized.GetNormalized(),
 						Offsets: Offsets{
 							Start: start,
@@ -350,7 +362,6 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 			}
 
 			// 3. Model
-
 			output, err := (*t.Model).Tokenize(*preTokenized)
 			if err != nil {
 				log.Fatal(err)
@@ -881,8 +892,8 @@ func (t *Tokenizer) AddSpecialTokens(tokens []string) int {
 		addedTokens = append(addedTokens, addedTok)
 
 		// add to special tokens
-		id, ok := t.TokenToId(tok)
-		if ok {
+		id, _ := t.TokenToId(tok)
+		if id > 0 {
 			t.SpecialTokens[tok] = id
 		}
 	}
@@ -906,16 +917,16 @@ func (t *Tokenizer) AddTokens(tokens []AddedToken) int {
 		}
 
 		newId := uint32((*t.Model).GetVocabSize()) + uint32(len(t.AddedTokens))
-		_, ok = t.AddedTokens[tok]
+		id := t.AddedTokens[tok]
 		// found
-		if ok {
+		if id > 0 {
 			ignored += 1
-		} else {
-			// not found. Add it
-			t.AddedTokens[tok] = newId
-			// update the current revert map
-			t.AddedTokensR[newId] = tok
 		}
+		// not found. Add it
+		t.AddedTokens[tok] = newId
+		// update the current revert map
+		t.AddedTokensR[newId] = tok
+
 	}
 
 	t.refreshAddedTokens()
@@ -1059,46 +1070,3 @@ func getPattern(tok AddedToken) string {
 
 	return r
 }
-
-/*
- *     pub fn get_pattern(&self) -> String {
- *         let mut r = if self.single_word {
- *             let first_b = self
- *                 .content
- *                 .chars()
- *                 .next()
- *                 .map(|c| {
- *                     if regex_syntax::is_word_character(c) {
- *                         r"\b"
- *                     } else {
- *                         ""
- *                     }
- *                 })
- *                 .unwrap();
- *             let last_b = self
- *                 .content
- *                 .chars()
- *                 .last()
- *                 .map(|c| {
- *                     if regex_syntax::is_word_character(c) {
- *                         r"\b"
- *                     } else {
- *                         ""
- *                     }
- *                 })
- *                 .unwrap();
- *             format!(r"{}{}{}", first_b, regex::escape(&self.content), last_b)
- *         } else {
- *             regex::escape(&self.content)
- *         };
- *
- *         if self.lstrip && self.rstrip {
- *             r = format!(r"(\s)?{}(\s)?", r);
- *         } else if self.lstrip {
- *             r = format!(r"(\s)?{}", r);
- *         } else if self.rstrip {
- *             r = format!(r"{}(\s)?", r);
- *         }
- *
- *         r
- *     } */

@@ -17,7 +17,7 @@ func main() {
 
 	tk := tokenizer.NewTokenizer(model)
 
-	bl := pretokenizer.NewByteLevel()
+	bl := pretokenizer.NewBertPreTokenizer()
 
 	tk.WithPreTokenizer(bl)
 

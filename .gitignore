@@ -3,6 +3,7 @@
 *.swo
 
 input/
+data/
 example/testdata/
 *.dat
 *.log
