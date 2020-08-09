@@ -171,7 +171,8 @@ func (n *Normalized) ConvertOffset(r Range) (retVal Range) {
 	return retVal
 }
 
-// GetRangeOf returns a range of the given string slice, by indexing chars instead of bytes
+// RangeOf returns a substring of the given string by indexing chars instead of bytes
+// It will return empty string if input range is out of bound
 func RangeOf(s string, r []int) (retVal string) {
 	runes := []rune(s)
 	length := len(runes)
@@ -186,21 +187,38 @@ func RangeOf(s string, r []int) (retVal string) {
 	return string(slicedRunes)
 }
 
-// Range returns a range of the normalized string (indexing on character not byte)
+// Range returns a substring of the NORMALIZED string (indexing on character not byte)
 func (n *Normalized) Range(r Range) (retVal string) {
-	var s string
+	var nRange Range
+
+	// Convert to NormalizedRange if r is OriginalRange
 	switch r.indexOn {
 	case OriginalTarget:
-		s = n.normalizedString.Original
+		nRange = n.ConvertOffset(r)
 	case NormalizedTarget:
-		s = n.normalizedString.Normalized
+		nRange = r
+	default:
+		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
 	}
 
-	return RangeOf(s, util.MakeRange(r.start, r.end))
+	return RangeOf(n.normalizedString.Normalized, util.MakeRange(nRange.start, nRange.end))
 }
 
-func (n *Normalized) RangeOriginal(r []int) string {
-	return RangeOf(n.normalizedString.Original, r)
+// RangeOriginal returns substring of ORIGINAL string
+func (n *Normalized) RangeOriginal(r Range) string {
+	var oRange Range
+	switch r.indexOn {
+	case NormalizedTarget:
+		oRange = n.ConvertOffset(r)
+	case OriginalTarget:
+		oRange = r
+	default:
+		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
+	}
+
+	rSlice := util.MakeRange(oRange.start, oRange.end)
+
+	return RangeOf(n.normalizedString.Original, rSlice)
 }
 
 type ChangeMap struct {

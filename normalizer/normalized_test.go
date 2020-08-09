@@ -12,7 +12,7 @@ import (
 	// "golang.org/x/text/unicode/norm"
 
 	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/util"
+	// "github.com/sugarme/tokenizer/util"
 )
 
 func TestNormalized_NewNormalizedFrom(t *testing.T) {
@@ -114,7 +114,7 @@ func TestNormalized_RangeConversion(t *testing.T) {
 
 	originalRange := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
 	got1 := gotN.Range(originalRange)
-	want1 := "Hello"
+	want1 := "hello"
 	if !reflect.DeepEqual(want1, got1) {
 		t.Errorf("Want: %v\n", want1)
 		t.Errorf("Got: %v\n", got1)
@@ -144,7 +144,7 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Got: '%v'\n", got4)
 	}
 
-	got5 := gotN.RangeOriginal(util.MakeRange(6, 11))
+	got5 := gotN.RangeOriginal(originalRange)
 	want5 := "Hello"
 	if !reflect.DeepEqual(want5, got5) {
 		t.Errorf("Want: %v\n", want5)
@@ -162,9 +162,9 @@ func TestNormalized_OriginalRange(t *testing.T) {
 
 	normalizedRange := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
 	worldN := n.Range(normalizedRange)
-	rangeOriginal := n.ConvertOffset(normalizedRange)
-	fmt.Printf("rangeOriginal: %+v\n", rangeOriginal)
-	worldO := n.Range(rangeOriginal)
+	originalRange := n.ConvertOffset(normalizedRange)
+	fmt.Printf("rangeOriginal: %+v\n", originalRange)
+	worldO := n.RangeOriginal(originalRange)
 
 	wantWorldN := "world"
 	wantWorldO := "World"
@@ -177,6 +177,39 @@ func TestNormalized_OriginalRange(t *testing.T) {
 	if !reflect.DeepEqual(wantWorldO, worldO) {
 		t.Errorf("Want original world: %v\n", wantWorldO)
 		t.Errorf("Got original world: %v\n", worldO)
+	}
+}
+
+func TestNormalized_AddedAroundEdge(t *testing.T) {
+	n := normalizer.NewNormalizedFrom(`Hello`)
+
+	var changeMap []normalizer.ChangeMap = []normalizer.ChangeMap{
+		{" ", 1},
+		{"H", 0},
+		{"e", 0},
+		{"l", 0},
+		{"l", 0},
+		{"o", 0},
+		{" ", 1},
+	}
+
+	n.Transform(changeMap, 0)
+
+	want := " Hello "
+	got := n.GetNormalized()
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	n1 := normalizer.NewNormalizedFrom(` Hello `)
+	normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
+	gotO := n1.RangeOriginal(normalizedRange)
+	wantO := "Hello"
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want: '%v'\n", wantO)
+		t.Errorf("Got: '%v'\n", gotO)
 	}
 }
 
