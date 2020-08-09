@@ -1,8 +1,9 @@
 package normalizer_test
 
 import (
-	"fmt"
+	// "fmt"
 	"reflect"
+
 	// "strings"
 	"testing"
 	// "unicode"
@@ -11,6 +12,7 @@ import (
 	// "golang.org/x/text/unicode/norm"
 
 	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/util"
 )
 
 func TestNormalized_NewNormalizedFrom(t *testing.T) {
@@ -108,28 +110,44 @@ func TestNormalized_RangeConversion(t *testing.T) {
 	gotN := normalizer.NewNormalizedFrom(`    __Hello__   `)
 
 	gotN.Filter(' ')
-	fmt.Printf("Original string after filtering: '%v'\n", gotN.GetOriginal())
 	gotN.Lowercase()
-	fmt.Printf("Original string after lowercase: '%v'\n", gotN.GetOriginal())
 
-	got1, err := gotN.RangeOriginal([]int{6, 7, 8, 9, 10, 11})
-	if err != nil {
-		t.Fatal(err)
-	}
+	originalRange := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
+	got1 := gotN.Range(originalRange)
 	want1 := "Hello"
 	if !reflect.DeepEqual(want1, got1) {
 		t.Errorf("Want: %v\n", want1)
 		t.Errorf("Got: %v\n", got1)
 	}
 
-	got2, err := gotN.Range([]int{6, 7, 8, 9, 10, 11})
-	if err != nil {
-		t.Fatal(err)
-	}
+	normalizedRange := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
+	got2 := gotN.Range(normalizedRange)
 	want2 := "hello"
-	if !reflect.DeepEqual(want1, got1) {
+	if !reflect.DeepEqual(want2, got2) {
 		t.Errorf("Want: %v\n", want2)
 		t.Errorf("Got: %v\n", got2)
 	}
 
+	// helloN will have `indexOn` = NormalizedTarget
+	helloN := gotN.ConvertOffset(normalizer.NewRange(6, 11, normalizer.OriginalTarget))
+	got3 := helloN
+	want3 := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
+	if !reflect.DeepEqual(want3, got3) {
+		t.Errorf("Want: %+v\n", want3)
+		t.Errorf("Got: %+v\n", got3)
+	}
+
+	got4 := gotN.Range(helloN)
+	want4 := "hello"
+	if !reflect.DeepEqual(want4, got4) {
+		t.Errorf("Want: '%v'\n", want4)
+		t.Errorf("Got: '%v'\n", got4)
+	}
+
+	got5 := gotN.RangeOriginal(util.MakeRange(6, 11))
+	want5 := "Hello"
+	if !reflect.DeepEqual(want5, got5) {
+		t.Errorf("Want: %v\n", want5)
+		t.Errorf("Got: %v\n", got5)
+	}
 }

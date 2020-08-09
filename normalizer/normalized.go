@@ -1,8 +1,7 @@
 package normalizer
 
 import (
-	"errors"
-	"fmt"
+	// "fmt"
 	"log"
 	"strings"
 	"unicode"
@@ -12,6 +11,32 @@ import (
 
 	"github.com/sugarme/tokenizer/util"
 )
+
+// RangeType is a enum like representing
+// which string (original or normalized) then range
+// indexes on.
+type IndexOn int
+
+const (
+	OriginalTarget = iota
+	NormalizedTarget
+)
+
+// Range is a slice of indexes on either normalized string or original string
+// It is INCLUSIVE start and INCLUSIVE end
+type Range struct {
+	start   int
+	end     int
+	indexOn IndexOn
+}
+
+func NewRange(start int, end int, indexOn IndexOn) (retVal Range) {
+	return Range{
+		start:   start,
+		end:     end,
+		indexOn: indexOn,
+	}
+}
 
 // NormalizedString keeps both versions of an input string and
 // provides methods to access them
@@ -76,12 +101,12 @@ func (n *Normalized) GetOriginal() string {
 // Returns None if out of bounds
 func (n *Normalized) OriginalOffsets(r []int) []int {
 	start := r[0]
-	end := len(r)
+	end := len(r) - 1
 
 	var selectedAlignments []Alignment
 
 	firstAlign := n.normalizedString.Alignments[0]
-	lastAlign := n.normalizedString.Alignments[len(n.normalizedString.Alignments)]
+	lastAlign := n.normalizedString.Alignments[len(n.normalizedString.Alignments)-1]
 
 	if start < firstAlign.Pos || end > lastAlign.Changes {
 		return nil
@@ -94,32 +119,87 @@ func (n *Normalized) OriginalOffsets(r []int) []int {
 	}
 
 	pos := selectedAlignments[0].Pos
-	changes := selectedAlignments[len(selectedAlignments)].Changes
+	changes := selectedAlignments[len(selectedAlignments)-1].Changes
 
 	return util.MakeRange(pos, changes)
-
 }
 
-func (n *Normalized) RangeOf(s string, r []int) (string, error) {
-	start := r[0]
-	end := r[len(r)-1]
+// ConvertOffset converts the given offsets range from referential to the the
+// other one (`Original` to `Normalized` and vice versa)
+func (n *Normalized) ConvertOffset(r Range) (retVal Range) {
 
-	if start >= len(s) || end > len(s) {
+	offset := n.normalizedString.Alignments[0].Changes
+	switch r.indexOn {
+	case OriginalTarget: // convert to normalized
+		start := 0
+		end := 0
+		// get all alignments in range
+		var alignments []Alignment
+		for _, a := range n.normalizedString.Alignments {
+			if r.end >= a.Changes {
+				alignments = append(alignments, a)
+			}
+		}
+		for _, a := range alignments {
+			if a.Pos+offset <= r.start {
+				start = a.Pos
+			}
+			if a.Changes <= r.end {
+				end = a.Pos
+			}
+		}
+		retVal = Range{
+			start:   start,
+			end:     end,
+			indexOn: NormalizedTarget,
+		}
+	case NormalizedTarget: // convert to original
+		alignments := n.normalizedString.Alignments
+		start := alignments[0].Changes
+		end := alignments[len(alignments)-1].Pos
+		retVal = Range{
+			start:   start,
+			end:     end,
+			indexOn: OriginalTarget,
+		}
 
-		err := errors.New("Input range is out of bounds.")
-		return "", err
+	default:
+		log.Fatalf("Invalid 'indexOn' type: %v\n", r.indexOn)
 	}
 
-	return s[start:end], nil
+	return retVal
+}
+
+// GetRangeOf returns a range of the given string slice, by indexing chars instead of bytes
+func RangeOf(s string, r []int) (retVal string) {
+	runes := []rune(s)
+	length := len(runes)
+	start := r[0]
+	end := r[len(r)-1] // inclusive
+	// if out of range, return 'empty' string
+	if start >= length || end > length || start >= end {
+		return ""
+	}
+
+	slicedRunes := runes[start:end]
+	return string(slicedRunes)
 }
 
 // Range returns a range of the normalized string (indexing on character not byte)
-func (n *Normalized) Range(r []int) (string, error) {
-	return n.RangeOf(n.normalizedString.Normalized, r)
+func (n *Normalized) Range(r Range) (retVal string) {
+	var s string
+	switch r.indexOn {
+	case OriginalTarget:
+		s = n.normalizedString.Original
+	case NormalizedTarget:
+		s = n.normalizedString.Normalized
+	}
+
+	return RangeOf(s, util.MakeRange(r.start, r.end))
 }
 
-func (n *Normalized) RangeOriginal(r []int) (string, error) {
-	return n.RangeOf(n.normalizedString.Original, r)
+func (n *Normalized) RangeOriginal(r []int) string {
+	return RangeOf(n.normalizedString.Original, r)
 }
 
 type ChangeMap struct {
@@ -304,7 +384,7 @@ func (n *Normalized) NFC() {
 
 	for !it.Done() {
 		runes := []rune(string(it.Next()))
-		fmt.Printf("%+q", runes)
+		// fmt.Printf("%+q", runes)
 
 		if len(runes) == 1 {
 			changeMap = append(changeMap, ChangeMap{
@@ -457,7 +537,7 @@ func (n *Normalized) Filter(fr rune) {
 		unrevMap = append(unrevMap, changeMap[i])
 	}
 
-	fmt.Printf("%v\n", unrevMap)
+	// fmt.Printf("%v\n", unrevMap)
 
 	n.Transform(unrevMap, removed)
 }
@@ -514,7 +594,7 @@ func (n *Normalized) SplitOff(at int) {
 
 	// Alignments
 	remainVals := runeVals[0:at]
-	for i, _ := range remainVals {
+	for i := range remainVals {
 		aligns = append(aligns, Alignment{
 			Pos:     i,
 			Changes: i + 1,
@@ -612,9 +692,9 @@ func (n *Normalized) lrstrip(left, right bool) {
 		}
 	}
 
-	fmt.Println(runes)
-	fmt.Printf("LeadingSpace: %d\n", leadingSpaces)
-	fmt.Printf("TrailingSpace: %d\n", trailingSpaces)
+	// fmt.Println(runes)
+	// fmt.Printf("LeadingSpace: %d\n", leadingSpaces)
+	// fmt.Printf("TrailingSpace: %d\n", trailingSpaces)
 
 	if leadingSpaces > 0 || trailingSpaces > 0 {
 		for i, r := range runes {
