@@ -155,8 +155,9 @@ func (n *Normalized) ConvertOffset(r Range) (retVal Range) {
 		}
 	case NormalizedTarget: // convert to original
 		alignments := n.normalizedString.Alignments
-		start := alignments[0].Changes
-		end := alignments[len(alignments)-1].Pos
+		start := alignments[r.start].Pos
+		end := alignments[r.end].Pos
+
 		retVal = Range{
 			start:   start,
 			end:     end,

@@ -1,7 +1,7 @@
 package normalizer_test
 
 import (
-	// "fmt"
+	"fmt"
 	"reflect"
 
 	// "strings"
@@ -151,3 +151,33 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Got: %v\n", got5)
 	}
 }
+
+func TestNormalized_OriginalRange(t *testing.T) {
+	n := normalizer.NewNormalizedFrom(`Hello_______ World!`)
+	n.Filter('_')
+	n.Lowercase()
+	fmt.Printf("Original: '%v'\n", n.GetOriginal())
+	fmt.Printf("Normalized: '%v'\n", n.GetNormalized())
+	fmt.Printf("All alignments: %+v\n", n.Get().Alignments)
+
+	normalizedRange := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
+	worldN := n.Range(normalizedRange)
+	rangeOriginal := n.ConvertOffset(normalizedRange)
+	fmt.Printf("rangeOriginal: %+v\n", rangeOriginal)
+	worldO := n.Range(rangeOriginal)
+
+	wantWorldN := "world"
+	wantWorldO := "World"
+
+	if !reflect.DeepEqual(wantWorldN, worldN) {
+		t.Errorf("Want normalized world: %v\n", wantWorldN)
+		t.Errorf("Got normalized world: %v\n", worldN)
+	}
+
+	if !reflect.DeepEqual(wantWorldO, worldO) {
+		t.Errorf("Want original world: %v\n", wantWorldO)
+		t.Errorf("Got original world: %v\n", worldO)
+	}
+}
+
+// TODO. more unit tests.
