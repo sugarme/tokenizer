@@ -1,7 +1,7 @@
 package normalizer_test
 
 import (
-	// "fmt"
+	"fmt"
 	"reflect"
 
 	// "strings"
@@ -12,7 +12,7 @@ import (
 	// "golang.org/x/text/unicode/norm"
 
 	"github.com/sugarme/tokenizer/normalizer"
-	// "github.com/sugarme/tokenizer/util"
+	"github.com/sugarme/tokenizer/util"
 )
 
 func TestNormalized_NewNormalizedFrom(t *testing.T) {
@@ -165,53 +165,6 @@ func TestNormalized_OriginalRange(t *testing.T) {
 	}
 }
 
-func TestNormalized_AddedAroundEdge(t *testing.T) {
-	n := normalizer.NewNormalizedFrom(`Hello`)
-
-	var changeMap []normalizer.ChangeMap = []normalizer.ChangeMap{
-		{" ", 1},
-		{"H", 0},
-		{"e", 0},
-		{"l", 0},
-		{"l", 0},
-		{"o", 0},
-		{" ", 1},
-	}
-
-	n = n.Transform(changeMap, 0)
-
-	want := " Hello "
-	got := n.GetNormalized()
-
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("Want: '%v'\n", want)
-		t.Errorf("Got: '%v'\n", got)
-	}
-
-	n1 := normalizer.NewNormalizedFrom(` Hello `)
-	normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
-	gotO := n1.RangeOriginal(normalizedRange)
-	wantO := "Hello"
-	if !reflect.DeepEqual(wantO, gotO) {
-		t.Errorf("Want: '%v'\n", wantO)
-		t.Errorf("Got: '%v'\n", gotO)
-	}
-}
-
-func TestNormalized_RemoveAtStart(t *testing.T) {
-
-	n := normalizer.NewNormalizedFrom(`     Hello`).Filter(' ') // 5 white spaces
-
-	nRange := normalizer.NewRange(1, len([]rune("Hello")), normalizer.NormalizedTarget)
-	got := n.RangeOriginal(nRange)
-	want := "ello"
-	if !reflect.DeepEqual(want, got) {
-		t.Errorf("Want: '%v'\n", want)
-		t.Errorf("Got: '%v'\n", got)
-	}
-
-}
-
 func TestNormalized_ConvertOffset(t *testing.T) {
 	// Test 1
 	n1 := normalizer.NewNormalizedFrom(`    __Hello__   `).Filter(' ').Lowercase() // `__hello__`
@@ -279,6 +232,329 @@ func TestNormalized_ConvertOffset(t *testing.T) {
 	if !reflect.DeepEqual(want3b, got3b) {
 		t.Errorf("Want range: %v\n", want3b)
 		t.Errorf("Got range: %v\n", got3b)
+	}
+}
+
+func TestNormalized_AddedAroundEdge(t *testing.T) {
+	n := normalizer.NewNormalizedFrom(`Hello`)
+
+	var changeMap []normalizer.ChangeMap = []normalizer.ChangeMap{
+		{" ", 1},
+		{"H", 0},
+		{"e", 0},
+		{"l", 0},
+		{"l", 0},
+		{"o", 0},
+		{" ", 1},
+	}
+
+	n = n.Transform(changeMap, 0)
+
+	want := " Hello "
+	got := n.GetNormalized()
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	n1 := normalizer.NewNormalizedFrom(` Hello `)
+	normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
+	gotO := n1.RangeOriginal(normalizedRange)
+	wantO := "Hello"
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want: '%v'\n", wantO)
+		t.Errorf("Got: '%v'\n", gotO)
+	}
+}
+
+func TestNormalized_RemoveAtStart(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`     Hello`).Filter(' ') // 5 white spaces
+
+	nRange := normalizer.NewRange(1, len([]rune("Hello")), normalizer.NormalizedTarget)
+	got := n.RangeOriginal(nRange)
+	want := "ello"
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := "Hello"
+	got1 := n.RangeOriginal(normalizer.NewRange(0, n.Len(), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_RemoveAtEnd(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`Hello    `).Filter(' ')
+
+	nRange := normalizer.NewRange(0, 4, normalizer.NormalizedTarget)
+	got := n.RangeOriginal(nRange)
+	want := "Hell"
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+	want1 := "Hello"
+	got1 := n.RangeOriginal(normalizer.NewRange(0, n.Len(), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_RemoveAround(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`  Hello  `).Filter(' ')
+
+	want := "Hello"
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := "Hello"
+	got1 := n.RangeOriginal(normalizer.NewRange(0, len([]rune("Hello")), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+
+	want2 := "ell"
+	got2 := n.RangeOriginal(normalizer.NewRange(1, len([]rune("Hell")), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: '%v'\n", want2)
+		t.Errorf("Got: '%v'\n", got2)
+	}
+}
+
+func TestNormalized_Lstrip(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`  This is an example  `).LStrip()
+
+	want := "This is an example  "
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := "This is an example  "
+	got1 := n.RangeOriginal(normalizer.NewRange(0, n.Len(), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_Rstrip(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`  This is an example  `).RStrip()
+
+	want := "  This is an example"
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := "  This is an example"
+	got1 := n.RangeOriginal(normalizer.NewRange(0, n.Len(), normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_Strip(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`  This is an example  `).Strip()
+
+	want := "This is an example"
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+}
+
+func TestNormalized_Prepend(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`there`)
+	n = n.Prepend("Hey ")
+
+	want := "Hey there"
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := []normalizer.Alignment{
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		{0, 0},
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 4},
+		{4, 5},
+	}
+	got1 := n.Alignments()
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_Append(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`Hey`)
+	n = n.Append(" there")
+
+	want := "Hey there"
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := []normalizer.Alignment{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 3},
+		{3, 3},
+		{3, 3},
+		{3, 3},
+		{3, 3},
+		{3, 3},
+	}
+	got1 := n.Alignments()
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+
+	want2 := normalizer.NewRange(3, 3, normalizer.OriginalTarget)
+	r := normalizer.NewRange(3, len([]rune(" there")), normalizer.NormalizedTarget)
+	got2 := n.ConvertOffset(r)
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: '%v'\n", want2)
+		t.Errorf("Got: '%v'\n", got2)
+	}
+}
+
+func TestNormalized_GetRange(t *testing.T) {
+
+	s := "Hello my name is John 👋"
+	runes := []rune(s)
+
+	want := string(runes[:])
+	got := normalizer.RangeOf(s, util.MakeRange(0, 100))
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+	want1 := "John 👋"
+	got1 := normalizer.RangeOf(s, util.MakeRange(17, 100))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+}
+
+func TestNormalized_Merge(t *testing.T) {
+
+	want := " A sentence that will be merged"
+	merged := normalizer.NewNormalizedFrom("A sentence")
+	s2 := normalizer.NewNormalizedFrom(" that will")
+	s3 := normalizer.NewNormalizedFrom(" be merged")
+
+	n := merged.Prepend(" ").MergeWith(s2).MergeWith(s3)
+
+	got := n.GetNormalized()
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+}
+
+func TestNormalized_Slice(t *testing.T) {
+
+	s := "𝔾𝕠𝕠𝕕 𝕞𝕠𝕣𝕟𝕚𝕟𝕘"
+	n := normalizer.NewNormalizedFrom(s).NFKC()
+
+	got := n.Slice(normalizer.NewRange(0, 4, normalizer.OriginalTarget))
+	fmt.Printf("got: %+v\n", got)
+	wantO := "𝔾𝕠𝕠𝕕"
+	wantN := "Good"
+	wantA := []normalizer.Alignment{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 4},
+	}
+
+	gotO := got.GetOriginal()
+	gotN := got.GetNormalized()
+	gotA := got.Alignments()
+
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want: '%v'\n", wantO)
+		t.Errorf("Got: '%v'\n", gotO)
+	}
+	if !reflect.DeepEqual(wantN, gotN) {
+		t.Errorf("Want: '%v'\n", wantN)
+		t.Errorf("Got: '%v'\n", gotN)
+	}
+	if !reflect.DeepEqual(wantA, gotA) {
+		t.Errorf("Want: '%v'\n", wantA)
+		t.Errorf("Got: '%v'\n", gotA)
+	}
+
+	// Make sure the sliced NormalizedString is still aligned as expected
+	s1 := normalizer.NewNormalizedFrom("   Good Morning!   ").Strip()
+
+	// If we keep the whole slice
+	slice1 := s1.Slice(normalizer.NewRange(0, 100, normalizer.OriginalTarget))
+	want1 := "Good"
+	got1 := slice1.RangeOriginal(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: '%v'\n", want1)
+		t.Errorf("Got: '%v'\n", got1)
+	}
+	slice2 := s1.Slice(normalizer.NewRange(0, 100, normalizer.NormalizedTarget))
+	want2 := "Good"
+	got2 := slice2.RangeOriginal(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: '%v'\n", want2)
+		t.Errorf("Got: '%v'\n", got2)
+	}
+
+	// If we keep after the modified piece
+	slice3 := s1.Slice(normalizer.NewRange(4, 15, normalizer.OriginalTarget))
+	want3 := "ood"
+	got3 := slice3.RangeOriginal(normalizer.NewRange(0, 3, normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want3, got3) {
+		t.Errorf("Want: '%v'\n", want3)
+		t.Errorf("Got: '%v'\n", got3)
+	}
+
+	// If we keep only the modified piece
+	slice4 := s1.Slice(normalizer.NewRange(3, 16, normalizer.OriginalTarget))
+	want4 := "Good"
+	got4 := slice4.RangeOriginal(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	if !reflect.DeepEqual(want4, got4) {
+		t.Errorf("Want: '%v'\n", want4)
+		t.Errorf("Got: '%v'\n", got4)
 	}
 }
 

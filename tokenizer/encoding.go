@@ -16,7 +16,7 @@ const (
 
 // Encoding represents the output of tokenizer
 type Encoding struct {
-	Normalized       normalizer.Normalized
+	Normalized       normalizer.NormalizedString
 	Ids              []uint32
 	TypeIds          []uint32
 	Tokens           []string
@@ -27,7 +27,7 @@ type Encoding struct {
 }
 
 // NewEncoding initiate a new encoding from input data
-func NewEncoding(normalized normalizer.Normalized, ids []uint32, typeIds []uint32, tokens []string, offsets []Offsets, specialTokenMask []uint32, attentionMask []uint32, overflowing []Encoding) Encoding {
+func NewEncoding(normalized normalizer.NormalizedString, ids []uint32, typeIds []uint32, tokens []string, offsets []Offsets, specialTokenMask []uint32, attentionMask []uint32, overflowing []Encoding) Encoding {
 	return Encoding{
 		normalized,
 		ids,
@@ -43,7 +43,7 @@ func NewEncoding(normalized normalizer.Normalized, ids []uint32, typeIds []uint3
 // Default creates an encoding with default values
 func DefaultEncoding() Encoding {
 	return Encoding{
-		Normalized:       *normalizer.NewNormalizedFrom(""),
+		Normalized:       normalizer.NewNormalizedFrom(""),
 		Ids:              []uint32{0},
 		TypeIds:          []uint32{0},
 		Tokens:           []string{},
@@ -55,7 +55,7 @@ func DefaultEncoding() Encoding {
 }
 
 // GetNormalized returns normalized string from encoding
-func (e *Encoding) GetNormalized() normalizer.Normalized {
+func (e *Encoding) GetNormalized() normalizer.NormalizedString {
 	return e.Normalized
 }
 
@@ -195,7 +195,7 @@ func (e *Encoding) MergeWith(pair Encoding) {
 	}
 
 	// 3. Current encoding and other encoding
-	e.Normalized.MergeWith(pair.Normalized.Get())
+	e.Normalized.MergeWith(pair.GetNormalized())
 	e.Ids = append(e.Ids, pair.Ids...)
 	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
 	e.Tokens = append(e.Tokens, pair.Tokens...)

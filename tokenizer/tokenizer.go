@@ -43,7 +43,7 @@ type Token struct {
 // PreTokenizer processes strings before going to the model
 type PreTokenizer interface {
 	// PreTokenize(s string) []PreToken
-	PreTokenize(*normalizer.Normalized) (*normalizer.Normalized, *[]PreToken)
+	PreTokenize(*normalizer.NormalizedString) (*normalizer.NormalizedString, *[]PreToken)
 }
 
 // Model represents a model used during tokenization (i.e., BPE, Word, or Unigram)
@@ -323,28 +323,28 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 	for _, s := range splits {
 		// If this is one of our added tokens, return an encoding directly
 		if s.Found {
-			e := NewEncoding(*normalizer.NewNormalizedFrom(s.Content), []uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{})
+			e := NewEncoding(normalizer.NewNormalizedFrom(s.Content), []uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{})
 
 			encodings = append(encodings, e)
 
 		} else {
 			// 1. Normalization
-			var normalized *normalizer.Normalized
+			var normalized normalizer.NormalizedString
 			normalized = normalizer.NewNormalizedFrom(s.Content)
 			if t.Normalizer != nil {
 				nz := *t.Normalizer
-				norm, err := nz.Normalize(*normalized)
+				norm, err := nz.Normalize(normalized)
 				if err != nil {
 					log.Fatal(err)
 				}
-				normalized = &norm
+				normalized = norm
 			}
 
 			// 2. Pre-tokenization
 			var preTokenized *[]PreToken
 
 			if t.PreTokenizer != nil {
-				_, preTokenized = (*t.PreTokenizer).PreTokenize(normalized)
+				_, preTokenized = (*t.PreTokenizer).PreTokenize(&normalized)
 			} else {
 				str := normalized.GetNormalized()
 				start := 0
@@ -728,7 +728,7 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 		// will return the whole line without modification. Hence,
 		// token will be a line string. In that case, we may need to strip
 		// white spaces in the next step.
-		preTokenized := t.preTokenize(normalized.Normalized)
+		preTokenized := t.preTokenize(normalized.GetNormalized())
 		var tokens []string
 		for _, tok := range preTokenized {
 			tokens = append(tokens, tok.Value)
@@ -787,7 +787,7 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 				line = fmt.Sprintf("%v\n", line)
 
 				normalized := t.normalize(line)
-				preTokenized := t.preTokenize(normalized.Normalized)
+				preTokenized := t.preTokenize(normalized.GetNormalized())
 				var tokens []string
 				for _, tok := range preTokenized {
 					tokens = append(tokens, tok.Value)
@@ -873,14 +873,13 @@ func (t *Tokenizer) preTokenize(sentence string) []PreToken {
 
 	normalized := normalizer.NewNormalizedFrom(sentence)
 
-	_, res := (*t.PreTokenizer).PreTokenize(normalized)
+	_, res := (*t.PreTokenizer).PreTokenize(&normalized)
 	return *res
 }
 
 // normalize normalizes using given normalizer
 func (t *Tokenizer) normalize(sequence string) normalizer.NormalizedString {
-	normalized := normalizer.NewNormalizedFrom(sequence)
-	return normalized.Get()
+	return normalizer.NewNormalizedFrom(sequence)
 }
 
 // AddSpecialTokens registers give tokens as special tokens. This is especially useful
@@ -1000,7 +999,7 @@ func (t *Tokenizer) refreshAddedTokens() {
 	var specialTokens []AddedToken
 	var newTokens []string
 
-	for k, _ := range t.SpecialTokens {
+	for k := range t.SpecialTokens {
 		addedTok := AddedToken{
 			Content:      k,
 			IsSingleWord: true,
@@ -1009,7 +1008,7 @@ func (t *Tokenizer) refreshAddedTokens() {
 	}
 
 	var addedTokens []AddedToken
-	for k, _ := range t.AddedTokens {
+	for k := range t.AddedTokens {
 		addedTokens = append(addedTokens, k)
 	}
 

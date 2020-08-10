@@ -11,7 +11,7 @@ import (
 
 func TestTokenizer_MergeWith(t *testing.T) {
 	a := tokenizer.Encoding{
-		Normalized:       *normalizer.NewNormalizedFrom("Hello "),
+		Normalized:       normalizer.NewNormalizedFrom("Hello "),
 		Ids:              []uint32{1},
 		TypeIds:          []uint32{0},
 		Tokens:           []string{fmt.Sprintf("%v", "Hello ")},
@@ -22,7 +22,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 	}
 
 	b := tokenizer.Encoding{
-		Normalized: *normalizer.NewNormalizedFrom("World!"),
+		Normalized: normalizer.NewNormalizedFrom("World!"),
 		Ids:        []uint32{2},
 		TypeIds:    []uint32{1},
 		Tokens:     []string{fmt.Sprintf("%v", "World!")},
@@ -39,7 +39,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 
 	got := a
 	want := tokenizer.Encoding{
-		Normalized: *normalizer.NewNormalizedFrom("Hello World!"),
+		Normalized: normalizer.NewNormalizedFrom("Hello World!"),
 		Ids:        []uint32{1, 2},
 		TypeIds:    []uint32{0, 1},
 		Tokens:     []string{fmt.Sprintf("%v", "Hello "), fmt.Sprintf("%v", "World!")},
@@ -61,7 +61,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 
 func TestTokenizer_Truncate(t *testing.T) {
 	a := tokenizer.Encoding{
-		Normalized: *normalizer.NewNormalizedFrom("Hello World!"),
+		Normalized: normalizer.NewNormalizedFrom("Hello World!"),
 		Ids:        []uint32{1, 2, 3},
 		TypeIds:    []uint32{0, 0, 0},
 		Tokens: []string{
@@ -79,7 +79,7 @@ func TestTokenizer_Truncate(t *testing.T) {
 	got := a
 
 	want := tokenizer.Encoding{
-		Normalized: *normalizer.NewNormalizedFrom("Hello World!"),
+		Normalized: normalizer.NewNormalizedFrom("Hello World!"),
 		Ids:        []uint32{1, 2},
 		TypeIds:    []uint32{0, 0},
 		Tokens: []string{
@@ -90,8 +90,8 @@ func TestTokenizer_Truncate(t *testing.T) {
 		SpecialTokenMask: []uint32{0, 0},
 		AttentionMask:    []uint32{1, 1},
 		Overflowing: []tokenizer.Encoding{
-			tokenizer.Encoding{
-				Normalized: *normalizer.NewNormalizedFrom("Hello World!"),
+			{
+				Normalized: normalizer.NewNormalizedFrom("Hello World!"),
 				Ids:        []uint32{3},
 				TypeIds:    []uint32{0},
 				Tokens: []string{

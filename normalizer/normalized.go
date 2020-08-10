@@ -141,7 +141,10 @@ func (n NormalizedString) ConvertOffset(inputRange Range) (retVal Range) {
 	case NormalizedTarget: // convert to original
 		alignments := n.alignments[r.start:r.end]
 		if len(alignments) == 0 {
-			log.Fatalf("Cannot convert to original offsets. No alignments are in range.\n")
+			// log.Fatalf("Cannot convert to original offsets. No alignments are in range.\n")
+			// NOTE. r.start == r.end -> just switch indexOn and return
+			r.indexOn = OriginalTarget
+			return r
 		}
 
 		start = alignments[0].Start
@@ -278,10 +281,12 @@ func (n NormalizedString) Slice(inputRange Range) (retVal NormalizedString) {
 	switch inputRange.indexOn {
 	case OriginalTarget:
 		r := inputRange.intoFullRange(len([]rune(n.GetOriginal())))
-		oRange = n.ConvertOffset(r)
+		nRange = n.ConvertOffset(r)
+		oRange = r
 	case NormalizedTarget:
 		r := inputRange.intoFullRange(len([]rune(n.GetNormalized())))
-		nRange = n.ConvertOffset(r)
+		oRange = n.ConvertOffset(r)
+		nRange = r
 	}
 
 	// Shift the alignments according to the part of the original string
@@ -743,23 +748,17 @@ func (n NormalizedString) MergeWith(other NormalizedString) (retVal NormalizedSt
 
 // LStrip removes leading spaces
 func (n NormalizedString) LStrip() (retVal NormalizedString) {
-	n.lrstrip(true, false)
-
-	return n
+	return n.lrstrip(true, false)
 }
 
 // RStrip removes trailing spaces
 func (n NormalizedString) RStrip() (retVal NormalizedString) {
-	n.lrstrip(false, true)
-
-	return n
+	return n.lrstrip(false, true)
 }
 
 // Strip remove leading and trailing spaces
 func (n NormalizedString) Strip() (retVal NormalizedString) {
-	n.lrstrip(true, true)
-
-	return n
+	return n.lrstrip(true, true)
 }
 
 // lrstrip - Private func to help with exposed strip funcs
@@ -812,7 +811,7 @@ func (n NormalizedString) lrstrip(left, right bool) (retVal NormalizedString) {
 			}
 		}
 
-		n.Transform(changeMap, leadingSpaces)
+		return n.Transform(changeMap, leadingSpaces)
 	}
 
 	return n

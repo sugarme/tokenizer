@@ -82,7 +82,7 @@ func NewBertPreTokenizer() (retVal BertPreTokenizer) {
 // ===================================================
 
 // PreTokenize(*normalizer.Normalized) (*normalizer.Normalized, *[]PreToken)
-func (bt BertPreTokenizer) PreTokenize(normalized *normalizer.Normalized) (n *normalizer.Normalized, preTokens *[]tokenizer.PreToken) {
+func (bt BertPreTokenizer) PreTokenize(normalized *normalizer.NormalizedString) (n *normalizer.NormalizedString, preTokens *[]tokenizer.PreToken) {
 
 	var splitTokens []tokenizer.PreToken
 

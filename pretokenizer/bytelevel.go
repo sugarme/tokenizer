@@ -116,7 +116,7 @@ func (bl *ByteLevel) SetTrimOffsets(v bool) {
 // PreTokenize transforms all the unicode characters into
 // their byte-level counterpart. It also splits the input
 // according to the configured regex.
-func (bl *ByteLevel) PreTokenize(normalized *normalizer.Normalized) (*normalizer.Normalized, *[]tokenizer.PreToken) {
+func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*normalizer.NormalizedString, *[]tokenizer.PreToken) {
 
 	var res []tokenizer.PreToken
 	var positions []tokenizer.Offsets
@@ -125,7 +125,8 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.Normalized) (*normalizer
 	if bl.AddPrefixSpace && !strings.HasPrefix(normalizedString, " ") {
 		normalizedString = fmt.Sprintf(" %v", normalizedString)
 		// update normalized with modified string
-		normalized = normalizer.NewNormalizedFrom(normalizedString)
+		newNormalized := normalizer.NewNormalizedFrom(normalizedString)
+		normalized = &newNormalized
 	}
 
 	// positions holds slice of matches' loc
