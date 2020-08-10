@@ -15,17 +15,17 @@ func NewStrip(stripLeft, stripRight bool) (retVal Strip) {
 // Implement Normalizer interface for Strip:
 // =========================================
 
-func (s Strip) Normalize(normalized Normalized) (retVal Normalized, err error) {
+func (s Strip) Normalize(normalized NormalizedString) (retVal NormalizedString, err error) {
 
 	if s.stripLeft && s.stripRight {
-		normalized.Strip()
+		return normalized.Strip(), nil
 	} else {
 		if s.stripLeft {
-			normalized.LStrip()
+			return normalized.LStrip(), nil
 		}
 
 		if s.stripRight {
-			normalized.RStrip()
+			return normalized.RStrip(), nil
 		}
 	}
 

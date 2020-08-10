@@ -16,8 +16,7 @@ import (
 )
 
 func TestNormalized_NewNormalizedFrom(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom("élégant")
-	gotN.NFD()
+	gotN := normalizer.NewNormalizedFrom("élégant").NFD()
 
 	want := []normalizer.Alignment{
 		{0, 1},
@@ -30,7 +29,7 @@ func TestNormalized_NewNormalizedFrom(t *testing.T) {
 		{5, 6},
 		{6, 7},
 	}
-	got := gotN.Get().Alignments
+	got := gotN.Alignments()
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -40,8 +39,7 @@ func TestNormalized_NewNormalizedFrom(t *testing.T) {
 
 // Unchanged: Remove accents - Mark, nonspacing (Mn)
 func TestNormalized_RemoveAccents(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom("élégant")
-	gotN.RemoveAccents()
+	gotN := normalizer.NewNormalizedFrom("élégant").RemoveAccents()
 
 	want := []normalizer.Alignment{
 		{0, 1},
@@ -52,7 +50,7 @@ func TestNormalized_RemoveAccents(t *testing.T) {
 		{5, 6},
 		{6, 7},
 	}
-	got := gotN.Get().Alignments
+	got := gotN.Alignments()
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -62,9 +60,7 @@ func TestNormalized_RemoveAccents(t *testing.T) {
 
 // Removed Chars
 func TestNormalized_Filter(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom("élégant")
-
-	gotN.Filter('n')
+	gotN := normalizer.NewNormalizedFrom("élégant").Filter('n')
 
 	want := []normalizer.Alignment{
 		{0, 1},
@@ -74,7 +70,7 @@ func TestNormalized_Filter(t *testing.T) {
 		{4, 5},
 		{6, 7},
 	}
-	got := gotN.Get().Alignments
+	got := gotN.Alignments()
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -84,10 +80,7 @@ func TestNormalized_Filter(t *testing.T) {
 
 // Mixed addition and removal
 func TestNormalized_Mixed(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom("élégant")
-
-	gotN.RemoveAccents()
-	gotN.Filter('n')
+	gotN := normalizer.NewNormalizedFrom("élégant").RemoveAccents().Filter('n')
 
 	want := []normalizer.Alignment{
 		{0, 1},
@@ -97,7 +90,7 @@ func TestNormalized_Mixed(t *testing.T) {
 		{4, 5},
 		{6, 7},
 	}
-	got := gotN.Get().Alignments
+	got := gotN.Alignments()
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -107,10 +100,7 @@ func TestNormalized_Mixed(t *testing.T) {
 
 // Range and Conversion
 func TestNormalized_RangeConversion(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom(`    __Hello__   `)
-
-	gotN.Filter(' ')
-	gotN.Lowercase()
+	gotN := normalizer.NewNormalizedFrom(`    __Hello__   `).Filter(' ').Lowercase()
 
 	originalRange := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
 	got1 := gotN.Range(originalRange)
@@ -153,9 +143,7 @@ func TestNormalized_RangeConversion(t *testing.T) {
 }
 
 func TestNormalized_OriginalRange(t *testing.T) {
-	n := normalizer.NewNormalizedFrom(`Hello_______ World!`)
-	n.Filter('_')
-	n.Lowercase()
+	n := normalizer.NewNormalizedFrom(`Hello_______ World!`).Filter('_').Lowercase()
 
 	// normalized string: 'hello world!'
 	normalizedRange := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
@@ -190,7 +178,7 @@ func TestNormalized_AddedAroundEdge(t *testing.T) {
 		{" ", 1},
 	}
 
-	n.Transform(changeMap, 0)
+	n = n.Transform(changeMap, 0)
 
 	want := " Hello "
 	got := n.GetNormalized()
@@ -212,8 +200,7 @@ func TestNormalized_AddedAroundEdge(t *testing.T) {
 
 func TestNormalized_RemoveAtStart(t *testing.T) {
 
-	n := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
-	n.Filter(' ')
+	n := normalizer.NewNormalizedFrom(`     Hello`).Filter(' ') // 5 white spaces
 
 	nRange := normalizer.NewRange(1, len([]rune("Hello")), normalizer.NormalizedTarget)
 	got := n.RangeOriginal(nRange)
@@ -227,9 +214,7 @@ func TestNormalized_RemoveAtStart(t *testing.T) {
 
 func TestNormalized_ConvertOffset(t *testing.T) {
 	// Test 1
-	n1 := normalizer.NewNormalizedFrom(`    __Hello__   `)
-	n1.Filter(' ')
-	n1.Lowercase() // `__hello__`
+	n1 := normalizer.NewNormalizedFrom(`    __Hello__   `).Filter(' ').Lowercase() // `__hello__`
 
 	// Original -> Normalized
 	oRange1a := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
@@ -253,8 +238,7 @@ func TestNormalized_ConvertOffset(t *testing.T) {
 	}
 
 	// Test 2
-	n2 := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
-	n2.Filter(' ')                                   // `Hello`
+	n2 := normalizer.NewNormalizedFrom(`     Hello`).Filter(' ')
 
 	oRange2a := normalizer.NewRange(6, 9, normalizer.OriginalTarget)
 	nRange2a := n2.ConvertOffset(oRange2a)
@@ -275,9 +259,7 @@ func TestNormalized_ConvertOffset(t *testing.T) {
 	}
 
 	// Test 3
-	n3 := normalizer.NewNormalizedFrom(`Hello_______ World!`)
-	n3.Filter('_')
-	n3.Lowercase() // `hello world`
+	n3 := normalizer.NewNormalizedFrom(`Hello_______ World!`).Filter('_').Lowercase()
 
 	oRange3a := normalizer.NewRange(13, 18, normalizer.OriginalTarget) // `World`
 	nRange3a := n3.ConvertOffset(oRange3a)

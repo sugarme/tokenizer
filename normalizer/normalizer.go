@@ -5,7 +5,7 @@ import (
 )
 
 type Normalizer interface {
-	Normalize(normalized Normalized) (Normalized, error)
+	Normalize(normalized NormalizedString) (NormalizedString, error)
 }
 
 type normalizer struct {
@@ -18,7 +18,7 @@ func newNormalizer() normalizer {
 	}
 }
 
-func (n normalizer) Normalize(normalized Normalized) (Normalized, error) {
+func (n normalizer) Normalize(normalized NormalizedString) (NormalizedString, error) {
 
 	return normalized, nil
 }

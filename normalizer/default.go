@@ -35,22 +35,17 @@ type DefaultOption func(*DefaultNormalizer)
  * }
  *  */
 
-func (dn DefaultNormalizer) Normalize(n Normalized) (Normalized, error) {
+func (dn DefaultNormalizer) Normalize(n NormalizedString) (NormalizedString, error) {
 
 	if dn.Lower {
-		n.Lowercase()
+		return n.Lowercase(), nil
 	}
 
 	if dn.Strip {
-		n.Strip()
+		return n.Strip(), nil
 	}
 
-	// if dn.Contraction {
-	// txt = expandContraction(txt)
-	// }
-
 	return n, nil
-
 }
 
 func NewDefaultNormalizer(opts ...DefaultOption) DefaultNormalizer {
