@@ -120,6 +120,7 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Got: %v\n", got1)
 	}
 
+	// normalized string: '__hello__'
 	normalizedRange := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
 	got2 := gotN.Range(normalizedRange)
 	want2 := "hello"
@@ -128,7 +129,6 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Got: %v\n", got2)
 	}
 
-	// helloN will have `indexOn` = NormalizedTarget
 	helloN := gotN.ConvertOffset(normalizer.NewRange(6, 11, normalizer.OriginalTarget))
 	got3 := helloN
 	want3 := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
@@ -144,7 +144,7 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Got: '%v'\n", got4)
 	}
 
-	got5 := gotN.RangeOriginal(originalRange)
+	got5 := gotN.RangeOriginal(originalRange) // (6,11)
 	want5 := "Hello"
 	if !reflect.DeepEqual(want5, got5) {
 		t.Errorf("Want: %v\n", want5)
@@ -160,20 +160,22 @@ func TestNormalized_OriginalRange(t *testing.T) {
 	fmt.Printf("Normalized: '%v'\n", n.GetNormalized())
 	fmt.Printf("All alignments: %+v\n", n.Get().Alignments)
 
+	// normalized string: 'hello world!'
 	normalizedRange := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
 	worldN := n.Range(normalizedRange)
-	originalRange := n.ConvertOffset(normalizedRange)
-	fmt.Printf("rangeOriginal: %+v\n", originalRange)
-	worldO := n.RangeOriginal(originalRange)
-
 	wantWorldN := "world"
-	wantWorldO := "World"
-
 	if !reflect.DeepEqual(wantWorldN, worldN) {
 		t.Errorf("Want normalized world: %v\n", wantWorldN)
 		t.Errorf("Got normalized world: %v\n", worldN)
 	}
 
+	// TODO: some wrong here in converting from normalizedRange to originalRange
+	// Expect: (13, 18) Got: (14,19)
+	originalRange := n.ConvertOffset(normalizedRange)
+	// original string: 'Hello_______ World!'
+	// originalRange := normalizer.NewRange(13, 18, normalizer.OriginalTarget)
+	worldO := n.RangeOriginal(originalRange)
+	wantWorldO := "World"
 	if !reflect.DeepEqual(wantWorldO, worldO) {
 		t.Errorf("Want original world: %v\n", wantWorldO)
 		t.Errorf("Got original world: %v\n", worldO)
@@ -203,13 +205,117 @@ func TestNormalized_AddedAroundEdge(t *testing.T) {
 		t.Errorf("Got: '%v'\n", got)
 	}
 
-	n1 := normalizer.NewNormalizedFrom(` Hello `)
-	normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
-	gotO := n1.RangeOriginal(normalizedRange)
-	wantO := "Hello"
-	if !reflect.DeepEqual(wantO, gotO) {
-		t.Errorf("Want: '%v'\n", wantO)
-		t.Errorf("Got: '%v'\n", gotO)
+	// n1 := normalizer.NewNormalizedFrom(` Hello `)
+	// normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
+	// gotO := n1.RangeOriginal(normalizedRange)
+	// wantO := "Hello"
+	// if !reflect.DeepEqual(wantO, gotO) {
+	// t.Errorf("Want: '%v'\n", wantO)
+	// t.Errorf("Got: '%v'\n", gotO)
+	// }
+}
+
+func TestNormalized_RemoveAtStart(t *testing.T) {
+
+	n := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
+	n.Filter(' ')
+
+	fmt.Printf("Original string: '%v'\n", n.GetOriginal())
+	fmt.Printf("Normalized string: '%v'\n", n.GetNormalized())
+	fmt.Printf("Alignments: %+v\n", n.Get().Alignments)
+	nRange := normalizer.NewRange(1, len([]rune("Hello")), normalizer.NormalizedTarget)
+	// oRange := normalizer.NewRange(5, 10, normalizer.OriginalTarget)
+	// fmt.Printf("nRange: %+v\n", nRange)
+	got := n.RangeOriginal(nRange)
+	// got := n.RangeOriginal(oRange)
+	want := "ello"
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: '%v'\n", want)
+		t.Errorf("Got: '%v'\n", got)
+	}
+
+}
+
+func TestNormalized_ConvertOffset(t *testing.T) {
+
+	// Test 1
+	n1 := normalizer.NewNormalizedFrom(`    __Hello__   `)
+	n1.Filter(' ')
+	n1.Lowercase() // `__hello__`
+
+	// Original -> Normalized
+	oRange1a := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
+	nRange1a := n1.ConvertOffset(oRange1a)
+
+	want1a := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
+	got1a := nRange1a
+	if !reflect.DeepEqual(want1a, got1a) {
+		t.Errorf("Want: %v\n", want1a)
+		t.Errorf("Got: %v\n", got1a)
+	}
+
+	// Normalized -> Original
+	nRange1b := normalizer.NewRange(2, 7, normalizer.NormalizedTarget)
+	oRange1b := n1.ConvertOffset(nRange1b)
+	want1b := normalizer.NewRange(6, 11, normalizer.OriginalTarget)
+	got1b := oRange1b
+	if !reflect.DeepEqual(want1b, got1b) {
+		t.Errorf("Want: %v\n", want1b)
+		t.Errorf("Got: %v\n", got1b)
+	}
+
+	// Test 2
+	n2 := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
+	n2.Filter(' ')                                   // `Hello`
+	fmt.Printf("Test2 alignments: %+v\n", n2.Get().Alignments)
+
+	oRange2a := normalizer.NewRange(6, 9, normalizer.OriginalTarget)
+	nRange2a := n2.ConvertOffset(oRange2a)
+	want2a := normalizer.NewRange(1, 4, normalizer.NormalizedTarget)
+	got2a := nRange2a
+	if !reflect.DeepEqual(want2a, got2a) {
+		t.Errorf("Want: %v\n", want2a)
+		t.Errorf("Got: %v\n", got2a)
+	}
+
+	nRange2b := normalizer.NewRange(1, 5, normalizer.NormalizedTarget) // `ello`
+	oRange2b := n2.ConvertOffset(nRange2b)
+	want2b := normalizer.NewRange(6, 10, normalizer.OriginalTarget)
+	got2b := oRange2b
+	if !reflect.DeepEqual(want2b, got2b) {
+		t.Errorf("Want: %v\n", want2b)
+		t.Errorf("Got: %v\n", got2b)
+	}
+
+	// Test 3
+	n3 := normalizer.NewNormalizedFrom(`Hello_______ World!`)
+	n3.Filter('_')
+	n3.Lowercase() // `hello world`
+
+	oRange3a := normalizer.NewRange(13, 18, normalizer.OriginalTarget) // `World`
+	nRange3a := n3.ConvertOffset(oRange3a)
+	want3a := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
+	got3a := nRange3a
+	if !reflect.DeepEqual(want3a, got3a) {
+		t.Errorf("Want range: %v\n", want3a)
+		t.Errorf("Got range: %v\n", got3a)
+	}
+
+	// normalized string: 'hello world!'
+	nRange3b := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
+	oRange3b := n3.ConvertOffset(nRange3b)
+	want3b := normalizer.NewRange(13, 18, normalizer.OriginalTarget)
+	got3b := oRange3b
+
+	fmt.Printf("Original: '%v'\n", n3.GetOriginal())
+	fmt.Printf("Normalized: '%v'\n", n3.GetNormalized())
+	fmt.Printf("Alignments: %+v\n", n3.Get().Alignments)
+	fmt.Printf("normalizedRange: %+v\n", nRange3b)
+	fmt.Printf("originalRange: %+v\n", oRange3b)
+
+	if !reflect.DeepEqual(want3b, got3b) {
+		t.Errorf("Want range: %v\n", want3b)
+		t.Errorf("Got range: %v\n", got3b)
 	}
 }
 
