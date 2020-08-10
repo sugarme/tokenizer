@@ -1,7 +1,7 @@
 package normalizer_test
 
 import (
-	"fmt"
+	// "fmt"
 	"reflect"
 
 	// "strings"
@@ -493,7 +493,6 @@ func TestNormalized_Slice(t *testing.T) {
 	n := normalizer.NewNormalizedFrom(s).NFKC()
 
 	got := n.Slice(normalizer.NewRange(0, 4, normalizer.OriginalTarget))
-	fmt.Printf("got: %+v\n", got)
 	wantO := "𝔾𝕠𝕠𝕕"
 	wantN := "Good"
 	wantA := []normalizer.Alignment{
@@ -555,6 +554,96 @@ func TestNormalized_Slice(t *testing.T) {
 	if !reflect.DeepEqual(want4, got4) {
 		t.Errorf("Want: '%v'\n", want4)
 		t.Errorf("Got: '%v'\n", got4)
+	}
+}
+
+func TestNormalized_SliceBytes(t *testing.T) {
+
+	s := "𝔾𝕠𝕠𝕕 𝕞𝕠𝕣𝕟𝕚𝕟𝕘"
+	n := normalizer.NewNormalizedFrom(s).NFKC()
+
+	got := n.SliceBytes(normalizer.NewRange(0, 16, normalizer.OriginalTarget))
+	wantO := "𝔾𝕠𝕠𝕕"
+	wantN := "Good"
+	wantA := []normalizer.Alignment{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 4},
+	}
+
+	gotO := got.GetOriginal()
+	gotN := got.GetNormalized()
+	gotA := got.Alignments()
+
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want: '%v'\n", wantO)
+		t.Errorf("Got: '%v'\n", gotO)
+	}
+	if !reflect.DeepEqual(wantN, gotN) {
+		t.Errorf("Want: '%v'\n", wantN)
+		t.Errorf("Got: '%v'\n", gotN)
+	}
+	if !reflect.DeepEqual(wantA, gotA) {
+		t.Errorf("Want: '%v'\n", wantA)
+		t.Errorf("Got: '%v'\n", gotA)
+	}
+
+	got1 := n.SliceBytes(normalizer.NewRange(17, 100, normalizer.OriginalTarget))
+	want1O := "𝕞𝕠𝕣𝕟𝕚𝕟𝕘"
+	want1N := "morning"
+	want1A := []normalizer.Alignment{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 4},
+		{4, 5},
+		{5, 6},
+		{6, 7},
+	}
+
+	got1O := got1.GetOriginal()
+	got1N := got1.GetNormalized()
+	got1A := got1.Alignments()
+
+	if !reflect.DeepEqual(want1O, got1O) {
+		t.Errorf("Want: '%v'\n", want1O)
+		t.Errorf("Got: '%v'\n", got1O)
+	}
+	if !reflect.DeepEqual(want1N, got1N) {
+		t.Errorf("Want: '%v'\n", want1N)
+		t.Errorf("Got: '%v'\n", got1N)
+	}
+	if !reflect.DeepEqual(want1A, got1A) {
+		t.Errorf("Want: '%v'\n", want1A)
+		t.Errorf("Got: '%v'\n", got1A)
+	}
+
+	got2 := n.SliceBytes(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	want2O := "𝔾𝕠𝕠𝕕"
+	want2N := "Good"
+	want2A := []normalizer.Alignment{
+		{0, 1},
+		{1, 2},
+		{2, 3},
+		{3, 4},
+	}
+
+	got2O := got2.GetOriginal()
+	got2N := got2.GetNormalized()
+	got2A := got2.Alignments()
+
+	if !reflect.DeepEqual(want2O, got2O) {
+		t.Errorf("Want: '%v'\n", want2O)
+		t.Errorf("Got: '%v'\n", got2O)
+	}
+	if !reflect.DeepEqual(want2N, got2N) {
+		t.Errorf("Want: '%v'\n", want2N)
+		t.Errorf("Got: '%v'\n", got2N)
+	}
+	if !reflect.DeepEqual(want2A, got2A) {
+		t.Errorf("Want: '%v'\n", want2A)
+		t.Errorf("Got: '%v'\n", got2A)
 	}
 }
 

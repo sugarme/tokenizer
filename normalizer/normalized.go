@@ -42,7 +42,7 @@ func NewRange(start int, end int, indexOn IndexOn) (retVal Range) {
 // original provided range was out of bound.
 // maxLen is maximal len of string in `chars` (runes)
 func (r Range) intoFullRange(maxLen int) (retVal Range) {
-	if r.start < 0 {
+	if r.start < 0 || r.start > maxLen {
 		r.start = 0
 	}
 
@@ -236,36 +236,58 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal NormalizedString)
 	switch inputRange.indexOn {
 	case OriginalTarget:
 		target = OriginalTarget
-		r = inputRange.intoFullRange(len(n.GetOriginal())) // len in bytes
+		r = inputRange.intoFullRange(len([]byte(n.GetOriginal()))) // len in bytes
 		s = n.GetOriginal()
 	case NormalizedTarget:
 		target = NormalizedTarget
-		r = inputRange.intoFullRange(len(n.GetNormalized()))
+		r = inputRange.intoFullRange(len([]byte(n.GetNormalized())))
 		s = n.GetNormalized()
 	default:
 		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
 	}
 
 	var (
-		start, end int
+		start, end int = -1, -1
 		runes      []rune
 	)
 
-	for i, char := range []rune(s) {
+	// NOTE. range over string is special
+	// Here, `i` index on byte, `char` is code point - rune
+	// See more: https://blog.golang.org/strings
+	var cIdx int = 0
+	var firstIdx = -1
+	for i, char := range s {
 		// select indexes of bytes in range
 		if i < r.end && i >= r.start {
 			runes = append(runes, char)
+			if firstIdx < 0 {
+				firstIdx = cIdx
+			}
 		}
+		cIdx++
 	}
 
-	for i, char := range runes {
-		if i == r.start {
-			start = i
+	var charIdx int = 0 // index on `char`
+	for byteIdx, char := range string(runes) {
+		if byteIdx == r.start {
+			start = charIdx
 		}
 
-		if i+len([]byte(string(char))) == r.end {
-			end = i + 1
+		if byteIdx+len([]byte(string(char))) == r.end {
+			end = charIdx + 1
 		}
+
+		charIdx++
+	}
+
+	// Case r.start is out of bound
+	if r.start > len([]byte(string(runes))) || start < 0 {
+		start = firstIdx
+	}
+
+	// Case r.end is out of bound
+	if r.end > len([]byte(string(runes))) {
+		end = len([]rune(string(s)))
 	}
 
 	outRange := NewRange(start, end, target)
