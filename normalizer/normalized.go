@@ -1,7 +1,7 @@
 package normalizer
 
 import (
-	// "fmt"
+	"fmt"
 	"log"
 	"strings"
 	"unicode"
@@ -404,13 +404,11 @@ func (n *Normalized) NFD() {
 			switch i := i; {
 			case i == 0:
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: 0,
 				})
 			case i > 0:
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: 1,
 				})
@@ -429,34 +427,25 @@ func (n *Normalized) NFC() {
 		it        norm.Iter
 	)
 
-	// First, determine which normal form the string is
 	s := n.normalizedString.Normalized
 
 	isNFC := norm.Form.IsNormalString(norm.NFC, s)
-	// isNFKC := norm.Form.IsNormalString(norm.NFKC, s)
-	// isNFD := norm.Form.IsNormalString(norm.NFD, s)
-	// isNFKD := norm.Form.IsNormalString(norm.NFKD, s)
-
 	if isNFC {
-		return // no need to normalize
+		return
 	}
 
-	// Assuming the string is in decomposing form
 	it.InitString(norm.NFD, s)
 
 	for !it.Done() {
 		runes := []rune(string(it.Next()))
-		// fmt.Printf("%+q", runes)
 
 		if len(runes) == 1 {
 			changeMap = append(changeMap, ChangeMap{
-				// RuneVal: fmt.Sprintf("%+q", runes),
 				RuneVal: string(runes),
 				Changes: 0,
 			})
 		} else if len(runes) > 1 {
 			changeMap = append(changeMap, ChangeMap{
-				// RuneVal: fmt.Sprintf("%+q", runes),
 				RuneVal: string(runes),
 				Changes: -1,
 			})
@@ -471,7 +460,7 @@ func (n *Normalized) NFKD() {
 	s := n.normalizedString.Normalized
 	isNFKD := norm.Form.IsNormalString(norm.NFKD, s)
 	if isNFKD {
-		return // no need to normalize
+		return
 	}
 
 	var (
@@ -484,23 +473,19 @@ func (n *Normalized) NFKD() {
 		runes := []rune(string(it.Next()))
 
 		for i, r := range runes {
-
 			switch i := i; {
 			case i == 0:
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: 0,
 				})
 			case i > 0:
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: 1,
 				})
 			}
 		}
-
 	}
 
 	n.Transform(changeMap, 0)
@@ -513,16 +498,14 @@ func (n *Normalized) NFKC() {
 		it        norm.Iter
 	)
 
-	// First, determine which normal form the string is
 	s := n.normalizedString.Normalized
 
 	isNFKC := norm.Form.IsNormalString(norm.NFKC, s)
 
 	if isNFKC {
-		return // no need to normalize
+		return
 	}
 
-	// Assuming the string is in decomposing form
 	it.InitString(norm.NFKD, n.normalizedString.Normalized)
 
 	for !it.Done() {
@@ -530,13 +513,11 @@ func (n *Normalized) NFKC() {
 
 		if len(runes) == 1 {
 			changeMap = append(changeMap, ChangeMap{
-				// RuneVal: fmt.Sprintf("%+q", runes),
 				RuneVal: string(runes),
 				Changes: 0,
 			})
 		} else if len(runes) > 1 {
 			changeMap = append(changeMap, ChangeMap{
-				// RuneVal: fmt.Sprintf("%+q", runes),
 				RuneVal: string(runes),
 				Changes: -1,
 			})
@@ -546,15 +527,13 @@ func (n *Normalized) NFKC() {
 	n.Transform(changeMap, 0)
 }
 
+// Filter applies filtering on NormalizedString
 func (n *Normalized) Filter(fr rune) {
-
 	s := n.normalizedString.Normalized
 	var changeMap []ChangeMap
 
-	// Fisrt, reverse the string
 	var oRunes []rune
 
-	// Then, iterate over string and apply filtering
 	var it norm.Iter
 	it.InitString(norm.NFC, s)
 
@@ -572,20 +551,17 @@ func (n *Normalized) Filter(fr rune) {
 
 	var removed int = 0
 	for _, r := range revRunes {
-		// fmt.Printf("rune: %+q - filtered rune: %+q\n", r, fr)
 		if r == fr {
 			removed += 1
 		} else {
 			if removed > 0 {
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: -removed,
 				})
 				removed = 0
 			} else if removed == 0 {
 				changeMap = append(changeMap, ChangeMap{
-					// RuneVal: fmt.Sprintf("%+q", r),
 					RuneVal: string(r),
 					Changes: 0,
 				})
@@ -599,11 +575,59 @@ func (n *Normalized) Filter(fr rune) {
 		unrevMap = append(unrevMap, changeMap[i])
 	}
 
-	// fmt.Printf("%v\n", unrevMap)
-
 	n.Transform(unrevMap, removed)
 }
 
+// Prepend adds given string to the begining of NormalizedString
+func (n *Normalized) Prepend(s string) {
+	newString := fmt.Sprintf("%s%s", s, n.GetNormalized())
+	var newAligments []Alignment
+	for i := 0; i < len([]rune(s)); i++ {
+		newAligments = append(newAligments, Alignment{Start: 0, End: 0})
+	}
+	newAligments = append(newAligments, n.normalizedString.Alignments...)
+	n.normalizedString.Normalized = newString
+	n.normalizedString.Alignments = newAligments
+}
+
+// Append adds given string to the end of NormalizedString
+func (n *Normalized) Append(s string) {
+	newString := fmt.Sprintf("%s%s", n.GetNormalized(), s)
+	var newAligments []Alignment
+	lastAlign := n.Get().Alignments[len(n.Get().Alignments)-1]
+	for i := 0; i < len([]rune(s)); i++ {
+		newAligments = append(newAligments, Alignment{Start: lastAlign.End, End: lastAlign.End})
+	}
+	newAligments = append(n.normalizedString.Alignments, newAligments...)
+	n.normalizedString.Normalized = newString
+	n.normalizedString.Alignments = newAligments
+}
+
+// NormFn is a convenient function type
+type NormFn func(rune) rune
+
+// Map maps and applies function to each `char` of normalized string
+func (n *Normalized) Map(nfn NormFn) {
+	s := n.Get().Normalized
+	var runes []rune
+	for _, r := range []rune(s) {
+		runes = append(runes, nfn(r))
+	}
+	n.normalizedString.Normalized = string(runes)
+}
+
+// ForEach applies function on each `char` of normalized string
+// Similar to Map???
+func (n *Normalized) ForEach(nfn NormFn) {
+	s := n.Get().Normalized
+	var runes []rune
+	for _, r := range []rune(s) {
+		runes = append(runes, nfn(r))
+	}
+	n.normalizedString.Normalized = string(runes)
+}
+
+// RemoveAccents removes all Unicode Mn group (M non-spacing)
 func (n *Normalized) RemoveAccents() {
 
 	s := n.normalizedString.Normalized
@@ -677,7 +701,6 @@ func (n *Normalized) SplitOff(at int) {
 
 	remainORuneVals := oRuneVals[0:originalAt]
 	n.normalizedString.Original = strings.Join(remainORuneVals, "")
-
 }
 
 // MergeWith merges an input string with existing one
@@ -697,13 +720,6 @@ func (n *Normalized) MergeWith(other NormalizedString) {
 	}
 
 	n.normalizedString.Alignments = append(n.normalizedString.Alignments, ajustedAligns...)
-
-}
-
-// Len returns length (number of runes) of normalized string
-func (n *Normalized) Len() int {
-	runes := []rune(n.normalizedString.Normalized)
-	return len(runes)
 }
 
 // LStrip removes leading spaces
@@ -754,10 +770,6 @@ func (n *Normalized) lrstrip(left, right bool) {
 		}
 	}
 
-	// fmt.Println(runes)
-	// fmt.Printf("LeadingSpace: %d\n", leadingSpaces)
-	// fmt.Printf("TrailingSpace: %d\n", trailingSpaces)
-
 	if leadingSpaces > 0 || trailingSpaces > 0 {
 		for i, r := range runes {
 			if i < leadingSpaces || i >= (len(runes)-trailingSpaces) {
@@ -777,7 +789,22 @@ func (n *Normalized) lrstrip(left, right bool) {
 
 		n.Transform(changeMap, leadingSpaces)
 	}
+}
 
+// Len returns length (number of runes) of normalized string
+func (n *Normalized) Len() int {
+	runes := []rune(n.normalizedString.Normalized)
+	return len(runes)
+}
+
+// LenOriginal returns the length of Original string in `char` (rune)
+func (n *Normalized) LenOriginal() int {
+	return len([]rune(n.GetOriginal()))
+}
+
+// IsEmpty returns whether the normalized string is empty
+func (n *Normalized) IsEmpty() bool {
+	return n.Len() == 0
 }
 
 func isMn(r rune) bool {
