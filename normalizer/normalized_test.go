@@ -1,7 +1,7 @@
 package normalizer_test
 
 import (
-	"fmt"
+	// "fmt"
 	"reflect"
 
 	// "strings"
@@ -156,9 +156,6 @@ func TestNormalized_OriginalRange(t *testing.T) {
 	n := normalizer.NewNormalizedFrom(`Hello_______ World!`)
 	n.Filter('_')
 	n.Lowercase()
-	fmt.Printf("Original: '%v'\n", n.GetOriginal())
-	fmt.Printf("Normalized: '%v'\n", n.GetNormalized())
-	fmt.Printf("All alignments: %+v\n", n.Get().Alignments)
 
 	// normalized string: 'hello world!'
 	normalizedRange := normalizer.NewRange(6, 11, normalizer.NormalizedTarget)
@@ -169,10 +166,8 @@ func TestNormalized_OriginalRange(t *testing.T) {
 		t.Errorf("Got normalized world: %v\n", worldN)
 	}
 
-	// TODO: some wrong here in converting from normalizedRange to originalRange
-	// Expect: (13, 18) Got: (14,19)
-	originalRange := n.ConvertOffset(normalizedRange)
 	// original string: 'Hello_______ World!'
+	originalRange := n.ConvertOffset(normalizedRange)
 	// originalRange := normalizer.NewRange(13, 18, normalizer.OriginalTarget)
 	worldO := n.RangeOriginal(originalRange)
 	wantWorldO := "World"
@@ -205,14 +200,14 @@ func TestNormalized_AddedAroundEdge(t *testing.T) {
 		t.Errorf("Got: '%v'\n", got)
 	}
 
-	// n1 := normalizer.NewNormalizedFrom(` Hello `)
-	// normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
-	// gotO := n1.RangeOriginal(normalizedRange)
-	// wantO := "Hello"
-	// if !reflect.DeepEqual(wantO, gotO) {
-	// t.Errorf("Want: '%v'\n", wantO)
-	// t.Errorf("Got: '%v'\n", gotO)
-	// }
+	n1 := normalizer.NewNormalizedFrom(` Hello `)
+	normalizedRange := normalizer.NewRange(1, len([]rune(n1.GetNormalized()))-1, normalizer.NormalizedTarget)
+	gotO := n1.RangeOriginal(normalizedRange)
+	wantO := "Hello"
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want: '%v'\n", wantO)
+		t.Errorf("Got: '%v'\n", gotO)
+	}
 }
 
 func TestNormalized_RemoveAtStart(t *testing.T) {
@@ -220,14 +215,8 @@ func TestNormalized_RemoveAtStart(t *testing.T) {
 	n := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
 	n.Filter(' ')
 
-	fmt.Printf("Original string: '%v'\n", n.GetOriginal())
-	fmt.Printf("Normalized string: '%v'\n", n.GetNormalized())
-	fmt.Printf("Alignments: %+v\n", n.Get().Alignments)
 	nRange := normalizer.NewRange(1, len([]rune("Hello")), normalizer.NormalizedTarget)
-	// oRange := normalizer.NewRange(5, 10, normalizer.OriginalTarget)
-	// fmt.Printf("nRange: %+v\n", nRange)
 	got := n.RangeOriginal(nRange)
-	// got := n.RangeOriginal(oRange)
 	want := "ello"
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: '%v'\n", want)
@@ -237,7 +226,6 @@ func TestNormalized_RemoveAtStart(t *testing.T) {
 }
 
 func TestNormalized_ConvertOffset(t *testing.T) {
-
 	// Test 1
 	n1 := normalizer.NewNormalizedFrom(`    __Hello__   `)
 	n1.Filter(' ')
@@ -267,7 +255,6 @@ func TestNormalized_ConvertOffset(t *testing.T) {
 	// Test 2
 	n2 := normalizer.NewNormalizedFrom(`     Hello`) // 5 white spaces
 	n2.Filter(' ')                                   // `Hello`
-	fmt.Printf("Test2 alignments: %+v\n", n2.Get().Alignments)
 
 	oRange2a := normalizer.NewRange(6, 9, normalizer.OriginalTarget)
 	nRange2a := n2.ConvertOffset(oRange2a)
@@ -306,12 +293,6 @@ func TestNormalized_ConvertOffset(t *testing.T) {
 	oRange3b := n3.ConvertOffset(nRange3b)
 	want3b := normalizer.NewRange(13, 18, normalizer.OriginalTarget)
 	got3b := oRange3b
-
-	fmt.Printf("Original: '%v'\n", n3.GetOriginal())
-	fmt.Printf("Normalized: '%v'\n", n3.GetNormalized())
-	fmt.Printf("Alignments: %+v\n", n3.Get().Alignments)
-	fmt.Printf("normalizedRange: %+v\n", nRange3b)
-	fmt.Printf("originalRange: %+v\n", oRange3b)
 
 	if !reflect.DeepEqual(want3b, got3b) {
 		t.Errorf("Want range: %v\n", want3b)
