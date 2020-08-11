@@ -38,6 +38,14 @@ func NewRange(start int, end int, indexOn IndexOn) (retVal Range) {
 	}
 }
 
+func (r Range) Start() (retVal int) {
+	return r.start
+}
+
+func (r Range) End() (retVal int) {
+	return r.end
+}
+
 // IntoFullRange convert the current range to cover the case where the
 // original provided range was out of bound.
 // maxLen is maximal len of string in `chars` (runes)

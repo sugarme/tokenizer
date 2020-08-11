@@ -10,6 +10,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -101,6 +102,14 @@ type Dual struct {
 }
 
 type EncodeInput interface{}
+
+func NewSingleEncodeInput(sentence string) (retVal EncodeInput) {
+	return Single{sentence}
+}
+
+func NewDualEncodeInput(sentence, pairSentence string) (retVal EncodeInput) {
+	return Dual{sentence, pairSentence}
+}
 
 // var EncodeInput map[interface{}]string = map[interface{}]string{
 // "Single": "Single",
@@ -284,28 +293,43 @@ func (t *Tokenizer) Encode(input EncodeInput) Encoding {
 	var (
 		sentence, pair         string
 		encoding, pairEncoding Encoding
+		isPair                 bool = false
 	)
-	switch input.(type) {
-	case Single:
+
+	inputType := reflect.TypeOf(input)
+
+	switch inputType.Name() {
+	case "Single":
 		sentence = input.(Single).Sentence
-	case Dual:
+		isPair = false
+	case "Dual":
 		sentence = input.(Dual).Sentence
 		pair = input.(Dual).Pair
-	default:
+		isPair = true
+	case "string":
 		sentence = input.(string)
+		isPair = false
+	default:
+		log.Fatalf("Unsupported type for input data type: %v. Input should have type of 'Single', 'Dual' or 'string' type.\n", inputType.Name())
 	}
 
 	encoding = t.generateOutput(sentence, 0)
 
-	if len(pair) > 0 {
-		pairEncoding = t.generateOutput(pair, 1)
-	}
-
 	// 4. Post processing
 	if t.PostProcessor != nil {
-		return (*t.PostProcessor).Process(encoding, pairEncoding)
+		if isPair {
+			pairEncoding = t.generateOutput(pair, 1)
+			return (*t.PostProcessor).Process(encoding, pairEncoding)
+		} else {
+			return (*t.PostProcessor).Process(encoding)
+		}
 	} else {
-		encoding = t.postProcess(encoding, pairEncoding)
+		if isPair {
+			pairEncoding = t.generateOutput(pair, 1)
+			encoding = t.postProcess(encoding, pairEncoding)
+		} else {
+			encoding = t.postProcess(encoding)
+		}
 
 		// NOTE.Should we return pairEncoding as well?
 		return encoding
@@ -342,7 +366,6 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 
 			// 2. Pre-tokenization
 			var preTokenized *[]PreToken
-
 			if t.PreTokenizer != nil {
 				_, preTokenized = (*t.PreTokenizer).PreTokenize(&normalized)
 			} else {
@@ -350,7 +373,7 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 				start := 0
 				end := len(str)
 				preToks := []PreToken{
-					PreToken{
+					{
 						Value: normalized.GetNormalized(),
 						Offsets: Offsets{
 							Start: start,
@@ -361,6 +384,20 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 				preTokenized = &preToks
 			}
 
+			fmt.Println("PreToken Offsets on Normalized string: ")
+			for _, t := range *preTokenized {
+				fmt.Printf("(%v %v)", t.Offsets.Start, t.Offsets.End)
+			}
+			fmt.Println()
+
+			fmt.Println("PreToken Offsets on Original string: ")
+			for _, t := range *preTokenized {
+				nRange := normalizer.NewRange(t.Offsets.Start, t.Offsets.End, normalizer.NormalizedTarget)
+				oRange := normalized.ConvertOffset(nRange)
+				fmt.Printf("(%v %v)", oRange.Start(), oRange.End())
+			}
+			fmt.Println()
+
 			// 3. Model
 			output, err := (*t.Model).Tokenize(*preTokenized)
 			if err != nil {
@@ -368,21 +405,27 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 			}
 
 			var en Encoding
+			var offset int = 0
 
 			for _, t := range output {
 				en.Ids = append(en.Ids, t.Id)
 				en.Tokens = append(en.Tokens, t.Value)
-				en.Offsets = append(en.Offsets, t.Offsets)
 
+				start := t.Offsets.Start + offset
+				end := t.Offsets.End + offset
+				offset = end
+
+				// en.Offsets = append(en.Offsets, t.Offsets)
+				en.Offsets = append(en.Offsets, Offsets{start, end})
 				en.TypeIds = append(en.TypeIds, typeId)
 				en.SpecialTokenMask = append(en.SpecialTokenMask, 0)
 				en.AttentionMask = append(en.AttentionMask, 1)
 			}
 
 			en.Overflowing = []Encoding{}
+			en.Normalized = normalized
 
 			encodings = append(encodings, en)
-
 		}
 
 	} // end loop over splits

@@ -28,8 +28,7 @@ func main() {
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
 
-	// bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
-	bertNormalizer := normalizer.NewBertNormalizer(true, true, false, true)
+	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
 
 	sepId, ok := tk.TokenToId("[SEP]")
@@ -48,19 +47,26 @@ func main() {
 	tk.WithPostProcessor(postProcess)
 
 	sentence := `Hello, y'all! How are you 😁 ?`
+	// sentence := `a visually stunning rumination on love`
 
-	en := tk.Encode(sentence)
+	// en := tk.Encode(sentence)
+	en := tk.Encode(tokenizer.NewSingleEncodeInput(sentence))
+	// en := tk.Encode(tokenizer.NewDualEncodeInput(sentence, "And its pair."))
 
-	fmt.Printf("Sentence: '%v'\n", sentence)
+	// fmt.Printf("Sentence: '%v'\n", sentence)
 
 	// Output should be:
 	// [101, 7592, 1010, 1061, 1005, 2035, 999, 2129, 2024, 2017, 100, 1029, 102]
 	// ['[CLS]', 'hello', ',', 'y', "'", 'all', '!', 'how', 'are', 'you', '[UNK]', '?', '[SEP]']
 	// [(0, 0), (0, 5), (5, 6), (7, 8), (8, 9), (9, 12), (12, 13), (14, 17), (18, 21), (22, 25), (26, 27),
 	// (28, 29), (0, 0)]
-	fmt.Printf("Tokens: %+v\n", en.GetTokens())
-	fmt.Printf("Ids: %v\n", en.GetIds())
-	fmt.Printf("Offsets: %v\n", en.GetOffsets())
+	fmt.Printf("Original string: \t'%v'\n", en.Normalized.GetOriginal())
+	fmt.Printf("Normalized string: \t'%v'\n", en.Normalized.GetNormalized())
+	fmt.Printf("Ids: \t\t\t%v\n", en.GetIds())
+	fmt.Printf("Tokens: \t\t%+v\n", en.GetTokens())
+	fmt.Printf("Offsets: \t\t%v\n", en.GetOffsets())
+	expected := `[{0 0} {0 5} {5 6} {7 8} {8 9} {9 12} {12 13} {14 17} {18 21} {22 25} {26 27} {28 29} {0 0}]`
+	fmt.Printf("Expected: \t\t%v\n", expected)
 
 	// for _, tok := range en.GetTokens() {
 	// fmt.Printf("'%v'\n", tok)

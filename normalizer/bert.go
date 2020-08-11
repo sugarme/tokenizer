@@ -153,13 +153,9 @@ func doHandleChineseChars(n NormalizedString) NormalizedString {
 					Changes: 1,
 				},
 			}...)
+		} else {
+			changeMap = append(changeMap, ChangeMap{string(r), 0})
 		}
-
-		// No changes
-		changeMap = append(changeMap, ChangeMap{
-			RuneVal: string(r),
-			Changes: 0,
-		})
 	}
 
 	return n.Transform(changeMap, 0)
