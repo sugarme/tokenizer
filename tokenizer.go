@@ -42,26 +42,52 @@ type Token struct {
 }
 
 // PreTokenizer processes strings before going to the model
+// It splits the given string into multiple substrings and keeps track
+// of offsets of split substrings from the `NormalizedString`. In some
+// occasion, the `PreTokenizer` might need to modify the given `NormalizedString`
+// to ensure it entirely keeps track of the offsets and the mapping with
+// the original string.
 type PreTokenizer interface {
-	// PreTokenize(s string) []PreToken
-	PreTokenize(*normalizer.NormalizedString) (*normalizer.NormalizedString, *[]PreToken)
+	PreTokenize(pretokenized PreTokenizedString) (retVal []PreToken)
 }
 
 // Model represents a model used during tokenization (i.e., BPE, Word, or Unigram)
 type Model interface {
+	// Tokenize tokenizes the given sequence into multiple underlying `Token`
+	// The `offsets` on the `Token` are expected to be relative to the given
+	// sequence
 	Tokenize(tokens []PreToken) ([]Token, error)
+	// TokenToId finds the ID associated with a string token
 	TokenToId(token string) (id uint32, ok bool)
+	// IdToToken find the string token associated with an ID
 	IdToToken(id uint32) (token string, ok bool)
+	// GetVocabSize retrieves the entire vocabulary mapping(map[token]id)
 	GetVocabSize() int
-	Save(path string, nameOpt ...string) error
+	// Save saves the current `Model` in the given folder, using the
+	// given `prefixOpt` for various files that need to be saved.
+	Save(path string, prefixOpt ...string) error
 }
 
+// PostProcessor is in charge of post-processing an encoded output of
+// the `Tokenizer`.
+// It adds any special tokens that a language model would require.
 type PostProcessor interface {
-	// Returns the number of tokens that will be added during the processing step
+	// AddedTokens returns the number of tokens that will be added during the processing step
 	AddedTokens(isPair bool) int
 	// Process processes both encodings and returns a new merged one
 	// NOTE: pairEncoding is optional
-	Process(encoding Encoding, encodingOpt ...Encoding) Encoding
+	Process(encoding Encoding, addSpecialTokens bool, encodingOpt ...Encoding) Encoding
+}
+
+// DefaultProcess is a helper function of PostProcessor's Process method
+// It helps to fast track by just merging encoding and its pair.
+func DefaultProcess(encoding Encoding, encodingOpt ...Encoding) Encoding {
+	if len(encodingOpt) > 0 {
+		pairEncoding := encodingOpt[0]
+		return encoding.MergeWith(pairEncoding)
+	}
+
+	return encoding
 }
 
 // Decoder takes care of (merges) the given slice of tokens to string
@@ -77,8 +103,7 @@ type Trainer interface {
 	// Actual training method. It will return a trained model and
 	// a list of `special tokens` to be added directly to the tokenizer
 	// along with the model
-	// Train(words map[string]uint32) (Model, []string)
-	Train(words map[string]uint32) (Model, []string)
+	Train(words map[string]uint32) (Model, []AddedToken)
 	// ProcessTokens processes a bunch of tokens and counts them as relevant
 	ProcessTokens(words map[string]uint32, tokens []string)
 }
@@ -93,164 +118,126 @@ func NewToken(id uint32, value string, offsets Offsets) Token {
 	}
 }
 
+// InputSequence :
+// ===============
+
+type InputSequence interface{}
+
+func NewInputSequence(s string) (retVal InputSequence) {
+	// TODO. implement
+	return
+}
+
+func NewInputSequenceFromPreTokenized(preTokenized []string) (retVal InputSequence) {
+	// TODO. implement
+	return
+}
+
 type Single struct {
-	Sentence string
+	Sentence InputSequence
 }
 type Dual struct {
-	Sentence string
-	Pair     string
+	Sentence InputSequence
+	Pair     InputSequence
 }
 
 type EncodeInput interface{}
 
-func NewSingleEncodeInput(sentence string) (retVal EncodeInput) {
+func NewSingleEncodeInput(sentence InputSequence) (retVal EncodeInput) {
 	return Single{sentence}
 }
 
-func NewDualEncodeInput(sentence, pairSentence string) (retVal EncodeInput) {
+func NewDualEncodeInput(sentence, pairSentence InputSequence) (retVal EncodeInput) {
 	return Dual{sentence, pairSentence}
-}
-
-// var EncodeInput map[interface{}]string = map[interface{}]string{
-// "Single": "Single",
-// Dual{
-// Value: "Value",
-// Pair:  "Pair",
-// }: "Dual",
-// }
-
-type AddedToken struct {
-	Content      string // content of the added token
-	IsSingleWord bool   // whether this token is single word or break words
-}
-
-// AddedTokenFrom creates AddedToken from input content
-func AddedTokenFrom(content string, opt ...bool) AddedToken {
-	var isSingleWord bool = false
-	if len(opt) > 0 {
-		isSingleWord = opt[0]
-	}
-	return AddedToken{
-		Content:      content,
-		IsSingleWord: isSingleWord,
-	}
-}
-
-// Default initiates an addedtoken with default value
-func (at *AddedToken) Default() {
-	at = &AddedToken{
-		Content:      "",
-		IsSingleWord: false,
-	}
-}
-
-// Hash hashes on the content of addedtoken
-// Should we use SipHash or use map?
-func (at *AddedToken) Hash() {
-
-}
-
-// Eq checks whether current addedtoken content is equal to other
-func (at *AddedToken) Eq(other AddedToken) bool {
-	return at.Content == other.Content
 }
 
 // Tokenizer represents a tokenization pipeline.
 // It can implement any encoding or decoding of any text.
 type Tokenizer struct {
 	// Parts
-	Normalizer    *normalizer.Normalizer
-	PreTokenizer  *PreTokenizer
-	Model         *Model
-	PostProcessor *PostProcessor
-	Decoder       *Decoder
+	normalizer    *normalizer.Normalizer // optional
+	preTokenizer  *PreTokenizer          // optional
+	model         Model
+	postProcessor *PostProcessor // optional
+	decoder       *Decoder       // optional
 
-	// Vocab
-	AddedTokens   map[AddedToken]uint32
-	AddedTokensR  map[uint32]AddedToken
-	SplitRe       *regexp.Regexp
-	SpecialTokens map[string]uint32
+	// Added vocabulary capability
+	addedVocabulary AddedVocabulary
 
 	// General processing parameters
-	Trunc   *TruncationParams
-	Padding *PaddingParams
+	trunc   *TruncationParams // optional
+	padding *PaddingParams    // optional
 }
 
 // Implementing methods for Tokenizer
 func NewTokenizer(model Model) Tokenizer {
 	return Tokenizer{
-		Normalizer:    nil,
-		PreTokenizer:  nil,
-		Model:         &model,
-		PostProcessor: nil,
-		Decoder:       nil,
-
-		AddedTokens:  make(map[AddedToken]uint32),
-		AddedTokensR: make(map[uint32]AddedToken),
-		// SplitRe:       regexp.MustCompile(""),
-		SplitRe:       nil,
-		SpecialTokens: make(map[string]uint32),
-
-		Trunc:   nil,
-		Padding: nil,
+		normalizer:      nil,
+		preTokenizer:    nil,
+		model:           model,
+		postProcessor:   nil,
+		decoder:         nil,
+		addedVocabulary: NewAddedVocabulary(),
+		trunc:           nil,
+		padding:         nil,
 	}
 }
 
 func (t *Tokenizer) WithNormalizer(n normalizer.Normalizer) {
-	t.Normalizer = &n
+	t.normalizer = &n
 }
 
 func (t *Tokenizer) GetNormalizer() normalizer.Normalizer {
-	return *t.Normalizer
+	return *t.normalizer
 }
 
 func (t *Tokenizer) WithPreTokenizer(preTokenizer PreTokenizer) {
-	t.PreTokenizer = &preTokenizer
+	t.preTokenizer = &preTokenizer
 }
 
 func (t *Tokenizer) GetPreTokenizer() PreTokenizer {
-	return *t.PreTokenizer
+	return *t.preTokenizer
 }
 
 func (t *Tokenizer) WithPostProcessor(postProcessor PostProcessor) {
-	t.PostProcessor = &postProcessor
+	t.postProcessor = &postProcessor
 }
 
 func (t *Tokenizer) GetPostProcessor() PostProcessor {
-	return *t.PostProcessor
+	return *t.postProcessor
 }
 
 func (t *Tokenizer) WithDecoder(decoder Decoder) {
-	t.Decoder = &decoder
+	t.decoder = &decoder
 }
 
 func (t *Tokenizer) GetDecoder() Decoder {
-	return *t.Decoder
+	return *t.decoder
 }
 
 func (t *Tokenizer) WithModel(model Model) {
-	t.Model = &model
+	t.model = model
 }
 
 func (t *Tokenizer) GetModel() Model {
-	return *t.Model
+	return t.model
 }
 
 func (t *Tokenizer) WithTruncation(trunc TruncationParams) {
-	t.Trunc = &trunc
+	t.trunc = &trunc
 }
 
 func (t *Tokenizer) GetTruncation() TruncationParams {
-	return *t.Trunc
+	return *t.trunc
 }
 
 func (t *Tokenizer) WithPadding(padding PaddingParams) {
-	t.Padding = &padding
+	t.padding = &padding
 }
 
 func (t *Tokenizer) GetVocabSize(withAddedToken bool) int {
 	if withAddedToken {
-		return (*t.Model).GetVocabSize() + len(t.AddedTokens)
+		return (t.model).GetVocabSize() + len(t.AddedTokens)
 	}
 
 	return (*t.Model).GetVocabSize()
