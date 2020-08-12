@@ -140,7 +140,11 @@ func isWordCharacter(r rune) bool {
 	return false
 }
 
-// type MatchingSet struct{}
+// matchingSet is a set of regular expression string
+type matchingSet struct {
+	patterns []string
+	ids      []uint32
+}
 
 // AddedVocabulary is a vocabulary built on top of the Model
 //
@@ -156,5 +160,139 @@ func isWordCharacter(r rune) bool {
 // were to add new tokens after this training process, we couldn't make sure the merges pairs
 // exist as required.
 type AddedVocabulary struct {
-	// TODO. continue
+	// Contains the mapping from String (token content) to ID. This map contains both special
+	// tokens and classic added tokens that were added to the this vocabulary.
+	addedTokenMap map[string]uint32
+	// Contains the mapping from ID to AddedToken for all the added tokens, both special
+	// and classic.
+	addedTokenMapR map[uint32]string
+	// Contains only the classic AddedToken, in the specific order the user gave them.
+	addedTokens []AddedToken
+	// Contains only the special AddedToken, in the specific order the user gave them.
+	specialTokens []AddedToken
+	// A map, containing all the special token for easy access while decoding. This let's
+	// us remove them easily with an O(1) complexity.
+	specialTokensSet map[string]bool
+	// A struct containing all the non-normalized patterns used to split on AddedTokens
+	splitRe matchingSet
+	// A struct containing all the normalized patterns used to split on AddedTokens
+	splitNormalizedRe matchingSet
+}
+
+// Len returns size of the additional vocabulary
+func (av AddedVocabulary) Len() int {
+	return len(av.addedTokenMap)
+}
+
+// GetVocab gets the additional vocabulary
+func (av AddedVocabulary) GetVocab() (retVal map[string]uint32) {
+	return av.addedTokenMap
+}
+
+// Get the id matching one of our token if it exists
+func (av AddedVocabulary) TokenToId(token string, model Model) (retVal uint32, ok bool) {
+
+	retVal, ok = av.addedTokenMap[token]
+	if !ok {
+		return model.TokenToId(token)
+	}
+
+	return retVal, ok
+}
+
+// Get the token matching the given id if it exists
+func (av AddedVocabulary) IdToToken(id uint32, model Model) (retVal string, ok bool) {
+	retVal, ok = av.addedTokenMapR[id]
+	if !ok {
+		return model.IdToToken(id)
+	}
+
+	return retVal, ok
+}
+
+// Check if a token is a special token
+func (av AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
+	_, retVal = av.specialTokensSet[token]
+	return retVal
+}
+
+// Add some special tokens to the vocabulary
+// It returns number of added tokens
+func (av AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer normalizer.Normalizer) (retVal int) {
+
+	for _, tok := range tokens {
+		_, isExist := av.specialTokensSet[tok.Content]
+		if tok.Content != "" && !isExist {
+			av.specialTokens = append(av.specialTokens, tok)
+			av.specialTokensSet[tok.Content] = true
+		}
+	}
+
+	// Then we delegate to `add_tokens`, that will take care of refreshing added tokens too.
+	return av.AddTokens(tokens, model, normalizer)
+}
+
+// Add some tokens to the vocabulary
+// It returns number of added tokens
+func (av AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer normalizer.Normalizer) (retVal int) {
+
+	ignored := 0
+	for _, token := range tokens {
+		if token.Content == "" {
+			ignored++
+			continue
+		}
+
+		var id uint32
+		if i, ok := av.TokenToId(token.Content, model); ok {
+			ignored++
+			id = i
+		} else {
+			id = uint32(model.GetVocabSize() + len(av.addedTokenMap))
+			av.addedTokenMap[token.Content] = id
+		}
+
+		// Update the current revert operation
+		av.addedTokenMapR[id] = token.Content
+	}
+
+	av.RefreshAddedTokens(model, normalizer)
+
+	// return the number of added tokens
+	return len(tokens) - ignored
+}
+
+type tokenId struct {
+	token AddedToken
+	id    uint32
+}
+
+// RefreshAddedTokens reconstructs our internal RegexSet when new tokens are added to the vocabulary.
+//
+// NOTE. We keep two different regular expression sets, one that will take care of matching against the
+// non-normalized string, and one matching against the normalized one.
+func (av AddedVocabulary) RefreshAddedTokens(model Model, normalizer normalizer.Normalizer) {
+
+	var normIds, nnormIds []uint32
+	var normPatterns, nnormPatterns []string
+	tokens := append(av.specialTokens, av.addedTokens...)
+	for _, token := range tokens {
+
+		id, ok := av.TokenToId(token.Content, model)
+		if !ok {
+			log.Fatalf("Missing additional token.\n")
+		}
+
+		pattern := token.GetPattern(normalizer)
+		if token.Normalized {
+			normIds = append(normIds, id)
+			normPatterns = append(normPatterns, pattern)
+		} else {
+			nnormIds = append(nnormIds, id)
+			nnormPatterns = append(nnormPatterns, pattern)
+		}
+	}
+
+	av.splitNormalizedRe = matchingSet{normPatterns, normIds}
+	av.splitRe = matchingSet{nnormPatterns, nnormIds}
 }
