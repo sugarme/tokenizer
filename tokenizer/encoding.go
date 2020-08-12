@@ -1,10 +1,8 @@
 package tokenizer
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
-
-	"github.com/sugarme/tokenizer/normalizer"
 )
 
 type PaddingDirection int
@@ -16,20 +14,25 @@ const (
 
 // Encoding represents the output of tokenizer
 type Encoding struct {
-	Normalized       normalizer.NormalizedString
-	Ids              []uint32
-	TypeIds          []uint32
-	Tokens           []string
-	Offsets          []Offsets
-	SpecialTokenMask []uint32
-	AttentionMask    []uint32
-	Overflowing      []Encoding
+	Ids              []uint32   // ID produced by the `tokenizer`
+	TypeIds          []uint32   // Type of the ID
+	Tokens           []string   // Tokens associated with each ID
+	Offsets          []Offsets  // Offsets of the token/ID from the NormalizedString
+	SpecialTokenMask []uint32   // Mask identifying special tokens
+	AttentionMask    []uint32   // Mask identifying padding tokens for the attention mechanism
+	Overflowing      []Encoding // A list of overflowing generated when being truncated
+	Words            []uint32   // Optional - Indexes of the word associated with each token/ID
 }
 
 // NewEncoding initiate a new encoding from input data
-func NewEncoding(normalized normalizer.NormalizedString, ids []uint32, typeIds []uint32, tokens []string, offsets []Offsets, specialTokenMask []uint32, attentionMask []uint32, overflowing []Encoding) Encoding {
+func NewEncoding(ids []uint32, typeIds []uint32, tokens []string, offsets []Offsets, specialTokenMask []uint32, attentionMask []uint32, overflowing []Encoding, wordsOpt ...[]uint32) Encoding {
+	var words []uint32
+	if len(wordsOpt) > 0 {
+		words = wordsOpt[0]
+	} else {
+		words = nil
+	}
 	return Encoding{
-		normalized,
 		ids,
 		typeIds,
 		tokens,
@@ -37,13 +40,26 @@ func NewEncoding(normalized normalizer.NormalizedString, ids []uint32, typeIds [
 		specialTokenMask,
 		attentionMask,
 		overflowing,
+		words,
+	}
+}
+
+func NewEncodingWithCapacity(l int) (retVal Encoding) {
+	return Encoding{
+		Ids:              make([]uint32, l),
+		TypeIds:          make([]uint32, l),
+		Tokens:           make([]string, l),
+		Offsets:          make([]Offsets, l),
+		SpecialTokenMask: make([]uint32, l),
+		AttentionMask:    make([]uint32, l),
+		Overflowing:      []Encoding{},
+		Words:            make([]uint32, l),
 	}
 }
 
 // Default creates an encoding with default values
 func DefaultEncoding() Encoding {
 	return Encoding{
-		Normalized:       normalizer.NewNormalizedFrom(""),
 		Ids:              []uint32{0},
 		TypeIds:          []uint32{0},
 		Tokens:           []string{},
@@ -51,66 +67,193 @@ func DefaultEncoding() Encoding {
 		SpecialTokenMask: []uint32{},
 		AttentionMask:    []uint32{},
 		Overflowing:      []Encoding{},
+		Words:            nil,
 	}
 }
 
-// GetNormalized returns normalized string from encoding
-func (e *Encoding) GetNormalized() normalizer.NormalizedString {
-	return e.Normalized
+// NewEncodingFromTokens initiate Encoding from input tokens
+func NewEncodingFromTokens(tokens []Token, typeId uint32) (retVal Encoding) {
+	var (
+		ids     []uint32
+		offsets []Offsets
+		words   []uint32
+		toks    []string
+	)
+	for i, t := range tokens {
+		ids = append(ids, uint32(i))
+		offsets = append(offsets, t.Offsets)
+		words = append(words, t.Word)
+		toks = append(toks, t.Value)
+	}
+
+	typeIds := make([]uint32, len(tokens))
+
+	return Encoding{
+		Ids:              ids,
+		TypeIds:          typeIds,
+		Tokens:           toks,
+		Offsets:          offsets,
+		SpecialTokenMask: make([]uint32, 0, len(tokens)),
+		AttentionMask:    make([]uint32, 1, len(tokens)),
+		Overflowing:      []Encoding{},
+		Words:            words,
+	}
 }
 
-// GetTokenreturns tokens from encoding
-func (e *Encoding) GetTokens() []string {
+// IsEmpty returns whether Encoding is empty
+func (e Encoding) IsEmpty() (retVal bool) {
+	return len(e.Ids) == 0
+}
+
+// Len returns number of encoding tokens
+func (e Encoding) Len() (retVal int) {
+	return len(e.Ids)
+}
+
+// GetToken returns tokens from encoding
+func (e Encoding) GetTokens() []string {
 	return e.Tokens
 }
 
+// GetWords returns word indexes on normalized string
+func (e Encoding) GetWords() []uint32 {
+	return e.Words
+}
+
 // GetIds returns Ids from encoding
-func (e *Encoding) GetIds() []uint32 {
+func (e Encoding) GetIds() []uint32 {
 	return e.Ids
 }
 
 // GetTypeIds returns type Ids from encoding
-func (e *Encoding) GetTypeIds() []uint32 {
+func (e Encoding) GetTypeIds() []uint32 {
 	return e.TypeIds
 }
 
 // GetOffsets returns offsets from encoding
-func (e *Encoding) GetOffsets() []Offsets {
+func (e Encoding) GetOffsets() []Offsets {
 	return e.Offsets
 }
 
 // GetSpecialTokenMask returns specialTokenMask from encoding
-func (e *Encoding) GetSpecialTokenMask() []uint32 {
+func (e Encoding) GetSpecialTokenMask() []uint32 {
 	return e.SpecialTokenMask
 }
 
 // GetAttentionMask returns attentionMask from encoding
-func (e *Encoding) GetAttentionMask() []uint32 {
+func (e Encoding) GetAttentionMask() []uint32 {
 	return e.AttentionMask
 }
 
 // GetOverflowing returns overflowing from encoding
-func (e *Encoding) GetOverflowing() []Encoding {
+func (e Encoding) GetOverflowing() []Encoding {
 	return e.Overflowing
 }
 
 // TakeOverflowing returns overflowing and reset it to empty at encoding
-func (e *Encoding) TakeOverflowing() []Encoding {
+func (e Encoding) TakeOverflowing() []Encoding {
 	o := e.Overflowing
 	e.Overflowing = []Encoding{}
 	return o
 }
 
+// Word2Tokens gets the encoded tokens corresponding the word
+// at the given index in the input sequence
+// in the form `(startToken, endToken + 1)`
+//
+// NOTE. e.Words is optional, therefore, there's case of `none` result
+// if `none` result, `ok` will be false.
+func (e Encoding) Word2Tokens(word uint32) (startTok, endTok uint32, ok bool) {
+
+	var start, end *int
+
+	var words []uint32
+	for _, w := range e.Words {
+		if w == word {
+			words = append(words, w)
+		}
+	}
+	for i, _ := range words {
+		if start == nil || i < *start {
+			start = &i
+		}
+
+		if end == nil || i >= *end {
+			tmp := i + 1
+			end = &tmp
+		}
+	}
+
+	if start != nil && end != nil {
+		return uint32(*start), uint32(*end), true
+	} else {
+		return startTok, endTok, false
+	}
+}
+
+// Word2Chars get the offsets of the word at a given index in
+// the input sequence
+func (e Encoding) Word2Chars(word uint32) (retVal Offsets, ok bool) {
+	start, end, ok := e.Word2Tokens(word)
+	if end == 0 {
+		return retVal, false
+	} else {
+		oStart := e.Offsets[start].Start
+		oEnd := e.Offsets[end-1].End
+		return Offsets{oStart, oEnd}, true // Should we check whether `ok`?
+	}
+}
+
+// Token2Chars get the offsets of the token at the given index
+func (e Encoding) Token2Chars(tokenIdx int) (retVal Offsets, ok bool) {
+	if tokenIdx < 0 || tokenIdx > len(e.Offsets) {
+		return retVal, false
+	} else {
+		return e.Offsets[tokenIdx], true
+	}
+}
+
+// Token2Word get the word index of corresponding token if existing
+func (e Encoding) Token2Word(tokenIdx int) (retVal uint32, ok bool) {
+	// naive search. TODO. improve algorithm
+	for _, w := range e.Words {
+		if w == uint32(tokenIdx) {
+			return w, true
+		}
+	}
+	return retVal, false
+}
+
+// Char2Token returns a token index that contains the given `char` index
+func (e Encoding) Char2Token(pos int) (retVal int, ok bool) {
+	for i, o := range e.Offsets {
+		if pos >= o.Start && pos < o.End {
+			return i, true
+		}
+	}
+
+	return -1, false
+}
+
+// Char2Word get the word index that contain the given `char` index
+func (e Encoding) Char2Word(pos int) (retVal uint32, ok bool) {
+	if idx, ok := e.Char2Token(pos); ok {
+		return e.Token2Word(idx)
+	}
+
+	return retVal, false
+}
+
 // Truncate truncates the current encoding
-func (e *Encoding) Truncate(maxLen uint, stride uint) error {
+func (e Encoding) Truncate(maxLen uint, stride uint) (retVal Encoding, err error) {
 
 	if stride >= maxLen || maxLen == 0 {
-		return errors.New("Invalid input maxLen or stride (stride must be less than maxLen and maxLen must be greater than zero.)")
+		return retVal, fmt.Errorf("Invalid input maxLen or stride (stride must be less than maxLen and maxLen must be greater than zero.)")
 	}
 
 	if maxLen >= uint(len(e.Ids)) {
 		// do nothing
-		return nil
+		return e, nil
 	}
 
 	// Truncating at maxLen (exclusive) to keep.
@@ -127,6 +270,8 @@ func (e *Encoding) Truncate(maxLen uint, stride uint) error {
 	oSpeToks := e.SpecialTokenMask[maxLen:len(e.SpecialTokenMask)]
 	newAttent := e.AttentionMask[0:maxLen]
 	oAttent := e.AttentionMask[maxLen:len(e.AttentionMask)]
+	newWords := e.Words[0:maxLen]
+	oWords := e.Words[maxLen:len(e.Words)]
 
 	e.Ids = newIds
 	e.TypeIds = newTypeIds
@@ -134,6 +279,7 @@ func (e *Encoding) Truncate(maxLen uint, stride uint) error {
 	e.Offsets = newOffsets
 	e.SpecialTokenMask = newSpeToks
 	e.AttentionMask = newAttent
+	e.Words = newWords
 
 	// Separate the overflowing part into as many Encoding as needed
 	partSize := maxLen - stride
@@ -144,7 +290,6 @@ func (e *Encoding) Truncate(maxLen uint, stride uint) error {
 	// while loop
 	for int(partSize)*partId < len(oIds) {
 		o := Encoding{
-			Normalized: e.Normalized,
 			// Which way is better? using reflect or just type assertion
 			// Ids:        (getCurrentPart(prevEncoding.Ids, oIds, partSize, uint(partId), stride)).([]uint32),
 			Ids:              reflect.ValueOf(getCurrentPart(prevEncoding.Ids, oIds, partSize, uint(partId), stride)).Interface().([]uint32),
@@ -153,22 +298,32 @@ func (e *Encoding) Truncate(maxLen uint, stride uint) error {
 			Offsets:          reflect.ValueOf(getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, uint(partId), stride)).Interface().([]Offsets),
 			SpecialTokenMask: reflect.ValueOf(getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, uint(partId), stride)).Interface().([]uint32),
 			AttentionMask:    reflect.ValueOf(getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, uint(partId), stride)).Interface().([]uint32),
+			Words:            reflect.ValueOf(getCurrentPart(prevEncoding.Words, oWords, partSize, uint(partId), stride)).Interface().([]uint32),
 			Overflowing:      make([]Encoding, 0),
 		}
 
 		partId += 1
 		overflowing = append(overflowing, o)
-		prevEncoding = &overflowing[len(overflowing)-1]
+		prevEncoding = overflowing[len(overflowing)-1]
 	}
 
 	e.Overflowing = overflowing
 
-	return nil
+	return e, nil
+}
 
+// Merge merges all Encodings together
+func (e Encoding) Merge(encodings []Encoding) (retVal Encoding) {
+	retVal = e
+	for _, encoding := range encodings {
+		retVal = retVal.MergeWith(encoding)
+	}
+
+	return retVal
 }
 
 // MergeWith merges the current encoding with other (pair) encoding
-func (e *Encoding) MergeWith(pair Encoding) {
+func (e Encoding) MergeWith(pair Encoding) (retVal Encoding) {
 	// Merge overflowing
 	overflowings := make([]Encoding, 0)
 	// 1. All current overflowing with all other overflowing
@@ -191,11 +346,10 @@ func (e *Encoding) MergeWith(pair Encoding) {
 	for _, otherO := range pair.Overflowing {
 		newE := e
 		newE.MergeWith(otherO)
-		overflowings = append(overflowings, *newE)
+		overflowings = append(overflowings, newE)
 	}
 
 	// 3. Current encoding and other encoding
-	e.Normalized.MergeWith(pair.GetNormalized())
 	e.Ids = append(e.Ids, pair.Ids...)
 	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
 	e.Tokens = append(e.Tokens, pair.Tokens...)
@@ -217,10 +371,18 @@ func (e *Encoding) MergeWith(pair Encoding) {
 	e.AttentionMask = append(e.AttentionMask, pair.AttentionMask...)
 	e.Overflowing = overflowings
 
+	// 4. Re-indexing word index
+	wOffset := len(e.Words)
+	for _, w := range pair.Words {
+		newW := w + uint32(wOffset)
+		e.Words = append(e.Words, newW)
+	}
+
+	return e
 }
 
 // Pad pads current encoding with given length, values to either Left or Right direction
-func (e *Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToken string, direction PaddingDirection) {
+func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToken string, direction PaddingDirection) (retVal Encoding) {
 	// 1. Recursively call for overflowing part
 	for _, o := range e.Overflowing {
 		o.Pad(targetLength, padId, padTypeId, padToken, direction)
@@ -278,6 +440,13 @@ func (e *Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padTok
 		newOffsets = append(newOffsets, e.Offsets...)
 		e.Offsets = newOffsets
 
+		newWords := make([]uint32, padLength)
+		for i := 0; i < len(newWords); i++ {
+			newWords[i] = 0 // Should be `none` value. TODO. implement
+		}
+		newWords = append(newWords, e.Words...)
+		e.Words = newWords
+
 	case Right:
 		for i := 0; i < padLength; i++ {
 			e.Ids = append(e.Ids, padId)
@@ -286,9 +455,11 @@ func (e *Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padTok
 			e.SpecialTokenMask = append(e.SpecialTokenMask, 1)
 			e.AttentionMask = append(e.AttentionMask, 0)
 			e.Offsets = append(e.Offsets, Offsets{0, 0})
+			e.Words = append(e.Words, 0) // Should be `none` value. TODO. implement
 		}
-
 	}
+
+	return e
 }
 
 func getCurrentPart(previous, current interface{}, size, idx, stride uint) interface{} {
@@ -302,7 +473,6 @@ func getCurrentPart(previous, current interface{}, size, idx, stride uint) inter
 			curr = current.([]uint32)[(idx * size) : (idx+1)*size]
 		}
 		prev = previous.([]uint32)[len(previous.([]uint32))-int(stride):]
-		// concat
 		return append(prev, curr...)
 	case []string:
 		var curr, prev []string
@@ -312,7 +482,6 @@ func getCurrentPart(previous, current interface{}, size, idx, stride uint) inter
 			curr = current.([]string)[(idx * size) : (idx+1)*size]
 		}
 		prev = previous.([]string)[len(previous.([]string))-int(stride):]
-		// concat
 		return append(prev, curr...)
 	case []Offsets:
 		var curr, prev []Offsets
@@ -322,27 +491,8 @@ func getCurrentPart(previous, current interface{}, size, idx, stride uint) inter
 			curr = current.([]Offsets)[(idx * size) : (idx+1)*size]
 		}
 		prev = previous.([]Offsets)[len(previous.([]Offsets))-int(stride):]
-		// concat
 		return append(prev, curr...)
-
 	}
 
 	return nil
-
 }
-
-/*
- * func InterfaceSlice(slice interface{}) []interface{} {
- *   s := reflect.ValueOf(slice)
- *   if s.Kind() != reflect.Slice {
- *     panic("InterfaceSlice() given a non-slice type")
- *   }
- *
- *   ret := make([]interface{}, s.Len())
- *
- *   for i := 0; i < s.Len(); i++ {
- *     ret[i] = s.Index(i).Interface()
- *   }
- *
- *   return ret
- * } */

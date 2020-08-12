@@ -11,13 +11,13 @@ import (
 
 func TestBertPreTokenize(t *testing.T) {
 
-	var preTok pretokenizer.BertTokenizer
+	var preTok pretokenizer.BertPreTokenizer
 
 	input := normalizer.NewNormalizedFrom("Hey friend!     How are you?!?")
 
-	got := preTok.PreTokenize(input)
+	_, got := preTok.PreTokenize(&input)
 
-	want := []tokenizer.PreToken{
+	want := &[]tokenizer.PreToken{
 		{Value: "Hey", Offsets: tokenizer.Offsets{Start: 0, End: 3}},
 		{Value: "friend", Offsets: tokenizer.Offsets{Start: 4, End: 10}},
 		{Value: "!", Offsets: tokenizer.Offsets{Start: 10, End: 11}},

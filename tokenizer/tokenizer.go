@@ -39,6 +39,7 @@ type Token struct {
 	Id      uint32
 	Value   string
 	Offsets Offsets
+	Word    uint32
 }
 
 // PreTokenizer processes strings before going to the model
@@ -347,7 +348,7 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 	for _, s := range splits {
 		// If this is one of our added tokens, return an encoding directly
 		if s.Found {
-			e := NewEncoding(normalizer.NewNormalizedFrom(s.Content), []uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{})
+			e := NewEncoding([]uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{}) // TODO: add e.Words
 
 			encodings = append(encodings, e)
 
@@ -423,7 +424,6 @@ func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
 			}
 
 			en.Overflowing = []Encoding{}
-			en.Normalized = normalized
 
 			encodings = append(encodings, en)
 		}
