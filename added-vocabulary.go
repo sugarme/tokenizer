@@ -2,10 +2,12 @@ package tokenizer
 
 import (
 	"fmt"
-	"github.com/sugarme/tokenizer/normalizer"
 	"log"
 	"regexp"
 	"unicode"
+
+	"github.com/sugarme/regexpset"
+	"github.com/sugarme/tokenizer/normalizer"
 )
 
 // AddedToken represents a token added by the user on top of the
@@ -142,7 +144,7 @@ func isWordCharacter(r rune) bool {
 
 // matchingSet is a set of regular expression string
 type matchingSet struct {
-	patterns []string
+	regexSet regexpset.RegexpSet
 	ids      []uint32
 }
 
@@ -256,7 +258,7 @@ func (av AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer
 		av.addedTokenMapR[id] = token.Content
 	}
 
-	av.RefreshAddedTokens(model, normalizer)
+	av.refreshAddedTokens(model, normalizer)
 
 	// return the number of added tokens
 	return len(tokens) - ignored
@@ -267,11 +269,11 @@ type tokenId struct {
 	id    uint32
 }
 
-// RefreshAddedTokens reconstructs our internal RegexSet when new tokens are added to the vocabulary.
+// refreshAddedTokens reconstructs our internal RegexSet when new tokens are added to the vocabulary.
 //
 // NOTE. We keep two different regular expression sets, one that will take care of matching against the
 // non-normalized string, and one matching against the normalized one.
-func (av AddedVocabulary) RefreshAddedTokens(model Model, normalizer normalizer.Normalizer) {
+func (av AddedVocabulary) refreshAddedTokens(model Model, normalizer normalizer.Normalizer) {
 
 	var normIds, nnormIds []uint32
 	var normPatterns, nnormPatterns []string
@@ -293,6 +295,32 @@ func (av AddedVocabulary) RefreshAddedTokens(model Model, normalizer normalizer.
 		}
 	}
 
-	av.splitNormalizedRe = matchingSet{normPatterns, normIds}
-	av.splitRe = matchingSet{nnormPatterns, nnormIds}
+	normSet, err := regexpset.NewRegexpSet(normPatterns)
+	if err != nil {
+		log.Fatal(err)
+	}
+	nnormSet, err := regexpset.NewRegexpSet(nnormPatterns)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	av.splitNormalizedRe = matchingSet{*normSet, normIds}
+	av.splitRe = matchingSet{*nnormSet, nnormIds}
+}
+
+type idOffsets struct {
+	id      *uint32 // optional
+	offsets Offsets
+}
+
+// findMatches finds any AddedToken in the given sentence, using the provided MatchingSet.
+// This method returns a list of "splits", each of them being a pair of ByteOffsets(Offsets)
+// and an optional ID if it is an AddedToken. The list of splits cover the entire input string.
+func (av AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (retVal []idOffsets) {
+
+	if len(sentence) == 0 {
+		return []idOffsets{{nil, Offsets{0, 0}}}
+	}
+
+	return
 }
