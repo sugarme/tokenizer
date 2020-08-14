@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"unicode"
 
 	"github.com/sugarme/regexpset"
@@ -313,6 +314,23 @@ type idOffsets struct {
 	offsets Offsets
 }
 
+// helper functions to sort idOffsets
+// By implement sort interface of package sort
+
+// byStart sort by offset.Start
+type byStart []idOffsets
+
+func (s byStart) Len() int           { return len(s) }
+func (s byStart) Less(i, j int) bool { return s[i].offsets.Start < s[j].offsets.Start }
+func (s byStart) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+// byId sort by id
+type byId []idOffsets
+
+func (bi byId) Len() int           { return len(bi) }
+func (bi byId) Less(i, j int) bool { return *(bi[i].id) < *(bi[j].id) }
+func (bi byId) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
+
 // findMatches finds any AddedToken in the given sentence, using the provided MatchingSet.
 // This method returns a list of "splits", each of them being a pair of ByteOffsets(Offsets)
 // and an optional ID if it is an AddedToken. The list of splits cover the entire input string.
@@ -322,5 +340,184 @@ func (av AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (ret
 		return []idOffsets{{nil, Offsets{0, 0}}}
 	}
 
-	return
+	matches := splitRe.regexSet.Matches(sentence).Matches()
+	var ioPairs []idOffsets
+
+	for _, idx := range matches {
+		r := regexp.MustCompile(splitRe.regexSet.Patterns()[idx])
+		locs := r.FindAllStringIndex(sentence, -1)
+		for _, loc := range locs {
+			id := uint32(idx)
+			ioPair := idOffsets{id: &id, offsets: Offsets{Start: loc[0], End: loc[1]}}
+			ioPairs = append(ioPairs, ioPair)
+		}
+	}
+
+	// Sort id-offsets by start then by pattern id
+	sort.Sort(byStart(ioPairs))
+	sort.Sort(byId(ioPairs))
+
+	// Select the matches, if they overlap, keep them
+	var (
+		i              int         = 0
+		currentOffsets int         = 0
+		splits         []idOffsets = make([]idOffsets, len(ioPairs))
+	)
+
+	for i < len(ioPairs) {
+		ioPair := ioPairs[i]
+
+		// current match is before the current offset, skip it
+		if ioPair.offsets.Start < currentOffsets {
+			i++
+			continue
+		}
+
+		// Find out whether having overlapping neighbours.
+		// If so, keep the one with lowest Idx. All other will be skipped
+		// because `currentOffsets` will have been increased.
+		if i+1 < len(ioPairs) {
+			overlapPairs := ioPairs[i:]
+			sort.Sort(byId(overlapPairs))
+			lowestPair := overlapPairs[0] // lowest Id one
+			splits = append(splits, lowestPair)
+			currentOffsets = ioPair.offsets.End
+			i++
+			continue
+		}
+
+		// Not found overlap neighbours. Just apply itself
+		splits = append(splits, ioPair)
+		currentOffsets = ioPair.offsets.End
+		i++
+	}
+
+	// Also, insert the splits in-between added tokens, to split the entire string
+	var (
+		startOffset int = 0
+		finalSplits []idOffsets
+	)
+
+	for _, ioPair := range splits {
+		if startOffset < ioPair.offsets.Start {
+			finalSplits = append(finalSplits, idOffsets{nil, Offsets{startOffset, ioPair.offsets.Start}})
+		}
+		finalSplits = append(finalSplits, idOffsets{&splitRe.ids[*(ioPair.id)], ioPair.offsets})
+		startOffset = ioPair.offsets.End
+	}
+
+	totalByteLen := len(sentence)
+	if startOffset != totalByteLen {
+		finalSplits = append(finalSplits, idOffsets{nil, Offsets{startOffset, totalByteLen}})
+	}
+
+	return finalSplits
 }
+
+// splitWithIndices splits the input sentence to extract anything found from the `MatchingSet`, as well as
+// the list of corresponding IDs.
+//
+// NOTE.The list of IDs have the exact same number of elements as the Iterator.
+func (av AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString, splitRe matchingSet) (retVal1 []uint32, retVal2 []normalizer.NormalizedString) {
+
+	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
+
+	var (
+		indices []uint32
+		nSplits []normalizer.NormalizedString
+	)
+
+	for _, ioPair := range ioPairs {
+		indices = append(indices, *(ioPair.id))
+		start := ioPair.offsets.Start
+		end := ioPair.offsets.End
+
+		nSplit := sentence.SliceBytes(normalizer.NewRange(start, end, normalizer.NormalizedTarget))
+		nSplits = append(nSplits, nSplit)
+	}
+
+	return indices, nSplits
+}
+
+type IdSubstring struct {
+	Id        uint32
+	Substring SubString
+}
+
+// ExtractAndNormalize extracts the additional vocabulary from the given
+// sentence, and normalizes it along the way.
+//
+// Some tokens should match against their normalized representation, as well as the
+// non-normalized one. For example, when we expect to extract the token `yesterday` in the
+// input sentence `I read a book Yesterday`, if the normalizer is supposed to lowercase
+// everything, we expect a match.
+//
+// This method returns 3 slices: []NormalizedString, []Offsets,
+// []uint32(optional), where the optional []uint32 contains the relevant ID if this is
+// an additional token. The offsets being returned here are in the `original` referential.
+// They are the offsets of the given part in the original input
+func (av AddedVocabulary) ExtractAndNormalize(sequence string, n normalizer.Normalizer) (retVal []IdSubstring) {
+
+	var pretokenized PreTokenizedString = NewPreTokenizedString(sequence)
+
+	// 1. Extract all non-normalized tokens from the non-normalized string
+	var indices []uint32
+	err := pretokenized.Split(func(idx int, seq normalizer.NormalizedString) []normalizer.NormalizedString {
+		idxs, splits := av.splitWithIndices(seq, av.splitRe)
+		indices = idxs
+		return splits
+	})
+	if err != nil {
+		log.Fatalf("AddedVocabulary bad split - non-normalized\n")
+	}
+
+	// 2. Extract the normalized tokens from the normalized pieces of the string
+	var multiIndices []uint32
+	err = pretokenized.Split(func(i int, seq normalizer.NormalizedString) []normalizer.NormalizedString {
+		if i >= 0 && i < len(indices) {
+			multiIndices = append(multiIndices, indices[i])
+			return []normalizer.NormalizedString{seq}
+		} else {
+			nSeq, err := n.Normalize(seq)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			idxs, splits := av.splitWithIndices(nSeq, av.splitNormalizedRe)
+			multiIndices = append(multiIndices, idxs...)
+			return splits
+		}
+	})
+	if err != nil {
+		log.Fatalf("AddedVocabulary bad split - normalized\n")
+	}
+
+	var (
+		isPairs []IdSubstring
+		currIdx int
+	)
+	for {
+		sub, ok := pretokenized.Next()
+		if !ok {
+			break
+		}
+
+		id := multiIndices[currIdx]
+		isPairs = append(isPairs, IdSubstring{id, sub})
+	}
+
+	return isPairs
+}
+
+type AddedTokenWithId struct {
+	Id      uint32     // Id assigned to this token
+	Special bool       // whether this is a special token
+	Token   AddedToken // the target AddedToken
+}
+
+// Implement Serialize interface for AddedVocabular:
+// =================================================
+
+// Serialize implements Serialize interface for AddedVocabular
+// TODO. implement it
+// func(av AddedVocabulary) Serialize(s Serializer)(retVal ...)
