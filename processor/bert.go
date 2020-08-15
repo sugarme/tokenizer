@@ -1,12 +1,12 @@
 package processor
 
 import (
-	"github.com/sugarme/tokenizer/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 type PostToken struct {
 	Value string
-	Id    uint32
+	Id    int
 }
 
 type BertProcessing struct {
@@ -34,12 +34,12 @@ func (bp BertProcessing) AddedTokens(isPair bool) (retVal int) {
 
 func (bp BertProcessing) Process(encoding tokenizer.Encoding, pairEncodingOpt ...tokenizer.Encoding) (retVal tokenizer.Encoding) {
 
-	var ids []uint32
+	var ids []int
 	ids = append(ids, bp.cls.Id)
 	ids = append(ids, encoding.GetIds()...)
 	ids = append(ids, bp.sep.Id)
 
-	var typeIds []uint32
+	var typeIds []int
 	typeIds = append(typeIds, 0)
 	typeIds = append(typeIds, encoding.GetTypeIds()...)
 	typeIds = append(typeIds, 0)
@@ -54,25 +54,25 @@ func (bp BertProcessing) Process(encoding tokenizer.Encoding, pairEncodingOpt ..
 	offsets = append(offsets, encoding.GetOffsets()...)
 	offsets = append(offsets, tokenizer.Offsets{Start: 0, End: 0})
 
-	var specialTokens []uint32
+	var specialTokens []int
 	specialTokens = append(specialTokens, 1)
 	specialTokens = append(specialTokens, 0)
-	specialTokens = append(specialTokens, uint32(len(encoding.GetIds())))
+	specialTokens = append(specialTokens, len(encoding.GetIds()))
 	specialTokens = append(specialTokens, 1)
 
-	var attentionMask []uint32 = []uint32{1, uint32(len(ids))}
+	var attentionMask []int = []int{1, len(ids)}
 
-	newEncoding := tokenizer.NewEncoding(encoding.GetNormalized(), ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing())
+	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing())
 
 	var pairEncoding tokenizer.Encoding
 	if len(pairEncodingOpt) > 0 {
 		pairEncoding = pairEncodingOpt[0]
 
-		var pairIds []uint32
+		var pairIds []int
 		pairIds = append(pairIds, pairEncoding.GetTypeIds()...)
 		pairIds = append(pairIds, bp.sep.Id)
 
-		var pairTypeIds []uint32
+		var pairTypeIds []int
 		pairTypeIds = append(pairTypeIds, pairEncoding.GetTypeIds()...)
 		pairTypeIds = append(pairTypeIds, 1)
 
@@ -84,16 +84,16 @@ func (bp BertProcessing) Process(encoding tokenizer.Encoding, pairEncodingOpt ..
 		pairOffsets = append(pairOffsets, pairEncoding.GetOffsets()...)
 		pairOffsets = append(pairOffsets, tokenizer.Offsets{Start: 0, End: 0})
 
-		var pairSpecialTokens []uint32
+		var pairSpecialTokens []int
 		pairSpecialTokens = append(pairSpecialTokens, 0)
-		pairSpecialTokens = append(pairSpecialTokens, uint32(len(pairEncoding.GetTypeIds())))
+		pairSpecialTokens = append(pairSpecialTokens, len(pairEncoding.GetTypeIds()))
 		pairSpecialTokens = append(pairSpecialTokens, 1)
 
-		var pairAttentionMask []uint32
+		var pairAttentionMask []int
 		pairAttentionMask = append(pairAttentionMask, 1)
-		pairAttentionMask = append(pairAttentionMask, uint32(len(pairIds)))
+		pairAttentionMask = append(pairAttentionMask, len(pairIds))
 
-		newPairEncoding := tokenizer.NewEncoding(pairEncoding.GetNormalized(), pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing())
+		newPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing())
 
 		// Merge newPairEncoding with newEncoding
 		newEncoding.MergeWith(newPairEncoding)
