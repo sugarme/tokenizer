@@ -9,44 +9,46 @@ import (
 )
 
 func TestTokenizer_MergeWith(t *testing.T) {
+
 	a := tokenizer.Encoding{
-		Ids:              []uint32{1},
-		TypeIds:          []uint32{0},
+		Ids:              []int{1},
+		TypeIds:          []int{0},
 		Tokens:           []string{fmt.Sprintf("%v", "Hello ")},
 		Offsets:          []tokenizer.Offsets{{0, 6}},
-		SpecialTokenMask: []uint32{0},
-		AttentionMask:    []uint32{1},
+		SpecialTokenMask: []int{0},
+		AttentionMask:    []int{1},
 		Overflowing:      make([]tokenizer.Encoding, 0),
-		Words:            []uint32{0},
+		Words:            []int{0},
 	}
 
 	b := tokenizer.Encoding{
-		Ids:     []uint32{2},
-		TypeIds: []uint32{1},
+		Ids:     []int{2},
+		TypeIds: []int{1},
 		Tokens:  []string{fmt.Sprintf("%v", "World!")},
 		Offsets: []tokenizer.Offsets{{
 			Start: 0,
 			End:   6},
 		},
-		SpecialTokenMask: []uint32{0},
-		AttentionMask:    []uint32{1},
+		SpecialTokenMask: []int{0},
+		AttentionMask:    []int{1},
 		Overflowing:      make([]tokenizer.Encoding, 0),
-		Words:            []uint32{0},
+		Words:            []int{0},
 	}
 
 	got := a.MergeWith(b)
+
 	want := tokenizer.Encoding{
-		Ids:     []uint32{1, 2},
-		TypeIds: []uint32{0, 1},
+		Ids:     []int{1, 2},
+		TypeIds: []int{0, 1},
 		Tokens:  []string{fmt.Sprintf("%v", "Hello "), fmt.Sprintf("%v", "World!")},
 		Offsets: []tokenizer.Offsets{
 			{Start: 0, End: 6},
 			{Start: 6, End: 12},
 		},
-		SpecialTokenMask: []uint32{0, 0},
-		AttentionMask:    []uint32{1, 1},
+		SpecialTokenMask: []int{0, 0},
+		AttentionMask:    []int{1, 1},
 		Overflowing:      make([]tokenizer.Encoding, 0),
-		Words:            []uint32{0, 1},
+		Words:            []int{0, 1},
 	}
 
 	if !reflect.DeepEqual(want, got) {
@@ -64,18 +66,18 @@ func TestTokenizer_MergeWith(t *testing.T) {
 
 func TestTokenizer_Truncate(t *testing.T) {
 	a := tokenizer.Encoding{
-		Ids:     []uint32{1, 2, 3},
-		TypeIds: []uint32{0, 0, 0},
+		Ids:     []int{1, 2, 3},
+		TypeIds: []int{0, 0, 0},
 		Tokens: []string{
 			fmt.Sprintf("%v", "Hello"),
 			fmt.Sprintf("%v", "World"),
 			fmt.Sprintf("%v", "!"),
 		},
 		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}, {11, 12}},
-		SpecialTokenMask: []uint32{0, 0, 0},
-		AttentionMask:    []uint32{1, 1, 1},
+		SpecialTokenMask: []int{0, 0, 0},
+		AttentionMask:    []int{1, 1, 1},
 		Overflowing:      make([]tokenizer.Encoding, 0),
-		Words:            []uint32{0, 1, 2},
+		Words:            []int{0, 1, 2},
 	}
 
 	got, err := a.Truncate(2, 0)
@@ -84,30 +86,30 @@ func TestTokenizer_Truncate(t *testing.T) {
 	}
 
 	want := tokenizer.Encoding{
-		Ids:     []uint32{1, 2},
-		TypeIds: []uint32{0, 0},
+		Ids:     []int{1, 2},
+		TypeIds: []int{0, 0},
 		Tokens: []string{
 			fmt.Sprintf("%v", "Hello"),
 			fmt.Sprintf("%v", "World"),
 		},
 		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}},
-		SpecialTokenMask: []uint32{0, 0},
-		AttentionMask:    []uint32{1, 1},
+		SpecialTokenMask: []int{0, 0},
+		AttentionMask:    []int{1, 1},
 		Overflowing: []tokenizer.Encoding{
 			{
-				Ids:     []uint32{3},
-				TypeIds: []uint32{0},
+				Ids:     []int{3},
+				TypeIds: []int{0},
 				Tokens: []string{
 					fmt.Sprintf("%v", "!"),
 				},
 				Offsets:          []tokenizer.Offsets{{11, 12}},
-				SpecialTokenMask: []uint32{0},
-				AttentionMask:    []uint32{1},
+				SpecialTokenMask: []int{0},
+				AttentionMask:    []int{1},
 				Overflowing:      make([]tokenizer.Encoding, 0),
-				Words:            []uint32{2},
+				Words:            []int{2},
 			},
 		},
-		Words: []uint32{0, 1},
+		Words: []int{0, 1},
 	}
 
 	if !reflect.DeepEqual(want, got) {

@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/tokenizer"
 	slice "github.com/sugarme/tokenizer/util/slice"
 )
 

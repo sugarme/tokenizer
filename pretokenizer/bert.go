@@ -3,8 +3,8 @@ package pretokenizer
 import (
 	"unicode"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func isBertPunc(x rune) (retVal bool) {

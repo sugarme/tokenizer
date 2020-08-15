@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func TestBytesChar(t *testing.T) {
@@ -240,11 +240,8 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 func TestProcessorTrimsOffsets(t *testing.T) {
 
-	normalized := normalizer.NewNormalizedFrom("")
-
 	start := tokenizer.NewEncoding(
-		normalized,
-		[]uint32{}, []uint32{}, []string{
+		[]int{}, []int{}, []string{
 			"ĠĠĠĠHelloĠĠ",
 			"ĠĠHello",
 			"HelloĠĠ",
@@ -256,13 +253,12 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			{Start: 18, End: 25},
 			{Start: 25, End: 29},
 		},
-		[]uint32{}, []uint32{},
+		[]int{}, []int{},
 		[]tokenizer.Encoding{},
 	)
 
 	want := tokenizer.NewEncoding(
-		normalized,
-		[]uint32{}, []uint32{}, []string{
+		[]int{}, []int{}, []string{
 			"ĠĠĠĠHelloĠĠ",
 			"ĠĠHello",
 			"HelloĠĠ",
@@ -274,7 +270,7 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			{Start: 18, End: 23},
 			{Start: 29, End: 29},
 		},
-		[]uint32{}, []uint32{},
+		[]int{}, []int{},
 		[]tokenizer.Encoding{},
 	)
 

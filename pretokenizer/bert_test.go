@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	tokenizer "github.com/sugarme/tokenizer"
 	normalizer "github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	tokenizer "github.com/sugarme/tokenizer/tokenizer"
 )
 
 func TestBertPreTokenize(t *testing.T) {

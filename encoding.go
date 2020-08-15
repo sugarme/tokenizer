@@ -14,19 +14,19 @@ const (
 
 // Encoding represents the output of tokenizer
 type Encoding struct {
-	Ids              []uint32   // ID produced by the `tokenizer`
-	TypeIds          []uint32   // Type of the ID
+	Ids              []int      // ID produced by the `tokenizer`
+	TypeIds          []int      // Type of the ID
 	Tokens           []string   // Tokens associated with each ID
 	Offsets          []Offsets  // Offsets of the token/ID from the NormalizedString
-	SpecialTokenMask []uint32   // Mask identifying special tokens
-	AttentionMask    []uint32   // Mask identifying padding tokens for the attention mechanism
+	SpecialTokenMask []int      // Mask identifying special tokens
+	AttentionMask    []int      // Mask identifying padding tokens for the attention mechanism
 	Overflowing      []Encoding // A list of overflowing generated when being truncated
-	Words            []uint32   // Optional - Indexes of the word associated with each token/ID
+	Words            []int      // Optional - Indexes of the word associated with each token/ID. None value = -1
 }
 
 // NewEncoding initiate a new encoding from input data
-func NewEncoding(ids []uint32, typeIds []uint32, tokens []string, offsets []Offsets, specialTokenMask []uint32, attentionMask []uint32, overflowing []Encoding, wordsOpt ...[]uint32) Encoding {
-	var words []uint32
+func NewEncoding(ids []int, typeIds []int, tokens []string, offsets []Offsets, specialTokenMask []int, attentionMask []int, overflowing []Encoding, wordsOpt ...[]int) Encoding {
+	var words []int
 	if len(wordsOpt) > 0 {
 		words = wordsOpt[0]
 	} else {
@@ -46,55 +46,54 @@ func NewEncoding(ids []uint32, typeIds []uint32, tokens []string, offsets []Offs
 
 func NewEncodingWithCapacity(l int) (retVal Encoding) {
 	return Encoding{
-		Ids:              make([]uint32, l),
-		TypeIds:          make([]uint32, l),
+		Ids:              make([]int, l),
+		TypeIds:          make([]int, l),
 		Tokens:           make([]string, l),
 		Offsets:          make([]Offsets, l),
-		SpecialTokenMask: make([]uint32, l),
-		AttentionMask:    make([]uint32, l),
+		SpecialTokenMask: make([]int, l),
+		AttentionMask:    make([]int, l),
 		Overflowing:      []Encoding{},
-		Words:            make([]uint32, l),
+		Words:            make([]int, l),
 	}
 }
 
 // Default creates an encoding with default values
 func DefaultEncoding() Encoding {
 	return Encoding{
-		Ids:              []uint32{0},
-		TypeIds:          []uint32{0},
+		Ids:              []int{0},
+		TypeIds:          []int{0},
 		Tokens:           []string{},
 		Offsets:          []Offsets{},
-		SpecialTokenMask: []uint32{},
-		AttentionMask:    []uint32{},
+		SpecialTokenMask: []int{},
+		AttentionMask:    []int{},
 		Overflowing:      []Encoding{},
 		Words:            nil,
 	}
 }
 
 // NewEncodingFromTokens initiate Encoding from input tokens
-func NewEncodingFromTokens(tokens []Token, typeId uint32) (retVal Encoding) {
+func NewEncodingFromTokens(tokens []Token, typeId int) (retVal Encoding) {
 	var (
-		ids     []uint32
+		ids     []int
 		offsets []Offsets
-		words   []uint32
 		toks    []string
 	)
 	for i, t := range tokens {
-		ids = append(ids, uint32(i))
+		ids = append(ids, i)
 		offsets = append(offsets, t.Offsets)
-		words = append(words, t.Word)
 		toks = append(toks, t.Value)
 	}
 
-	typeIds := make([]uint32, len(tokens))
+	typeIds := make([]int, len(tokens))
+	words := make([]int, len(tokens))
 
 	return Encoding{
 		Ids:              ids,
 		TypeIds:          typeIds,
 		Tokens:           toks,
 		Offsets:          offsets,
-		SpecialTokenMask: make([]uint32, 0, len(tokens)),
-		AttentionMask:    make([]uint32, 1, len(tokens)),
+		SpecialTokenMask: make([]int, 0, len(tokens)),
+		AttentionMask:    make([]int, 1, len(tokens)),
 		Overflowing:      []Encoding{},
 		Words:            words,
 	}
@@ -116,17 +115,17 @@ func (e Encoding) GetTokens() []string {
 }
 
 // GetWords returns word indexes on normalized string
-func (e Encoding) GetWords() []uint32 {
+func (e Encoding) GetWords() []int {
 	return e.Words
 }
 
 // GetIds returns Ids from encoding
-func (e Encoding) GetIds() []uint32 {
+func (e Encoding) GetIds() []int {
 	return e.Ids
 }
 
 // GetTypeIds returns type Ids from encoding
-func (e Encoding) GetTypeIds() []uint32 {
+func (e Encoding) GetTypeIds() []int {
 	return e.TypeIds
 }
 
@@ -136,12 +135,12 @@ func (e Encoding) GetOffsets() []Offsets {
 }
 
 // GetSpecialTokenMask returns specialTokenMask from encoding
-func (e Encoding) GetSpecialTokenMask() []uint32 {
+func (e Encoding) GetSpecialTokenMask() []int {
 	return e.SpecialTokenMask
 }
 
 // GetAttentionMask returns attentionMask from encoding
-func (e Encoding) GetAttentionMask() []uint32 {
+func (e Encoding) GetAttentionMask() []int {
 	return e.AttentionMask
 }
 
@@ -163,29 +162,29 @@ func (e Encoding) TakeOverflowing() []Encoding {
 //
 // NOTE. e.Words is optional, therefore, there's case of `none` result
 // if `none` result, `ok` will be false.
-func (e Encoding) Word2Tokens(word uint32) (startTok, endTok uint32, ok bool) {
+func (e Encoding) Word2Tokens(word int) (startTok, endTok int, ok bool) {
 
-	var start, end *int
+	var start, end int
 
-	var words []uint32
+	var words []int
 	for _, w := range e.Words {
 		if w == word {
 			words = append(words, w)
 		}
 	}
 	for i, _ := range words {
-		if start == nil || i < *start {
-			start = &i
+		if start == -1 || i < start {
+			start = i
 		}
 
-		if end == nil || i >= *end {
+		if end == -1 || i >= end {
 			tmp := i + 1
-			end = &tmp
+			end = tmp
 		}
 	}
 
-	if start != nil && end != nil {
-		return uint32(*start), uint32(*end), true
+	if start != -1 && end != -1 {
+		return start, end, true
 	} else {
 		return startTok, endTok, false
 	}
@@ -193,7 +192,7 @@ func (e Encoding) Word2Tokens(word uint32) (startTok, endTok uint32, ok bool) {
 
 // Word2Chars get the offsets of the word at a given index in
 // the input sequence
-func (e Encoding) Word2Chars(word uint32) (retVal Offsets, ok bool) {
+func (e Encoding) Word2Chars(word int) (retVal Offsets, ok bool) {
 	start, end, ok := e.Word2Tokens(word)
 	if end == 0 {
 		return retVal, false
@@ -214,10 +213,10 @@ func (e Encoding) Token2Chars(tokenIdx int) (retVal Offsets, ok bool) {
 }
 
 // Token2Word get the word index of corresponding token if existing
-func (e Encoding) Token2Word(tokenIdx int) (retVal uint32, ok bool) {
+func (e Encoding) Token2Word(tokenIdx int) (retVal int, ok bool) {
 	// naive search. TODO. improve algorithm
 	for _, w := range e.Words {
-		if w == uint32(tokenIdx) {
+		if w == tokenIdx {
 			return w, true
 		}
 	}
@@ -236,22 +235,22 @@ func (e Encoding) Char2Token(pos int) (retVal int, ok bool) {
 }
 
 // Char2Word get the word index that contain the given `char` index
-func (e Encoding) Char2Word(pos int) (retVal uint32, ok bool) {
+func (e Encoding) Char2Word(pos int) (retVal int, ok bool) {
 	if idx, ok := e.Char2Token(pos); ok {
 		return e.Token2Word(idx)
 	}
 
-	return retVal, false
+	return -1, false
 }
 
 // Truncate truncates the current encoding
-func (e Encoding) Truncate(maxLen uint, stride uint) (retVal Encoding, err error) {
+func (e Encoding) Truncate(maxLen int, stride int) (retVal Encoding, err error) {
 
 	if stride >= maxLen || maxLen == 0 {
 		return retVal, fmt.Errorf("Invalid input maxLen or stride (stride must be less than maxLen and maxLen must be greater than zero.)")
 	}
 
-	if maxLen >= uint(len(e.Ids)) {
+	if maxLen >= len(e.Ids) {
 		// do nothing
 		return e, nil
 	}
@@ -290,15 +289,13 @@ func (e Encoding) Truncate(maxLen uint, stride uint) (retVal Encoding, err error
 	// while loop
 	for int(partSize)*partId < len(oIds) {
 		o := Encoding{
-			// Which way is better? using reflect or just type assertion
-			// Ids:        (getCurrentPart(prevEncoding.Ids, oIds, partSize, uint(partId), stride)).([]uint32),
-			Ids:              reflect.ValueOf(getCurrentPart(prevEncoding.Ids, oIds, partSize, uint(partId), stride)).Interface().([]uint32),
-			TypeIds:          reflect.ValueOf(getCurrentPart(prevEncoding.TypeIds, oTypeIds, partSize, uint(partId), stride)).Interface().([]uint32),
-			Tokens:           reflect.ValueOf(getCurrentPart(prevEncoding.Tokens, oTokens, partSize, uint(partId), stride)).Interface().([]string),
-			Offsets:          reflect.ValueOf(getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, uint(partId), stride)).Interface().([]Offsets),
-			SpecialTokenMask: reflect.ValueOf(getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, uint(partId), stride)).Interface().([]uint32),
-			AttentionMask:    reflect.ValueOf(getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, uint(partId), stride)).Interface().([]uint32),
-			Words:            reflect.ValueOf(getCurrentPart(prevEncoding.Words, oWords, partSize, uint(partId), stride)).Interface().([]uint32),
+			Ids:              reflect.ValueOf(getCurrentPart(prevEncoding.Ids, oIds, partSize, partId, stride)).Interface().([]int),
+			TypeIds:          reflect.ValueOf(getCurrentPart(prevEncoding.TypeIds, oTypeIds, partSize, partId, stride)).Interface().([]int),
+			Tokens:           reflect.ValueOf(getCurrentPart(prevEncoding.Tokens, oTokens, partSize, partId, stride)).Interface().([]string),
+			Offsets:          reflect.ValueOf(getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, partId, stride)).Interface().([]Offsets),
+			SpecialTokenMask: reflect.ValueOf(getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, partId, stride)).Interface().([]int),
+			AttentionMask:    reflect.ValueOf(getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, partId, stride)).Interface().([]int),
+			Words:            reflect.ValueOf(getCurrentPart(prevEncoding.Words, oWords, partSize, partId, stride)).Interface().([]int),
 			Overflowing:      make([]Encoding, 0),
 		}
 
@@ -374,7 +371,7 @@ func (e Encoding) MergeWith(pair Encoding) (retVal Encoding) {
 	// 4. Re-indexing word index
 	wOffset := len(e.Words)
 	for _, w := range pair.Words {
-		newW := w + uint32(wOffset)
+		newW := w + wOffset
 		e.Words = append(e.Words, newW)
 	}
 
@@ -382,7 +379,7 @@ func (e Encoding) MergeWith(pair Encoding) (retVal Encoding) {
 }
 
 // Pad pads current encoding with given length, values to either Left or Right direction
-func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToken string, direction PaddingDirection) (retVal Encoding) {
+func (e Encoding) Pad(targetLength, padId, padTypeId int, padToken string, direction PaddingDirection) (retVal Encoding) {
 	// 1. Recursively call for overflowing part
 	for _, o := range e.Overflowing {
 		o.Pad(targetLength, padId, padTypeId, padToken, direction)
@@ -390,22 +387,22 @@ func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToke
 
 	// 2. Check whether we should pad encoding itself
 	// if wanted padding length is smaller, then do nothing
-	if len(e.Ids) >= int(targetLength) {
+	if len(e.Ids) >= targetLength {
 		return
 	}
 
-	padLength := int(targetLength) - len(e.Ids)
+	padLength := targetLength - len(e.Ids)
 
 	switch direction {
 	case Left:
-		newIds := make([]uint32, padLength)
+		newIds := make([]int, padLength)
 		for i := 0; i < len(newIds); i++ {
 			newIds[i] = padId
 		}
 		newIds = append(newIds, e.Ids...)
 		e.Ids = newIds
 
-		newTypeIds := make([]uint32, padLength)
+		newTypeIds := make([]int, padLength)
 		for i := 0; i < len(newTypeIds); i++ {
 			newTypeIds[i] = padTypeId
 		}
@@ -419,14 +416,14 @@ func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToke
 		newTokens = append(newTokens, e.Tokens...)
 		e.Tokens = newTokens
 
-		newSpecialTokenMask := make([]uint32, padLength)
+		newSpecialTokenMask := make([]int, padLength)
 		for i := 0; i < len(newSpecialTokenMask); i++ {
 			newSpecialTokenMask[i] = 1
 		}
 		newSpecialTokenMask = append(newSpecialTokenMask, e.SpecialTokenMask...)
 		e.SpecialTokenMask = newSpecialTokenMask
 
-		newAttentionMask := make([]uint32, padLength)
+		newAttentionMask := make([]int, padLength)
 		for i := 0; i < len(newAttentionMask); i++ {
 			newAttentionMask[i] = 0
 		}
@@ -440,9 +437,9 @@ func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToke
 		newOffsets = append(newOffsets, e.Offsets...)
 		e.Offsets = newOffsets
 
-		newWords := make([]uint32, padLength)
+		newWords := make([]int, padLength)
 		for i := 0; i < len(newWords); i++ {
-			newWords[i] = 0 // Should be `none` value. TODO. implement
+			newWords[i] = -1
 		}
 		newWords = append(newWords, e.Words...)
 		e.Words = newWords
@@ -455,42 +452,42 @@ func (e Encoding) Pad(targetLength uint, padId uint32, padTypeId uint32, padToke
 			e.SpecialTokenMask = append(e.SpecialTokenMask, 1)
 			e.AttentionMask = append(e.AttentionMask, 0)
 			e.Offsets = append(e.Offsets, Offsets{0, 0})
-			e.Words = append(e.Words, 0) // Should be `none` value. TODO. implement
+			e.Words = append(e.Words, -1)
 		}
 	}
 
 	return e
 }
 
-func getCurrentPart(previous, current interface{}, size, idx, stride uint) interface{} {
+func getCurrentPart(previous, current interface{}, size, idx, stride int) interface{} {
 
 	switch current.(type) {
-	case []uint32:
-		var curr, prev []uint32
+	case []int:
+		var curr, prev []int
 		if int((idx+1)*size) > reflect.ValueOf(current).Len() {
-			curr = current.([]uint32)[(idx * size):]
+			curr = current.([]int)[(idx * size):]
 		} else {
-			curr = current.([]uint32)[(idx * size) : (idx+1)*size]
+			curr = current.([]int)[(idx * size) : (idx+1)*size]
 		}
-		prev = previous.([]uint32)[len(previous.([]uint32))-int(stride):]
+		prev = previous.([]int)[len(previous.([]int))-stride:]
 		return append(prev, curr...)
 	case []string:
 		var curr, prev []string
-		if int((idx+1)*size) > reflect.ValueOf(current).Len() {
+		if (idx+1)*size > reflect.ValueOf(current).Len() {
 			curr = current.([]string)[(idx * size):]
 		} else {
 			curr = current.([]string)[(idx * size) : (idx+1)*size]
 		}
-		prev = previous.([]string)[len(previous.([]string))-int(stride):]
+		prev = previous.([]string)[len(previous.([]string))-stride:]
 		return append(prev, curr...)
 	case []Offsets:
 		var curr, prev []Offsets
-		if int((idx+1)*size) > reflect.ValueOf(current).Len() {
+		if (idx+1)*size > reflect.ValueOf(current).Len() {
 			curr = current.([]Offsets)[(idx * size):]
 		} else {
 			curr = current.([]Offsets)[(idx * size) : (idx+1)*size]
 		}
-		prev = previous.([]Offsets)[len(previous.([]Offsets))-int(stride):]
+		prev = previous.([]Offsets)[len(previous.([]Offsets))-stride:]
 		return append(prev, curr...)
 	}
 

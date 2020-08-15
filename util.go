@@ -5,16 +5,16 @@ import (
 )
 
 type TruncationParams struct {
-	MaxLength uint
+	MaxLength int
 	Strategy  TruncationStrategy
-	Stride    uint
+	Stride    int
 }
 
 type PaddingParams struct {
 	Strategy  PaddingStrategy
 	Direction PaddingDirection
-	PadId     uint32
-	PadTypeId uint32
+	PadId     int
+	PadTypeId int
 	PadToken  string
 }
 
@@ -82,8 +82,8 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 	var (
 		encoding     *Encoding = &e
 		pairEncoding *Encoding = nil
-		totalLength  uint
-		toRemove     uint
+		totalLength  int
+		toRemove     int
 		err          error
 	)
 
@@ -95,9 +95,9 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 		return encoding, pairEncoding, nil
 	}
 
-	totalLength = uint(len(encoding.GetIds()))
+	totalLength = len(encoding.GetIds())
 	if pairEncoding != nil {
-		totalLength = uint(len(encoding.GetIds()) + len(pairEncoding.GetIds()))
+		totalLength = len(encoding.GetIds()) + len(pairEncoding.GetIds())
 	}
 
 	if totalLength < params.MaxLength {
@@ -108,10 +108,10 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 
 	switch params.Strategy {
 	case LongestFirst:
-		nFirst := uint(len(encoding.GetIds()))
-		nSecond := uint(len(pairEncoding.GetIds()))
+		nFirst := len(encoding.GetIds())
+		nSecond := len(pairEncoding.GetIds())
 
-		for i := 0; i < int(toRemove); i++ {
+		for i := 0; i < toRemove; i++ {
 			if nFirst > nSecond {
 				nFirst -= 1
 			}
@@ -125,7 +125,7 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 
 	case OnlyFirst, OnlySecond:
 		var truncateFunc = func(target *Encoding) (*Encoding, error) {
-			targetLength := uint(len(target.GetIds()))
+			targetLength := len(target.GetIds())
 			if targetLength > toRemove {
 				target.Truncate(targetLength-toRemove, params.Stride)
 				return target, nil
@@ -157,11 +157,11 @@ func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
 		return encodings
 	}
 
-	var padLength uint
+	var padLength int
 
 	switch params.Strategy.Name {
 	case "Fixed":
-		padLength = params.Strategy.Value.(uint)
+		padLength = params.Strategy.Value.(int)
 	case "BatchLongest":
 		var max int = 0
 		for _, encoding := range encodings {
@@ -169,7 +169,7 @@ func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
 				max = len(encoding.GetIds())
 			}
 		}
-		padLength = uint(max)
+		padLength = max
 	}
 
 	// TODO: implement concurrency with for loop
