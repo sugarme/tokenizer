@@ -135,7 +135,6 @@ func NewPreTokenizedStringFromNS(n normalizer.NormalizedString) (retVal PreToken
 
 // NewPreTokenizedString create a new PreTokenizedString from input string
 func NewPreTokenizedString(s string) (retVal PreTokenizedString) {
-
 	n := normalizer.NewNormalizedFrom(s)
 	return NewPreTokenizedStringFromNS(n)
 }

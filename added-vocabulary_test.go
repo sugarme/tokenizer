@@ -1,6 +1,7 @@
 package tokenizer_test
 
 import (
+	// "fmt"
 	"reflect"
 	"testing"
 
@@ -67,5 +68,106 @@ func TestCanAddTokens(t *testing.T) {
 		t.Errorf("Want %v\n", want)
 		t.Errorf("Got %v\n", got)
 	}
+}
 
+func TestAddSpecialTokens(t *testing.T) {
+	model := newModelMock([]string{"test", "tost"}, []int{0, 1})
+	vocab := tokenizer.NewAddedVocabulary()
+
+	specialTok := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("added_token_1", true),
+	}
+
+	got1 := vocab.AddSpecialTokens(specialTok, model, nil)
+	want1 := 1
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want %v\n", want1)
+		t.Errorf("Got %v\n", got1)
+	}
+
+	// Does not add multiple time the same token
+	otherSpecialToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("added_token_2", true),
+		tokenizer.NewAddedToken("added_token_2", true),
+	}
+
+	vocab.AddSpecialTokens(otherSpecialToks, model, nil)
+	got2 := vocab.Len()
+	want2 := 2
+
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want %v\n", want2)
+		t.Errorf("Got %v\n", got2)
+	}
+
+	// Can add tokens already covered by the model
+	got3 := vocab.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("test", true)}, model, nil)
+	want3 := 0
+	if !reflect.DeepEqual(want3, got3) {
+		t.Errorf("Want %v\n", want3)
+		t.Errorf("Got %v\n", got3)
+	}
+
+	got4 := vocab.Len() // Did not add new token as it exists in the original model
+	want4 := 2
+	if !reflect.DeepEqual(want4, got4) {
+		t.Errorf("Want %v\n", want4)
+		t.Errorf("Got %v\n", got4)
+	}
+
+	got5 := vocab.IsSpecialToken("test")
+	want5 := true
+	if !reflect.DeepEqual(want5, got5) {
+		t.Errorf("Want %v\n", want5)
+		t.Errorf("Got %v\n", got5)
+	}
+}
+
+func TestCanExtractAddedTokens(t *testing.T) {
+	// Able to extract both normal and special tokens
+	model := newModelMock([]string{}, []int{})
+	vocab := tokenizer.NewAddedVocabulary()
+
+	addedToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("my", false),
+		tokenizer.NewAddedToken("name", false),
+	}
+
+	addedSpecialToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("[CLS]", true),
+		tokenizer.NewAddedToken("[SEP]", true),
+	}
+
+	vocab.AddTokens(addedToks, model, nil)
+	vocab.AddSpecialTokens(addedSpecialToks, model, nil)
+
+	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", nil)
+
+	// for _, item := range result {
+	// fmt.Printf("normalized: %v - id: %v\n", item.Substring.Normalized.GetNormalized(), item.Id)
+	// }
+
+	type tokenid struct {
+		token string
+		id    int
+	}
+
+	var got []tokenid
+	for _, item := range result {
+		got = append(got, tokenid{item.Substring.Normalized.GetNormalized(), item.Id})
+	}
+
+	want := []tokenid{
+		{"[CLS]", 2},
+		{" My ", -1},
+		{"name", 1},
+		{" is Anthony ", -1},
+		{"[SEP]", 3},
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want %+v\n", want)
+		t.Errorf("Got %+v\n", got)
+	}
 }

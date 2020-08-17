@@ -589,7 +589,10 @@ func TestNormalized_SliceBytes(t *testing.T) {
 		t.Errorf("Got: '%v'\n", gotA)
 	}
 
-	got1 := n.SliceBytes(normalizer.NewRange(17, 100, normalizer.OriginalTarget))
+	got1 := n.SliceBytes(normalizer.NewRange(17, len(s), normalizer.OriginalTarget))
+	if got1 == nil {
+		panic("got1 is nil")
+	}
 	want1O := "𝕞𝕠𝕣𝕟𝕚𝕟𝕘"
 	want1N := "morning"
 	want1A := []normalizer.Alignment{
@@ -645,6 +648,30 @@ func TestNormalized_SliceBytes(t *testing.T) {
 		t.Errorf("Want: '%v'\n", want2A)
 		t.Errorf("Got: '%v'\n", got2A)
 	}
+
+	got3 := n.SliceBytes(normalizer.NewRange(0, 1, normalizer.OriginalTarget))
+	if !reflect.DeepEqual(got3, nil) {
+		t.Errorf("Want: '%v'", nil)
+		t.Errorf("Got: %v", &got3)
+	}
+
+	/*
+	 *   // Check that we get a `None` if we try to split `chars`
+	 *   for cutAt := 1; cutAt < len(s); cutAt++ {
+	 *     res := n.SliceBytes(normalizer.NewRange(0, cutAt, normalizer.OriginalTarget))
+	 *     // The chars in the original string all take 4 bytes.
+	 *     if cutAt%4 == 0 {
+	 *       if !reflect.DeepEqual(res, nil) {
+	 *         t.Errorf("Want: '%v'", "not nil")
+	 *         t.Errorf("Got: %v", res)
+	 *       }
+	 *     } else {
+	 *       if reflect.DeepEqual(res, nil) {
+	 *         t.Errorf("Want: '%v'", nil)
+	 *         t.Errorf("Got: %v", res)
+	 *       }
+	 *     }
+	 *   } */
 }
 
 // TODO. more unit tests.

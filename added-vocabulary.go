@@ -202,17 +202,17 @@ func NewAddedVocabulary() (retVal AddedVocabulary) {
 }
 
 // Len returns size of the additional vocabulary
-func (av AddedVocabulary) Len() int {
+func (av *AddedVocabulary) Len() int {
 	return len(av.addedTokenMap)
 }
 
 // GetVocab gets the additional vocabulary
-func (av AddedVocabulary) GetVocab() (retVal map[string]int) {
+func (av *AddedVocabulary) GetVocab() (retVal map[string]int) {
 	return av.addedTokenMap
 }
 
 // Get the id matching one of our token if it exists
-func (av AddedVocabulary) TokenToId(token string, model Model) (retVal int, ok bool) {
+func (av *AddedVocabulary) TokenToId(token string, model Model) (retVal int, ok bool) {
 
 	retVal, ok = av.addedTokenMap[token]
 	if !ok {
@@ -223,7 +223,7 @@ func (av AddedVocabulary) TokenToId(token string, model Model) (retVal int, ok b
 }
 
 // Get the token matching the given id if it exists
-func (av AddedVocabulary) IdToToken(id int, model Model) (retVal string, ok bool) {
+func (av *AddedVocabulary) IdToToken(id int, model Model) (retVal string, ok bool) {
 	retVal, ok = av.addedTokenMapR[id]
 	if !ok {
 		return model.IdToToken(id)
@@ -233,14 +233,14 @@ func (av AddedVocabulary) IdToToken(id int, model Model) (retVal string, ok bool
 }
 
 // Check if a token is a special token
-func (av AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
+func (av *AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
 	_, retVal = av.specialTokensSet[token]
 	return retVal
 }
 
 // Add some special tokens to the vocabulary
 // It returns number of added tokens
-func (av AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
+func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
 
 	for _, tok := range tokens {
 		_, isExist := av.specialTokensSet[tok.Content]
@@ -256,7 +256,7 @@ func (av AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, nor
 
 // Add some tokens to the vocabulary
 // It returns number of added tokens
-func (av AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
+func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
 
 	ignored := 0
 	for _, token := range tokens {
@@ -293,7 +293,7 @@ type tokenId struct {
 //
 // NOTE. We keep two different regular expression sets, one that will take care of matching against the
 // non-normalized string, and one matching against the normalized one.
-func (av AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalizer.Normalizer) {
+func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalizer.Normalizer) {
 	var normIds, nnormIds []int
 	var normPatterns, nnormPatterns []string
 	tokens := append(av.specialTokens, av.addedTokens...)
@@ -351,7 +351,7 @@ func (bi byId) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
 // findMatches finds any AddedToken in the given sentence, using the provided MatchingSet.
 // This method returns a list of "splits", each of them being a pair of ByteOffsets(Offsets)
 // and an optional ID if it is an AddedToken. The list of splits cover the entire input string.
-func (av AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (retVal []idOffsets) {
+func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (retVal []idOffsets) {
 
 	if len(sentence) == 0 {
 		return []idOffsets{{-1, Offsets{0, 0}}}
@@ -378,7 +378,7 @@ func (av AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (ret
 	var (
 		i              int         = 0
 		currentOffsets int         = 0
-		splits         []idOffsets = make([]idOffsets, len(ioPairs))
+		splits         []idOffsets = make([]idOffsets, 0)
 	)
 
 	for i < len(ioPairs) {
@@ -435,9 +435,10 @@ func (av AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (ret
 // the list of corresponding IDs.
 //
 // NOTE.The list of IDs have the exact same number of elements as the Iterator.
-func (av AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []normalizer.NormalizedString) {
+func (av *AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []normalizer.NormalizedString) {
 
 	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
+	fmt.Printf("ioPairs: %v\n", ioPairs)
 
 	var (
 		indices []int
@@ -449,8 +450,16 @@ func (av AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString,
 		start := ioPair.offsets.Start
 		end := ioPair.offsets.End
 
+		if start == end {
+			continue
+		}
+
 		nSplit := sentence.SliceBytes(normalizer.NewRange(start, end, normalizer.NormalizedTarget))
 		nSplits = append(nSplits, nSplit)
+	}
+
+	for _, split := range nSplits {
+		fmt.Printf("split: %+v\n", split)
 	}
 
 	return indices, nSplits
@@ -473,7 +482,7 @@ type IdSubString struct {
 // The optional []uint32 contains the relevant ID if this is an additional token.
 // The offsets being returned here are in the `original` referential. They are the offsets of
 // the given part in the original input
-func (av AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.Normalizer) (retVal []IdSubString) {
+func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.Normalizer) (retVal []IdSubString) {
 
 	var pretokenized PreTokenizedString = NewPreTokenizedString(sequence)
 

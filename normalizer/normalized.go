@@ -50,11 +50,19 @@ func (r Range) End() (retVal int) {
 // original provided range was out of bound.
 // maxLen is maximal len of string in `chars` (runes)
 func (r Range) intoFullRange(maxLen int) (retVal Range) {
-	if r.start < 0 || r.start > maxLen {
+	// case: start out of bound (including `None` value)
+	if r.start == -1 || r.start > maxLen {
 		r.start = 0
 	}
 
+	//  case: end out of bound
 	if r.end > maxLen {
+		r.end = maxLen
+	}
+
+	// case: end is None value
+	if r.end == -1 {
+		// TODO: should we just accept as `None`?
 		r.end = maxLen
 	}
 	return r
@@ -118,58 +126,128 @@ func (n NormalizedString) Alignments() (retVal []Alignment) {
 // ConvertOffset converts the given offsets range from referential to the the
 // other one (`Original` to `Normalized` and vice versa)
 func (n NormalizedString) ConvertOffset(inputRange Range) (retVal Range) {
-	lastAlign := n.alignments[len(n.alignments)-1]
-	r := inputRange.intoFullRange(lastAlign.End)
-	start := 0
-	end := 0
+
 	switch inputRange.indexOn {
-	case OriginalTarget: // convert to normalized
-		// get all alignments in range
+	case OriginalTarget:
+		var start, end int = -1, -1
+		target := inputRange.intoFullRange(n.LenOriginal())
+
+		// If we target before the start of normalized string
+		if target.end <= n.alignments[0].Start {
+			return NewRange(0, 0, NormalizedTarget)
+		}
+
+		// If we target after the end of normalized string
+		if target.start > n.alignments[len(n.alignments)-1].End {
+			length := n.Len()
+			return NewRange(length, length, NormalizedTarget)
+		}
+
+		// Otherwise, let find the range
 		var alignments []Alignment
 		for _, a := range n.alignments {
-			if r.end >= a.End {
+			if target.end >= a.End {
 				alignments = append(alignments, a)
 			}
 		}
 		for i, a := range alignments {
-			if a.Start <= r.start {
+			if a.Start >= target.start && start == -1 {
+				// Here we want to keep the first char in the normalized string
+				// that is on or *after* the target start.
 				start = i
 			}
-			if a.End <= r.end {
+			if a.End <= target.end {
 				end = i + 1
 			}
 		}
-
-		retVal = Range{
-			start:   start,
-			end:     end,
-			indexOn: NormalizedTarget,
+		// If we didn't find the start, let's use the end of the normalized string
+		if start == -1 {
+			start = n.Len()
+		}
+		// The end must be greater or equal to start, and might be None otherwise
+		if end < start {
+			end = -1 // None value
 		}
 
-	case NormalizedTarget: // convert to original
-		alignments := n.alignments[r.start:r.end]
-		if len(alignments) == 0 {
-			// log.Fatalf("Cannot convert to original offsets. No alignments are in range.\n")
-			// NOTE. r.start == r.end -> just switch indexOn and return
-			r.indexOn = OriginalTarget
-			return r
+		return NewRange(start, end, NormalizedTarget)
+	case NormalizedTarget:
+		// If we target 0..0 on an empty normalized string, we want to return the
+		// entire original one
+		fullRange := inputRange.intoFullRange(n.Len())
+		if len(n.alignments) == 0 && fullRange.start == 0 && fullRange.end == 0 {
+			return NewRange(0, n.LenOriginal(), OriginalTarget)
+		} else {
+			alignments := n.alignments[fullRange.start:fullRange.end]
+			if len(alignments) == 0 {
+				return NewRange(-1, -1, OriginalTarget) // range = `None` value
+			} else {
+				start := alignments[0].Start
+				end := alignments[len(alignments)-1].End
+				return NewRange(start, end, OriginalTarget)
+			}
 		}
-
-		start = alignments[0].Start
-		end = alignments[len(alignments)-1].End
-
-		retVal = Range{
-			start:   start,
-			end:     end,
-			indexOn: OriginalTarget,
-		}
-
-	default:
-		log.Fatalf("Invalid 'indexOn' type: %v\n", r.indexOn)
 	}
 
-	return retVal
+	return
 }
+
+/*
+ *
+ *
+ * func (n NormalizedString) ConvertOffset(inputRange Range) (retVal Range) {
+ *   lastAlign := n.alignments[len(n.alignments)-1]
+ *   r := inputRange.intoFullRange(lastAlign.End)
+ *   start := 0
+ *   end := 0
+ *   switch inputRange.indexOn {
+ *   case OriginalTarget: // convert to normalized
+ *     // get all alignments in range
+ *     var alignments []Alignment
+ *     for _, a := range n.alignments {
+ *       if r.end >= a.End {
+ *         alignments = append(alignments, a)
+ *       }
+ *     }
+ *     for i, a := range alignments {
+ *       if a.Start <= r.start {
+ *         start = i
+ *       }
+ *       if a.End <= r.end {
+ *         end = i + 1
+ *       }
+ *     }
+ *
+ *     retVal = Range{
+ *       start:   start,
+ *       end:     end,
+ *       indexOn: NormalizedTarget,
+ *     }
+ *
+ *   case NormalizedTarget: // convert to original
+ *     alignments := n.alignments[r.start:r.end]
+ *     if len(alignments) == 0 {
+ *       // log.Fatalf("Cannot convert to original offsets. No alignments are in range.\n")
+ *       // NOTE. r.start == r.end -> just switch indexOn and return
+ *       r.indexOn = OriginalTarget
+ *       return r
+ *     }
+ *
+ *     start = alignments[0].Start
+ *     end = alignments[len(alignments)-1].End
+ *
+ *     retVal = Range{
+ *       start:   start,
+ *       end:     end,
+ *       indexOn: OriginalTarget,
+ *     }
+ *
+ *   default:
+ *     log.Fatalf("Invalid 'indexOn' type: %v\n", r.indexOn)
+ *   }
+ *
+ *   return retVal
+ * }
+ *  */
 
 // RangeOf returns a substring of the given string by indexing chars instead of bytes
 // It will return empty string if input range is out of bound
@@ -233,8 +311,18 @@ func (n NormalizedString) RangeOriginal(r Range) string {
 }
 
 // SliceBytes returns a new NormalizedString that contains only the specified
-// range, indexing on BYTES
-func (n NormalizedString) SliceBytes(inputRange Range) (retVal NormalizedString) {
+// range, indexing on BYTES.
+//
+// Any range that splits a UTF-8 `char` will return `None`.
+//
+// If we want a slice of the `NormalizedString` based on a `Range::Normalized``,
+// the original part of the `NormalizedString` will contain any "additional"
+// content on the right, and also on the left. The left will be included
+// only if we are retrieving the very beginning of the string, since there
+// is no previous part. The right is always included, up to what's covered
+// by the next part of the normalized string.  This is important to be able
+// to build a new `NormalizedString` from multiple contiguous slices
+func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString) {
 	var (
 		r      Range
 		s      string
@@ -244,58 +332,64 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal NormalizedString)
 	switch inputRange.indexOn {
 	case OriginalTarget:
 		target = OriginalTarget
-		r = inputRange.intoFullRange(len([]byte(n.GetOriginal()))) // len in bytes
-		s = n.GetOriginal()
+		r = inputRange.intoFullRange(len(n.original)) // len in bytes
+		s = n.original
 	case NormalizedTarget:
 		target = NormalizedTarget
-		r = inputRange.intoFullRange(len([]byte(n.GetNormalized())))
-		s = n.GetNormalized()
+		r = inputRange.intoFullRange(len(n.normalized))
+		s = n.normalized
 	default:
 		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
 	}
 
+	type runeIdx struct {
+		rune    rune
+		byteIdx int
+		runeIdx int
+	}
+
 	var (
-		start, end int = -1, -1
-		runes      []rune
+		start, end  int
+		currRuneIdx int = 0
+		chars       []runeIdx
 	)
+
+	if r.start == 0 && r.end == 0 {
+		start = 0
+		end = 0
+	} else {
+		start = -1
+		end = -1
+	}
 
 	// NOTE. range over string is special
 	// Here, `i` index on byte, `char` is code point - rune
 	// See more: https://blog.golang.org/strings
-	var cIdx int = 0
-	var firstIdx = -1
 	for i, char := range s {
 		// select indexes of bytes in range
 		if i < r.end && i >= r.start {
-			runes = append(runes, char)
-			if firstIdx < 0 {
-				firstIdx = cIdx
+			chars = append(chars, runeIdx{char, i, currRuneIdx})
+		}
+		currRuneIdx++
+	}
+
+	for _, char := range chars {
+		fmt.Printf("char: '%v' - byteIdx: %v - runeIdx %v\n", string(char.rune), char.byteIdx, char.runeIdx)
+		if char.byteIdx < r.end {
+			if char.byteIdx == r.start {
+				start = char.runeIdx
 			}
 		}
-		cIdx++
-	}
-
-	var charIdx int = 0 // index on `char`
-	for byteIdx, char := range string(runes) {
-		if byteIdx == r.start {
-			start = charIdx
+		if char.byteIdx+len(string(char.rune)) == r.end {
+			end = char.runeIdx + 1
 		}
-
-		if byteIdx+len([]byte(string(char))) == r.end {
-			end = charIdx + 1
-		}
-
-		charIdx++
 	}
 
-	// Case r.start is out of bound
-	if r.start > len([]byte(string(runes))) || start < 0 {
-		start = firstIdx
-	}
+	fmt.Printf("sliceBytes: start: %v - end: %v\n", start, end)
 
-	// Case r.end is out of bound
-	if r.end > len([]byte(string(runes))) {
-		end = len([]rune(string(s)))
+	// either `start` or `end` == -1 indicates splitting on `char`
+	if start == -1 || end == -1 {
+		return nil
 	}
 
 	outRange := NewRange(start, end, target)
@@ -305,26 +399,70 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal NormalizedString)
 
 // Slice returns a new NormalizedString that contains only specified range, indexing
 // on `char`
-func (n NormalizedString) Slice(inputRange Range) (retVal NormalizedString) {
+//
+// If we want a slice of the `NormalizedString` based on a `Range::Normalized``,
+// the original part of the `NormalizedString` will contain any "additional"
+// content on the right, and also on the left. The left will be included
+// only if we are retrieving the very beginning of the string, since there
+// is no previous part. The right is always included, up to what's covered
+// by the next part of the normalized string.  This is important to be able
+// to build a new `NormalizedString` from multiple contiguous slices
+func (n NormalizedString) Slice(inputRange Range) (retVal *NormalizedString) {
 
-	var oRange, nRange Range
+	lenOriginal := n.LenOriginal()
+	lenNormalized := n.Len()
+
+	var rNormalized, rOriginal Range
+
+	// rNormalized
 	switch inputRange.indexOn {
 	case OriginalTarget:
-		r := inputRange.intoFullRange(len([]rune(n.GetOriginal())))
-		nRange = n.ConvertOffset(r)
-		oRange = r
+		rNormalized = n.ConvertOffset(inputRange)
 	case NormalizedTarget:
-		r := inputRange.intoFullRange(len([]rune(n.GetNormalized())))
-		oRange = n.ConvertOffset(r)
-		nRange = r
+		rNormalized = inputRange.intoFullRange(lenNormalized)
 	}
+
+	// rOriginal
+	switch inputRange.indexOn {
+	case OriginalTarget:
+		rOriginal = inputRange.intoFullRange(lenOriginal)
+	case NormalizedTarget:
+		endRange := n.ConvertOffset(NewRange(rNormalized.end, n.LenOriginal(), NormalizedTarget))
+
+		rOriginal = n.ConvertOffset(inputRange)
+
+		// If we take the very beginning of the normalized string, we should take
+		// all the beginning of the original too
+		if rNormalized.start == 0 && rOriginal.start != 0 {
+			rOriginal.start = 0
+		}
+
+		// If there is a void between the `end` char we target and the next one, we
+		// want to include everything in-between from the original string
+		if endRange.start >= 0 && endRange.end >= 0 {
+			if endRange.start > rOriginal.end {
+				rOriginal.end = endRange.start
+			}
+		}
+
+		// If we target the end of the normalized but the original is longer
+		if rNormalized.end == len(n.alignments) && lenOriginal > rOriginal.end {
+			rOriginal.end = lenOriginal
+		}
+	}
+
+	fmt.Printf("rOriginal start: %v - end: %v\n", rOriginal.start, rOriginal.end)
+	fmt.Printf("rNormalized start: %v - end: %v\n", rNormalized.start, rNormalized.end)
 
 	// Shift the alignments according to the part of the original string
 	// that will be kept.
-	alignmentShift := oRange.start
+	alignmentShift := rOriginal.start
 
-	newAlignments := n.alignments[nRange.start:nRange.end]
+	newAlignments := n.alignments[rNormalized.start:rNormalized.end]
 	var shiftAligments []Alignment
+
+	// fmt.Printf("shift value: %v\n", alignmentShift)
+	// fmt.Printf("Unshift alignments: %+v\n", newAlignments)
 
 	for _, a := range newAlignments {
 		shiftAligments = append(shiftAligments, Alignment{
@@ -333,9 +471,11 @@ func (n NormalizedString) Slice(inputRange Range) (retVal NormalizedString) {
 		})
 	}
 
-	retVal = NormalizedString{
-		original:   RangeOf(n.GetOriginal(), util.MakeRange(oRange.start, oRange.end)),
-		normalized: RangeOf(n.GetNormalized(), util.MakeRange(nRange.start, nRange.end)),
+	// fmt.Printf("Shift Alignments: %+v\n", shiftAligments)
+
+	retVal = &NormalizedString{
+		original:   RangeOf(n.GetOriginal(), util.MakeRange(rOriginal.start, rOriginal.end)),
+		normalized: RangeOf(n.GetNormalized(), util.MakeRange(rNormalized.start, rNormalized.end)),
 		alignments: shiftAligments,
 	}
 
