@@ -649,29 +649,35 @@ func TestNormalized_SliceBytes(t *testing.T) {
 		t.Errorf("Got: '%v'\n", got2A)
 	}
 
-	got3 := n.SliceBytes(normalizer.NewRange(0, 1, normalizer.OriginalTarget))
-	if !reflect.DeepEqual(got3, nil) {
-		t.Errorf("Want: '%v'", nil)
-		t.Errorf("Got: %v", &got3)
+	splitFrom := 0
+	splitTo := 3
+	got3 := n.SliceBytes(normalizer.NewRange(splitFrom, splitTo, normalizer.OriginalTarget))
+
+	if splitTo%4 == 0 { // expect some
+		if reflect.DeepEqual(got3, nil) {
+			t.Errorf("Expected a value. Got '%v'\n", got3)
+		}
+	} else { // expect `nil`
+		if reflect.DeepEqual(got3, nil) {
+			t.Errorf("Expected 'nil'. Got '%v'", got3)
+		}
 	}
 
-	/*
-	 *   // Check that we get a `None` if we try to split `chars`
-	 *   for cutAt := 1; cutAt < len(s); cutAt++ {
-	 *     res := n.SliceBytes(normalizer.NewRange(0, cutAt, normalizer.OriginalTarget))
-	 *     // The chars in the original string all take 4 bytes.
-	 *     if cutAt%4 == 0 {
-	 *       if !reflect.DeepEqual(res, nil) {
-	 *         t.Errorf("Want: '%v'", "not nil")
-	 *         t.Errorf("Got: %v", res)
-	 *       }
-	 *     } else {
-	 *       if reflect.DeepEqual(res, nil) {
-	 *         t.Errorf("Want: '%v'", nil)
-	 *         t.Errorf("Got: %v", res)
-	 *       }
-	 *     }
-	 *   } */
+	// Check that we get a `None` if we try to split `chars`
+	for cutAt := 1; cutAt < len(s); cutAt++ {
+		res := n.SliceBytes(normalizer.NewRange(0, cutAt, normalizer.OriginalTarget))
+		// The chars in the original string all take 4 bytes.
+		if cutAt%4 == 0 { // expect some
+			if reflect.DeepEqual(res, nil) {
+				t.Errorf("Expected a value. Got '%v'\n", res)
+			}
+		} else { // expect `nil`
+			if reflect.DeepEqual(res, nil) {
+				t.Errorf("Expected 'nil'. Got '%v'", res)
+			}
+		}
+	}
+
 }
 
 // TODO. more unit tests.

@@ -272,6 +272,10 @@ func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalize
 		} else {
 			id = model.GetVocabSize() + len(av.addedTokenMap)
 			av.addedTokenMap[token.Content] = id
+
+			if _, ok := av.specialTokensSet[token.Content]; !ok {
+				av.addedTokens = append(av.addedTokens, token)
+			}
 		}
 
 		// Update the current revert operation
@@ -438,7 +442,6 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 func (av *AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []normalizer.NormalizedString) {
 
 	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
-	fmt.Printf("ioPairs: %v\n", ioPairs)
 
 	var (
 		indices []int
@@ -455,11 +458,7 @@ func (av *AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString
 		}
 
 		nSplit := sentence.SliceBytes(normalizer.NewRange(start, end, normalizer.NormalizedTarget))
-		nSplits = append(nSplits, nSplit)
-	}
-
-	for _, split := range nSplits {
-		fmt.Printf("split: %+v\n", split)
+		nSplits = append(nSplits, *nSplit)
 	}
 
 	return indices, nSplits
@@ -500,7 +499,8 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 	// 2. Extract the normalized tokens from the normalized pieces of the string
 	var multiIndices []int
 	err = pretokenized.Split(func(i int, seq normalizer.NormalizedString) []normalizer.NormalizedString {
-		if i >= 0 && i < len(indices) {
+		// if i >= 0 && i < len(indices) {
+		if indices[i] != -1 {
 			multiIndices = append(multiIndices, indices[i])
 			return []normalizer.NormalizedString{seq}
 		} else {
@@ -521,6 +521,7 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 
 			idxs, splits := av.splitWithIndices(nSeq, av.splitNormalizedRe)
 			multiIndices = append(multiIndices, idxs...)
+
 			return splits
 		}
 	})
@@ -530,7 +531,7 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 
 	var (
 		isPairs []IdSubString
-		currIdx int
+		currIdx int = 0
 	)
 	for {
 		sub, ok := pretokenized.Next()
@@ -545,6 +546,7 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 			id = multiIndices[currIdx]
 		}
 		isPairs = append(isPairs, IdSubString{id, sub})
+		currIdx++
 	}
 
 	return isPairs

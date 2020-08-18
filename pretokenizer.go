@@ -52,9 +52,8 @@ type SplitFn func(int, normalizer.NormalizedString) []normalizer.NormalizedStrin
 // Split splits the `PreTokenizedString` by providing a `SplitFn` which is in
 // charge of splitting each substring (`NormalizedString`) into multiple parts.
 func (pt *PreTokenizedString) Split(splitFn SplitFn) (err error) {
-	// newPart is at least as big as original part
-	newParts := make([]SubString, len(pt.parts))
 
+	var newParts []SubString
 	for i, sub := range pt.parts {
 		originalLen := sub.Normalized.LenOriginal()
 		originalOffsets := sub.OriginalOffsets

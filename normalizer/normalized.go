@@ -349,7 +349,7 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString
 	}
 
 	var (
-		start, end  int
+		start, end  int = -1, -1 // `None` value
 		currRuneIdx int = 0
 		chars       []runeIdx
 	)
@@ -357,14 +357,10 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString
 	if r.start == 0 && r.end == 0 {
 		start = 0
 		end = 0
-	} else {
-		start = -1
-		end = -1
 	}
 
-	// NOTE. range over string is special
-	// Here, `i` index on byte, `char` is code point - rune
-	// See more: https://blog.golang.org/strings
+	// NOTE. range over string is special. It iterates index on byte and unicode
+	// code point (rune). See more: https://blog.golang.org/strings
 	for i, char := range s {
 		// select indexes of bytes in range
 		if i < r.end && i >= r.start {
@@ -374,21 +370,15 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString
 	}
 
 	for _, char := range chars {
-		fmt.Printf("char: '%v' - byteIdx: %v - runeIdx %v\n", string(char.rune), char.byteIdx, char.runeIdx)
-		if char.byteIdx < r.end {
-			if char.byteIdx == r.start {
-				start = char.runeIdx
-			}
+		if char.byteIdx == r.start {
+			start = char.runeIdx
 		}
 		if char.byteIdx+len(string(char.rune)) == r.end {
 			end = char.runeIdx + 1
 		}
 	}
 
-	fmt.Printf("sliceBytes: start: %v - end: %v\n", start, end)
-
-	// either `start` or `end` == -1 indicates splitting on `char`
-	if start == -1 || end == -1 {
+	if start == -1 || end == -1 { // splitting on `char`
 		return nil
 	}
 
@@ -451,9 +441,6 @@ func (n NormalizedString) Slice(inputRange Range) (retVal *NormalizedString) {
 		}
 	}
 
-	fmt.Printf("rOriginal start: %v - end: %v\n", rOriginal.start, rOriginal.end)
-	fmt.Printf("rNormalized start: %v - end: %v\n", rNormalized.start, rNormalized.end)
-
 	// Shift the alignments according to the part of the original string
 	// that will be kept.
 	alignmentShift := rOriginal.start
@@ -461,17 +448,12 @@ func (n NormalizedString) Slice(inputRange Range) (retVal *NormalizedString) {
 	newAlignments := n.alignments[rNormalized.start:rNormalized.end]
 	var shiftAligments []Alignment
 
-	// fmt.Printf("shift value: %v\n", alignmentShift)
-	// fmt.Printf("Unshift alignments: %+v\n", newAlignments)
-
 	for _, a := range newAlignments {
 		shiftAligments = append(shiftAligments, Alignment{
 			Start: a.Start - alignmentShift,
 			End:   a.End - alignmentShift,
 		})
 	}
-
-	// fmt.Printf("Shift Alignments: %+v\n", shiftAligments)
 
 	retVal = &NormalizedString{
 		original:   RangeOf(n.GetOriginal(), util.MakeRange(rOriginal.start, rOriginal.end)),
