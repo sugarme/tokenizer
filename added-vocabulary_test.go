@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/normalizer"
 )
 
 type ModelMock struct {
@@ -144,10 +145,6 @@ func TestCanExtractAddedTokens(t *testing.T) {
 
 	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", nil)
 
-	// for _, item := range result {
-	// fmt.Printf("normalized: %v - id: %v\n", item.Substring.Normalized.GetNormalized(), item.Id)
-	// }
-
 	type tokenid struct {
 		token string
 		id    int
@@ -164,6 +161,56 @@ func TestCanExtractAddedTokens(t *testing.T) {
 		{"name", 1},
 		{" is Anthony ", -1},
 		{"[SEP]", 3},
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want %+v\n", want)
+		t.Errorf("Got %+v\n", got)
+	}
+}
+
+func TestOptionUseCases(t *testing.T) {
+	// Is able to extract both normal and special tokens, with various options (lstrip, rstrip,
+	// single_word, normalized)
+	model := newModelMock([]string{}, []int{})
+	vocab := tokenizer.NewAddedVocabulary()
+	n := normalizer.Lowercase()
+
+	addedToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("my", false).LStrip(true).RStrip(true),
+		tokenizer.NewAddedToken("name", false),
+		tokenizer.NewAddedToken("ony", false).SingleWord(true),
+	}
+
+	addedSpecialToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("[CLS]", true),
+		tokenizer.NewAddedToken("[SEP]", true),
+	}
+
+	vocab.AddTokens(addedToks, model, nil)
+	vocab.AddSpecialTokens(addedSpecialToks, model, nil)
+
+	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", &n)
+
+	type tokenid struct {
+		token string
+		id    int
+	}
+
+	var got []tokenid
+	for _, item := range result {
+		got = append(got, tokenid{item.Substring.Normalized.GetNormalized(), item.Id})
+	}
+
+	want := []tokenid{
+		{"[CLS]", 3},
+		// This one includes both spaces because of the lstrip & rstrip
+		// And it matches because normalized == true
+		{" my ", 0},
+		{"name", 1},
+		// `ony` is not extracted here thanks to single_word
+		{" is anthony ", -1},
+		{"[SEP]", 4},
 	}
 
 	if !reflect.DeepEqual(want, got) {

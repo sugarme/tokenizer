@@ -19,13 +19,25 @@ import (
 )
 
 type DefaultNormalizer struct {
-	Lower bool // to lowercase
-	Strip bool // trim leading and trailing whitespaces
+	lower bool // to lowercase
+	strip bool // trim leading and trailing whitespaces
 	// ExtraWhitespace bool // remove extra-whitespaces
 	// Contraction     bool // expand contraction
 }
 
 type DefaultOption func(*DefaultNormalizer)
+
+func WithLowercase(lowercase bool) DefaultOption {
+	return func(o *DefaultNormalizer) {
+		o.lower = lowercase
+	}
+}
+
+func WithStrip(strip bool) DefaultOption {
+	return func(o *DefaultNormalizer) {
+		o.strip = strip
+	}
+}
 
 /*
  * func WithContractionExpansion() DefaultOption {
@@ -37,22 +49,24 @@ type DefaultOption func(*DefaultNormalizer)
 
 func (dn DefaultNormalizer) Normalize(n NormalizedString) (NormalizedString, error) {
 
-	if dn.Lower {
-		return n.Lowercase(), nil
+	var normalized NormalizedString = n
+
+	if dn.lower {
+		normalized = normalized.Lowercase()
 	}
 
-	if dn.Strip {
-		return n.Strip(), nil
+	if dn.strip {
+		normalized = normalized.Strip()
 	}
 
-	return n, nil
+	return normalized, nil
 }
 
 func NewDefaultNormalizer(opts ...DefaultOption) DefaultNormalizer {
 
 	dn := DefaultNormalizer{
-		Lower: true,
-		Strip: true,
+		lower: true,
+		strip: true,
 		// Contraction:     false,
 	}
 
