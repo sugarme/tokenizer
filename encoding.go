@@ -25,14 +25,14 @@ type Encoding struct {
 }
 
 // NewEncoding initiate a new encoding from input data
-func NewEncoding(ids []int, typeIds []int, tokens []string, offsets []Offsets, specialTokenMask []int, attentionMask []int, overflowing []*Encoding, wordsOpt ...[]int) Encoding {
+func NewEncoding(ids []int, typeIds []int, tokens []string, offsets []Offsets, specialTokenMask []int, attentionMask []int, overflowing []*Encoding, wordsOpt ...[]int) *Encoding {
 	var words []int
 	if len(wordsOpt) > 0 {
 		words = wordsOpt[0]
 	} else {
 		words = nil
 	}
-	return Encoding{
+	return &Encoding{
 		ids,
 		typeIds,
 		tokens,

@@ -14,8 +14,8 @@ type BertProcessing struct {
 	cls PostToken
 }
 
-func NewBertProcessing(sep, cls PostToken) (retVal BertProcessing) {
-	return BertProcessing{
+func NewBertProcessing(sep, cls PostToken) (retVal *BertProcessing) {
+	return &BertProcessing{
 		sep: sep,
 		cls: cls,
 	}
@@ -24,7 +24,7 @@ func NewBertProcessing(sep, cls PostToken) (retVal BertProcessing) {
 // Implement PostProcessor interface for BertProcessing:
 // =====================================================
 
-func (bp BertProcessing) AddedTokens(isPair bool) (retVal int) {
+func (bp *BertProcessing) AddedTokens(isPair bool) (retVal int) {
 	if isPair {
 		return 3
 	} else {
@@ -32,7 +32,7 @@ func (bp BertProcessing) AddedTokens(isPair bool) (retVal int) {
 	}
 }
 
-func (bp BertProcessing) Process(encoding tokenizer.Encoding, pairEncodingOpt ...tokenizer.Encoding) (retVal tokenizer.Encoding) {
+func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, pairEncodingOpt ...*tokenizer.Encoding) (retVal *tokenizer.Encoding) {
 
 	var ids []int
 	ids = append(ids, bp.cls.Id)
@@ -64,7 +64,7 @@ func (bp BertProcessing) Process(encoding tokenizer.Encoding, pairEncodingOpt ..
 
 	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing())
 
-	var pairEncoding tokenizer.Encoding
+	var pairEncoding *tokenizer.Encoding
 	if len(pairEncodingOpt) > 0 {
 		pairEncoding = pairEncodingOpt[0]
 

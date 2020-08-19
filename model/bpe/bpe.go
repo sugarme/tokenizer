@@ -13,8 +13,8 @@ import (
 	// "strconv"
 	"strings"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/model"
-	"github.com/sugarme/tokenizer/tokenizer"
 	"github.com/sugarme/tokenizer/util"
 )
 
@@ -104,7 +104,7 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 		err    error
 		vocab  *model.Vocab
 		merges *Merges
-		vocabR model.VocabR = make(map[uint32]string)
+		vocabR model.VocabR = make(map[int]string)
 		cache  *Cache
 		bpe    BPE
 	)
@@ -256,7 +256,7 @@ func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, e
 	}
 
 	// Read merges file. Each line contains a Merges object(rank, )
-	// Recall: Merges is map[Pair]PairVal (rank uint32, newId uint32)
+	// Recall: Merges is map[Pair]PairVal (rank int, newId int)
 	mFile, err := os.Open(mergesF)
 	if err != nil {
 		return nil, nil, err
@@ -315,7 +315,7 @@ func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, e
 		}
 
 		// pairVal := PairVal{uint32(newTokenInt), newId}
-		pairVal := PairVal{uint32(lineNum), newId}
+		pairVal := PairVal{lineNum, newId}
 
 		merges[pair] = pairVal
 
@@ -337,8 +337,9 @@ func (b *BPE) ClearCache() {
 }
 
 // GetVocab returns BPE vocab
-func (b *BPE) GetVocab() *model.Vocab {
-	return b.Vocab
+// func (b *BPE) GetVocab() *model.Vocab {
+func (b BPE) GetVocab() map[string]int {
+	return *b.Vocab
 }
 
 // GetUnkToken returns `unk` token
@@ -414,7 +415,7 @@ func (b *BPE) WordToTokens(word Word, initialOffsets tokenizer.Offsets) ([]token
 	chars := word.GetChars()
 	offsets := word.GetOffsets()
 	type zword struct {
-		Id      uint32
+		Id      int
 		Offsets tokenizer.Offsets
 	}
 	var zWord []zword
@@ -446,9 +447,9 @@ func (b *BPE) WordToTokens(word Word, initialOffsets tokenizer.Offsets) ([]token
 // Implement Model interface for BPE
 // Model has the following methods:
 // 1. Tokenize(tokens []PreToken) ([]Token, error)
-// 2. TokenToId(token string) uint32
-// 3. IdToToken(id uint32) string
-// 4. GetVocabSize() uint
+// 2. TokenToId(token string) int
+// 3. IdToToken(id int) string
+// 4. GetVocabSize() int
 // 5. Save(path string, name string) error
 
 // Tokenize tokenizes sentences into tokens
@@ -534,12 +535,12 @@ func (b BPE) Tokenize(sentence []tokenizer.PreToken) ([]tokenizer.Token, error) 
 	return encoded, nil
 }
 
-func (b BPE) TokenToId(token string) (id uint32, ok bool) {
+func (b BPE) TokenToId(token string) (id int, ok bool) {
 	id, ok = (*b.Vocab)[token]
 	return id, ok
 }
 
-func (b BPE) IdToToken(id uint32) (token string, ok bool) {
+func (b BPE) IdToToken(id int) (token string, ok bool) {
 	token, ok = (*b.VocabR)[id]
 	return token, ok
 }
@@ -583,7 +584,7 @@ func (b BPE) Save(dir string, nameOpt ...string) error {
 	var lines []string
 	type pairRank struct {
 		Pair Pair
-		Rank uint32
+		Rank int
 	}
 	var pairRanks []pairRank
 	for pair, pairVal := range *b.Merges {

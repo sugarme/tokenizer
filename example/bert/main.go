@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func main() {

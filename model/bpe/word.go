@@ -9,15 +9,15 @@ import (
 	"github.com/emirpasic/gods/trees/binaryheap"
 	"github.com/emirpasic/gods/utils"
 
-	"github.com/sugarme/tokenizer/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 const DefaultCacheCapacity uint = 10000
 
 type Merge struct {
-	Pos   uint
-	Rank  uint32
-	NewId uint32
+	Pos   int
+	Rank  int
+	NewId int
 	Time  time.Time
 }
 
@@ -63,7 +63,7 @@ func (m *Merge) Cmp(other *Merge) Ordering {
 }
 
 type Symbol struct {
-	C    uint32
+	C    int
 	Prev int
 	Next int
 	Len  int
@@ -94,7 +94,7 @@ func (ss *Symbols) Remove(i int) error {
 	return nil
 }
 
-func (s *Symbol) MergeWith(other *Symbol, newC uint32) {
+func (s *Symbol) MergeWith(other *Symbol, newC int) {
 	s.C = newC
 	s.Len += other.Len
 	s.Next = other.Next
@@ -111,7 +111,7 @@ func NewWord() *Word {
 	}
 }
 
-func (w *Word) Add(c uint32) {
+func (w *Word) Add(c int) {
 	var (
 		prev, next int
 		last       Symbol
@@ -149,25 +149,25 @@ func (w *Word) Add(c uint32) {
 }
 
 type Pair struct {
-	C1 uint32
-	C2 uint32
+	C1 int
+	C2 int
 }
 
 // PairVal holds pair's rank and NewId
 type PairVal struct {
-	Rank  uint32
-	NewId uint32
+	Rank  int
+	NewId int
 }
 
 type WChange struct {
-	C1     uint32
-	C2     uint32
-	Change int32
+	C1     int
+	C2     int
+	Change int
 }
 
 // Merge finds any pairs of (c1, c2) and removes in place. It also maps changes depending
 // on the position of the pair in word.
-func (w *Word) Merge(c1, c2, replacement uint32) ([]WChange, error) {
+func (w *Word) Merge(c1, c2, replacement int) ([]WChange, error) {
 	// fmt.Printf("before merge word symbols: %v\n", w.Symbols)
 	// fmt.Printf("c1: %v - c2: %v- replacement: %v\n", c1, c2, replacement)
 	var changes []WChange
@@ -288,7 +288,7 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 		m, _ := merges[pair] // m is PairVal type with pair's rank and newId values
 
 		var merge Merge = Merge{
-			Pos:   uint(i),
+			Pos:   i,
 			Rank:  m.Rank,
 			NewId: m.NewId,
 		}
@@ -358,7 +358,7 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 					}
 					if m, ok := merges[newPair]; ok {
 						queue.Push(Merge{
-							Pos:   uint(current.Prev),
+							Pos:   current.Prev,
 							Rank:  m.Rank,
 							NewId: m.NewId,
 						})
@@ -393,8 +393,8 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 	}
 }
 
-func (w *Word) GetChars() []uint32 {
-	var res []uint32
+func (w *Word) GetChars() []int {
+	var res []int
 	for _, s := range w.Symbols {
 		res = append(res, s.C)
 	}

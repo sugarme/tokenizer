@@ -353,7 +353,11 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 				if err != nil {
 					return retVal, err
 				}
-				encoding := t.doTokenize(preTok, ioPair.Substring.OriginalOffsets, typeId)
+				encoding, err := t.doTokenize(preTok, ioPair.Substring.OriginalOffsets, typeId)
+				if err != nil {
+					return nil, err
+				}
+
 				encodings = append(encodings, encoding)
 			}
 		}
@@ -487,11 +491,52 @@ func (t *Tokenizer) doPreTokenize(sentence string) (retVal PreTokenizedString, e
 
 // doTokenize does Tokenization logic, makes the bridge between the pre-tokenization phase and the real
 // tokenization phase, and converting offsets back to the original referential.
-func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets Offsets, typeId int) (retVal *Encoding) {
+func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets Offsets, typeId int) (retVal *Encoding, err error) {
 
-	// TODO: implement
+	var substrings []SubString
+	var encodings []*Encoding
 
-	return
+	for _, sub := range pretokenized.parts {
+		if !sub.Normalized.IsEmpty() {
+			substrings = append(substrings, sub)
+		}
+	}
+
+	for wordIdx, substr := range substrings {
+
+		tokens, err := (*t.model).Tokenize(substr.Normalized.GetNormalized())
+		if err != nil {
+			return nil, err
+		}
+
+		// We convert the normalized offsets back to the original
+		for _, token := range tokens {
+			oRange := substr.Normalized.ConvertOffset(normalizer.NewRange(token.Offsets.Start, token.Offsets.End, normalizer.NormalizedTarget))
+			var convertedOffsets Offsets
+
+			if oRange.Start() == -1 || oRange.End() == -1 {
+				convertedOffsets = token.Offsets
+			}
+
+			convertedOffsets = Offsets{
+				Start: originalOffsets.Start + substr.OriginalOffsets.Start + oRange.Start(),
+				End:   originalOffsets.Start + substr.OriginalOffsets.Start + oRange.End(),
+			}
+
+			encoding := DefaultEncoding()
+			encoding.Ids = []int{token.Id}
+			encoding.TypeIds = []int{typeId}
+			encoding.Tokens = []string{token.Value}
+			encoding.Offsets = []Offsets{convertedOffsets}
+			encoding.Words = []int{wordIdx}
+
+			encodings = append(encodings, encoding)
+		}
+	}
+
+	mergedEncoding := DefaultEncoding()
+	return mergedEncoding.Merge(encodings), nil
+
 }
 
 // PostProcess does post-processing logic, handling the case where there is no PostProcessor set

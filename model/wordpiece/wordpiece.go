@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/model"
 	"github.com/sugarme/tokenizer/model/bpe"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 var MissingUnkToken = fmt.Errorf("WordPiece error: Missing [UNK] token from the vocabulary\n")

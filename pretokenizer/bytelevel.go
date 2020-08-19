@@ -275,10 +275,9 @@ func (bl *ByteLevel) AddedToken(isPair bool) uint {
 	return 0
 }
 
-func (bl *ByteLevel) Process(encoding tokenizer.Encoding, addSpecialTokens bool, pairEncodingOpt ...tokenizer.Encoding) tokenizer.Encoding {
+func (bl *ByteLevel) Process(encoding *tokenizer.Encoding, addSpecialTokens bool, pairEncodingOpt ...*tokenizer.Encoding) *tokenizer.Encoding {
 
-	// TODO: implement
-	var finalEncoding tokenizer.Encoding
+	var finalEncoding *tokenizer.Encoding
 
 	enc := processOffsets(bl.TrimOffsets, encoding)
 
@@ -291,7 +290,7 @@ func (bl *ByteLevel) Process(encoding tokenizer.Encoding, addSpecialTokens bool,
 	return finalEncoding
 }
 
-func processOffsets(isTrimOffsets bool, encoding tokenizer.Encoding) tokenizer.Encoding {
+func processOffsets(isTrimOffsets bool, encoding *tokenizer.Encoding) *tokenizer.Encoding {
 
 	if !isTrimOffsets {
 		return encoding
