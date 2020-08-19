@@ -26,7 +26,7 @@ func TestBPE_FromFiles(t *testing.T) {
 	defer os.Remove(vf.Name())
 
 	// 1.2. Write some values as bytes to it
-	var vocab map[string]uint32 = make(map[string]uint32)
+	var vocab map[string]int = make(map[string]int)
 	vocab["a"] = 0
 	vocab["b"] = 1
 	vocab["c"] = 2

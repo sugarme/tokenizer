@@ -21,14 +21,14 @@ func NewWordPieceTrainerBuilder() (retVal WordPieceTrainerBuilder) {
 	}
 }
 
-func (wptb WordPieceTrainerBuilder) MinFrequency(frequency uint32) (retVal WordPieceTrainerBuilder) {
+func (wptb WordPieceTrainerBuilder) MinFrequency(frequency int) (retVal WordPieceTrainerBuilder) {
 	wptb.bpeTrainerBuilder.MinFrequency(frequency)
 
 	return wptb
 }
 
 // VocabSize Set the vocabulary size
-func (wptb WordPieceTrainerBuilder) VocabSize(size uint) (retVal WordPieceTrainerBuilder) {
+func (wptb WordPieceTrainerBuilder) VocabSize(size int) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.VocabSize(size)
 	return wptb
@@ -49,7 +49,7 @@ func (wptb WordPieceTrainerBuilder) SpecialTokens(tokens []string) (retVal WordP
 }
 
 // LimitAlphabet Set whether to limit the alphabet
-func (wptb WordPieceTrainerBuilder) LimitAlphabet(limit uint) (retVal WordPieceTrainerBuilder) {
+func (wptb WordPieceTrainerBuilder) LimitAlphabet(limit int) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.LimitAlphabet(limit)
 	return wptb
@@ -96,14 +96,14 @@ func (wpt WordPieceTrainer) Builder() (retVal WordPieceTrainerBuilder) {
 // Implement Trainer interface for WordPieceTrainer:
 // =================================================
 
-func (wpt WordPieceTrainer) Train(wordCounts map[string]uint32) (retVal tokenizer.Model) {
+func (wpt WordPieceTrainer) Train(wordCounts map[string]int) (retVal tokenizer.Model) {
 
 	bpeModel, _ := wpt.bpeTrainer.Train(wordCounts)
 
 	return NewWordPieceFromBPE(bpeModel.(bpe.BPE))
 }
 
-func (wpt WordPieceTrainer) ProcessTokens(words map[string]uint32, tokens []string) {
+func (wpt WordPieceTrainer) ProcessTokens(words map[string]int, tokens []string) {
 	wpt.bpeTrainer.ProcessTokens(words, tokens)
 }
 

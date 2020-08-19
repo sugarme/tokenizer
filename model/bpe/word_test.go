@@ -26,7 +26,7 @@ func TestMerge_Merge(t *testing.T) {
 
 	// So the word should now look like this:
 	charsGot := word.GetChars()
-	charsWant := []uint32{
+	charsWant := []int{
 		0, // 'h'
 		1, // 'e'
 		4, // 'll'

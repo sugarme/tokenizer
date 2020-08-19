@@ -9,7 +9,7 @@ import (
 )
 
 func TestBpeTrainer_Train(t *testing.T) {
-	var wordCounts map[string]uint32 = make(map[string]uint32)
+	var wordCounts map[string]int = make(map[string]int)
 	wordCounts["roses"] = 1
 	wordCounts["are"] = 2
 	wordCounts["red"] = 1
@@ -26,9 +26,9 @@ func TestBpeTrainer_Train(t *testing.T) {
 
 	model, _ := trainer.Train(wordCounts)
 
-	got := *model.(*bpe.BPE).Vocab
+	got := *model.(bpe.BPE).Vocab
 
-	var want map[string]uint32 = make(map[string]uint32)
+	var want map[string]int = make(map[string]int)
 	want["-"] = 0
 	want["2"] = 1
 	want["B"] = 2
@@ -58,8 +58,8 @@ func TestBpeTrainer_Train(t *testing.T) {
 	wKeys := sortedKeys(want)
 	gKeys := sortedKeys(got)
 	var (
-		sortedWant map[string]uint32 = make(map[string]uint32, len(want))
-		sortedGot  map[string]uint32 = make(map[string]uint32, len(got))
+		sortedWant map[string]int = make(map[string]int, len(want))
+		sortedGot  map[string]int = make(map[string]int, len(got))
 	)
 	for _, k := range wKeys {
 		val := want[k]
@@ -78,7 +78,7 @@ func TestBpeTrainer_Train(t *testing.T) {
 
 }
 
-func sortedKeys(m map[string]uint32) []string {
+func sortedKeys(m map[string]int) []string {
 	keys := make([]string, len(m))
 	i := 0
 	for k := range m {

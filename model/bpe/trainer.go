@@ -661,7 +661,7 @@ func (bt *BpeTrainer) train(wordCounts map[string]int) (BPE, []string) {
 			return utils.TimeComparator(bTime, aTime)
 		}
 
-		return utils.UInt32Comparator(c2, c1)
+		return utils.IntComparator(c2, c1)
 	}
 
 	var queue = binaryheap.NewWith(countComparator)

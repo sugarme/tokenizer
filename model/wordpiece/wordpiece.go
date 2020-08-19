@@ -90,7 +90,7 @@ func (wpb WordPieceBuilder) Build() (retVal WordPiece) {
 	}
 
 	vocab := *wpb.config.vocab
-	var vocabR model.VocabR = make(map[uint32]string)
+	var vocabR model.VocabR = make(map[int]string)
 	for k, v := range vocab {
 		vocabR[v] = k
 	}
@@ -149,7 +149,7 @@ func (wp WordPiece) ReadFiles(filename string) (retVal model.Vocab) {
 	var (
 		vocab model.Vocab
 		line  string
-		idx   uint32 = 0
+		idx   int = 0
 	)
 
 	scanner := bufio.NewScanner(file)
@@ -189,9 +189,9 @@ func NewWordPieceFromFile(vocabFile string, unkToken string, maxInputCharsPerWor
 	defer file.Close()
 
 	var (
-		vocab model.Vocab = make(map[string]uint32)
+		vocab model.Vocab = make(map[string]int)
 		line  string
-		idx   uint32 = 0
+		idx   int = 0
 	)
 
 	scanner := bufio.NewScanner(file)
@@ -218,7 +218,8 @@ func NewWordPieceFromFile(vocabFile string, unkToken string, maxInputCharsPerWor
 // WordPieceBuilderFromBPE create a WordPieceBuilder from BPE model
 func NewWordPieceFromBPE(bpe bpe.BPE) (retVal WordPiece) {
 	wpb := NewWordPieceBuilder()
-	wpb.config.vocab = bpe.GetVocab()
+	var vocab model.Vocab = bpe.GetVocab()
+	wpb.config.vocab = &vocab
 
 	wp := wpb.Build()
 	unk := bpe.GetUnkToken()
@@ -237,96 +238,95 @@ func NewWordPieceFromBPE(bpe bpe.BPE) (retVal WordPiece) {
 // Implement Model interface for WordPiece:
 // ========================================
 
-func (wp WordPiece) GetVocab() (retVal *model.Vocab) {
-	return wp.vocab
+func (wp WordPiece) GetVocab() (retVal map[string]int) {
+	return *wp.vocab
 }
 
 func (wp WordPiece) GetVocabSize() (retVal int) {
 	return len(*wp.vocab)
 }
 
-func (wp WordPiece) Tokenize(sentence []tokenizer.PreToken) (retVal []tokenizer.Token, err error) {
+func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err error) {
 
 	var outputTokens []tokenizer.Token
 
-	for _, preTok := range sentence {
-		chars := []rune(preTok.Value)
-		charLen := len([]rune(preTok.Value))
-		if charLen > wp.maxInputCharsPerWord {
-			id, ok := (*wp.vocab)[wp.unkToken]
-			if !ok {
-				return retVal, MissingUnkToken
-			}
-			token := tokenizer.Token{
-				Value:   wp.unkToken,
-				Id:      id,
-				Offsets: tokenizer.Offsets{Start: 0, End: charLen},
-			}
-			outputTokens = append(outputTokens, token)
-			continue
+	chars := []rune(sequence)
+	charLen := len(chars)
+	if charLen > wp.maxInputCharsPerWord {
+		id, ok := (*wp.vocab)[wp.unkToken]
+		if !ok {
+			return retVal, MissingUnkToken
 		}
+		token := tokenizer.Token{
+			Value:   wp.unkToken,
+			Id:      id,
+			Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+		}
+		outputTokens = append(outputTokens, token)
 
-		var (
-			isBad     bool = false
-			start     int  = 0
-			subTokens []tokenizer.Token
-		)
+		return outputTokens, nil
+	}
 
-		for start < charLen {
-			end := charLen
-			var currStr *tokenizer.Token
+	var (
+		isBad     bool = false
+		start     int  = 0
+		subTokens []tokenizer.Token
+	)
 
-			for start < end {
-				substr := string(chars[start:end])
-				if start > 0 {
-					substr = fmt.Sprintf("%v%v", wp.continueSubwordPrefix, substr)
-				}
+	for start < charLen {
+		end := charLen
+		var currStr *tokenizer.Token
 
-				if id, ok := (*wp.vocab)[substr]; ok {
-					currStr = &tokenizer.Token{
-						Id:      id,
-						Value:   substr,
-						Offsets: tokenizer.Offsets{Start: start, End: end},
-					}
-					break
-				}
-				end -= 1
+		for start < end {
+			substr := string(chars[start:end])
+			if start > 0 {
+				substr = fmt.Sprintf("%v%v", wp.continueSubwordPrefix, substr)
 			}
-			if currStr == nil {
-				isBad = true
+
+			if id, ok := (*wp.vocab)[substr]; ok {
+				currStr = &tokenizer.Token{
+					Id:      id,
+					Value:   substr,
+					Offsets: tokenizer.Offsets{Start: start, End: end},
+				}
 				break
 			}
-
-			subTokens = append(subTokens, *currStr)
-			start = end
+			end -= 1
+		}
+		if currStr == nil {
+			isBad = true
+			break
 		}
 
-		if isBad {
-			id, ok := (*wp.vocab)[wp.unkToken]
-			if !ok {
-				return retVal, MissingUnkToken
-			}
-			token := tokenizer.Token{
-				Value:   wp.unkToken,
-				Id:      id,
-				Offsets: tokenizer.Offsets{Start: 0, End: charLen},
-			}
+		subTokens = append(subTokens, *currStr)
+		start = end
+	}
 
-			outputTokens = append(outputTokens, token)
-		} else {
-			outputTokens = append(outputTokens, subTokens...)
+	if isBad {
+		id, ok := (*wp.vocab)[wp.unkToken]
+		if !ok {
+			return retVal, MissingUnkToken
 		}
+		token := tokenizer.Token{
+			Value:   wp.unkToken,
+			Id:      id,
+			Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+		}
+
+		outputTokens = append(outputTokens, token)
+	} else {
+		outputTokens = append(outputTokens, subTokens...)
 	}
 
 	return outputTokens, nil
 }
 
-func (wp WordPiece) TokenToId(token string) (retVal uint32, ok bool) {
+func (wp WordPiece) TokenToId(token string) (retVal int, ok bool) {
 	retVal, ok = (*wp.vocab)[token]
 	return
 }
 
-func (wp WordPiece) IdToToken(id uint32) (retVal string, ok bool) {
+func (wp WordPiece) IdToToken(id int) (retVal string, ok bool) {
 	retVal, ok = (*wp.vocabR)[id]
 	return retVal, ok
 }
@@ -350,10 +350,10 @@ func (wp WordPiece) Save(dir string, nameOpt ...string) (err error) {
 	var lines []string
 	vocab := *wp.vocab
 
-	// sort vocab by map's value (uint32)
+	// sort vocab by map's value (int)
 	type kv struct {
 		Key   string
-		Value uint32
+		Value int
 	}
 	var sVocab []kv
 	for k, v := range vocab {

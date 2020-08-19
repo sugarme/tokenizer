@@ -199,11 +199,11 @@ type Tokenizer struct {
 }
 
 // Implementing methods for Tokenizer
-func NewTokenizer(model *Model) Tokenizer {
+func NewTokenizer(model Model) Tokenizer {
 	return Tokenizer{
 		normalizer:      nil,
 		preTokenizer:    nil,
-		model:           model,
+		model:           &model,
 		postProcessor:   nil,
 		decoder:         nil,
 		addedVocabulary: NewAddedVocabulary(),
@@ -220,8 +220,8 @@ func (t *Tokenizer) GetNormalizer() *normalizer.Normalizer {
 	return t.normalizer
 }
 
-func (t *Tokenizer) WithPreTokenizer(preTokenizer *PreTokenizer) {
-	t.preTokenizer = preTokenizer
+func (t *Tokenizer) WithPreTokenizer(preTokenizer PreTokenizer) {
+	t.preTokenizer = &preTokenizer
 }
 
 func (t *Tokenizer) GetPreTokenizer() *PreTokenizer {
