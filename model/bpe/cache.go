@@ -12,7 +12,7 @@ type Cache struct {
 	mux sync.RWMutex
 	// cmap     map[interface{}]interface{}
 	cmap     map[string]Word
-	Capacity uint
+	Capacity int
 }
 
 type CacheItem struct {
@@ -23,7 +23,7 @@ type CacheItem struct {
 }
 
 // NewCache create an empty Cache with a specified capacity
-func NewCache(capacity uint) *Cache {
+func NewCache(capacity int) *Cache {
 	return &Cache{
 		// cmap:     make(map[interface{}]interface{}, capacity),
 		cmap:     make(map[string]Word, capacity),
@@ -66,12 +66,12 @@ func (c *Cache) SetValues(values []CacheItem) {
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	if uint(len(c.cmap)) == c.Capacity {
+	if len(c.cmap) == c.Capacity {
 		return
 	}
 
 	for _, v := range values {
-		if uint(len(c.cmap)) == c.Capacity {
+		if len(c.cmap) == c.Capacity {
 			break
 		}
 

@@ -20,26 +20,26 @@ import (
 
 type Merges map[Pair]PairVal
 
-type configFiles struct {
-	vocab  string
-	merges string
+type ConfigFiles struct {
+	Vocab  string
+	Merges string
 }
 
 type Config struct {
-	files                   *configFiles
-	vocab                   *model.Vocab
-	merges                  *Merges
-	cacheCapacity           int
-	dropout                 *float32
-	unkToken                *string
-	continuingSubwordPrefix *string
-	endOfWordSuffix         *string
+	Files                   *ConfigFiles
+	Vocab                   *model.Vocab
+	Merges                  *Merges
+	CacheCapacity           uint
+	Dropout                 *float32
+	UnkToken                *string
+	ContinuingSubwordPrefix *string
+	EndOfWordSuffix         *string
 }
 
 // BpeBuilder can be used to create a `BPE` model with
 // a custom configuration
 type BpeBuilder struct {
-	config Config
+	Config Config
 }
 
 func NewBpeBuilder() *BpeBuilder {
@@ -48,54 +48,54 @@ func NewBpeBuilder() *BpeBuilder {
 		merges *Merges      = new(Merges)
 	)
 	return &BpeBuilder{
-		config: Config{
-			files:                   nil,
-			vocab:                   vocab,
-			merges:                  merges,
-			cacheCapacity:           DefaultCacheCapacity,
-			dropout:                 nil,
-			unkToken:                nil,
-			continuingSubwordPrefix: nil,
-			endOfWordSuffix:         nil,
+		Config: Config{
+			Files:                   nil,
+			Vocab:                   vocab,
+			Merges:                  merges,
+			CacheCapacity:           DefaultCacheCapacity,
+			Dropout:                 nil,
+			UnkToken:                nil,
+			ContinuingSubwordPrefix: nil,
+			EndOfWordSuffix:         nil,
 		},
 	}
 }
 
 // Files sets input files for the model
 func (bb *BpeBuilder) Files(vocab string, merges string) {
-	bb.config.files = &configFiles{vocab, merges}
+	bb.Config.Files = &ConfigFiles{vocab, merges}
 }
 
 // VocabAndMerges sets vocab and merges
 func (bb *BpeBuilder) VocabAndMerges(vocab model.Vocab, merges Merges) {
-	bb.config.vocab = &vocab
-	bb.config.merges = &merges
+	bb.Config.Vocab = &vocab
+	bb.Config.Merges = &merges
 }
 
 // CacheCapacity sets the cache capacity. Disable cache by setting it to 0
-func (bb *BpeBuilder) CacheCapacity(capacity int) {
-	bb.config.cacheCapacity = capacity
+func (bb *BpeBuilder) CacheCapacity(capacity uint) {
+	bb.Config.CacheCapacity = capacity
 }
 
 // Dropout set dropout for model
 // Ref. https://arxiv.org/abs/1910.13267
 func (bb *BpeBuilder) Dropout(dropout float32) {
-	bb.config.dropout = &dropout
+	bb.Config.Dropout = &dropout
 }
 
 // UnkToken set the `UNK` token for the vocab
 func (bb *BpeBuilder) UnkToken(unkTok string) {
-	bb.config.unkToken = &unkTok
+	bb.Config.UnkToken = &unkTok
 }
 
 // ContinuingSubword set the `continuingSubwordPrefix` option.
 func (bb *BpeBuilder) ContinuingSubwordPrefix(continuingSubwordPrefix string) {
-	bb.config.continuingSubwordPrefix = &continuingSubwordPrefix
+	bb.Config.ContinuingSubwordPrefix = &continuingSubwordPrefix
 }
 
 // EndOfWordSuffix set the `endOfWordSuffix` option.
 func (bb *BpeBuilder) EndOfWordSuffix(endOfWordSuffix string) {
-	bb.config.endOfWordSuffix = &endOfWordSuffix
+	bb.Config.EndOfWordSuffix = &endOfWordSuffix
 }
 
 // Build returns a `BPE` model that uses the BpeBuilder configuration
@@ -109,13 +109,13 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 		bpe    BPE
 	)
 
-	vocab = bb.config.vocab
-	merges = bb.config.merges
+	vocab = bb.Config.Vocab
+	merges = bb.Config.Merges
 
 	// validate dropout
-	if bb.config.dropout != nil {
+	if bb.Config.Dropout != nil {
 		var p float32
-		p = *bb.config.dropout
+		p = *bb.Config.Dropout
 		if p <= 0.0 || p > 1.0 {
 			err = errors.New("Error: Invalid dropout.")
 			return nil, err
@@ -123,22 +123,22 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 	}
 
 	// Read files if provided
-	if bb.config.files != nil {
-		vocab, merges, err = bpe.ReadFiles(bb.config.files.vocab, bb.config.files.merges)
+	if bb.Config.Files != nil {
+		vocab, merges, err = bpe.ReadFiles(bb.Config.Files.Vocab, bb.Config.Files.Merges)
 		if err != nil {
 			return nil, err
 		}
 
-		bb.config.vocab = vocab
-		bb.config.merges = merges
+		bb.Config.Vocab = vocab
+		bb.Config.Merges = merges
 	}
 
 	for k, v := range *vocab {
 		vocabR[v] = k
 	}
 
-	if bb.config.cacheCapacity != 0 {
-		cache = NewCache(bb.config.cacheCapacity)
+	if bb.Config.CacheCapacity != 0 {
+		cache = NewCache(bb.Config.CacheCapacity)
 	} else {
 		cache = nil
 	}
@@ -148,10 +148,10 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 		VocabR:                  &vocabR,
 		Merges:                  merges,
 		Cache:                   cache,
-		Dropout:                 bb.config.dropout,
-		UnkToken:                bb.config.unkToken,
-		ContinuingSubwordPrefix: bb.config.continuingSubwordPrefix,
-		EndOfWordSuffix:         bb.config.endOfWordSuffix,
+		Dropout:                 bb.Config.Dropout,
+		UnkToken:                bb.Config.UnkToken,
+		ContinuingSubwordPrefix: bb.Config.ContinuingSubwordPrefix,
+		EndOfWordSuffix:         bb.Config.EndOfWordSuffix,
 	}
 
 	return &bpe, nil
@@ -314,6 +314,7 @@ func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, e
 			return nil, nil, err
 		}
 
+		// pairVal := PairVal{uint32(newTokenInt), newId}
 		pairVal := PairVal{lineNum, newId}
 
 		merges[pair] = pairVal
@@ -408,15 +409,21 @@ func (b *BPE) MergeWord(w string) *Word {
 }
 
 // WordToTokens slices word to tokens
-func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
+func (b *BPE) WordToTokens(word Word, initialOffsets tokenizer.Offsets) ([]tokenizer.Token, error) {
+
 	var tokens []tokenizer.Token
 	chars := word.GetChars()
 	offsets := word.GetOffsets()
-	type zword struct { // zip id and offsets
+	type zword struct {
 		Id      int
 		Offsets tokenizer.Offsets
 	}
 	var zWord []zword
+
+	// err := util.Zip(chars, offsets, &zWord)
+	// if err != nil {
+	// return nil, err
+	// }
 
 	for i, char := range chars {
 		zWord = append(zWord, zword{
@@ -434,7 +441,7 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 		tokens = append(tokens, tok)
 	}
 
-	return tokens
+	return tokens, nil
 }
 
 // Implement Model interface for BPE
@@ -448,34 +455,85 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 
 // Tokenize tokenizes sentences into tokens
 // NOTE: sentence is []PreToken struct{Value string, Offsets Offsets}
-func (b BPE) Tokenize(sequence string) (retVal []tokenizer.Token, err error) {
-	if len(sequence) == 0 {
+func (b BPE) Tokenize(sentence string) ([]tokenizer.Token, error) {
+
+	if len(sentence) == 0 {
 		return []tokenizer.Token{}, nil
 	}
 
-	if b.Dropout == nil {
-		return b.TokenizeWithCache(sequence), nil
-	}
+	var encoded []tokenizer.Token
+	var cachedWords []Word
+	var keys []string
 
-	word := b.MergeWord(sequence)
-
-	return b.WordToTokens(*word), nil
-}
-
-func (b BPE) TokenizeWithCache(sequence string) (retVal []tokenizer.Token) {
-
-	if hit, ok := b.Cache.cmap[sequence]; ok {
-		return b.WordToTokens(hit)
+	// if using dropout, we don't use the cache
+	if b.Dropout != nil {
+		cachedWords = nil
 	} else {
-		word := b.MergeWord(sequence)
-		retVal = b.WordToTokens(*word)
-		if b.Cache != nil {
-			b.Cache.SetValues([]CacheItem{
-				{sequence, *word},
-			})
-		}
-		return retVal
+		// for _, k := range sentence {
+		// keys = append(keys, k.Value)
+		// }
+		// cachedWords = b.Cache.GetValues(keys)
 	}
+
+	var shouldUpdateCache bool = false
+
+	for i, preTok := range sentence {
+		var (
+			tokens []tokenizer.Token
+			err    error
+		)
+
+		// not using cache as we're using dropout
+		if cachedWords == nil {
+			word := b.MergeWord(preTok.Value)
+			tokens, err = b.WordToTokens(*word, preTok.Offsets)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			if i > len(cachedWords) {
+				// no cache hit, let's recompute merges
+				word := b.MergeWord(preTok.Value)
+				tokens, err = b.WordToTokens(*word, preTok.Offsets)
+				// Add to cache
+				cachedWords[i] = *word
+				shouldUpdateCache = true
+			} else {
+				word := cachedWords[i]
+				tokens, err = b.WordToTokens(word, preTok.Offsets)
+				if err != nil {
+					return nil, err
+				}
+				// Remove this entry so we don't needlessly try to update it
+				// in the cache below.
+				cachedWords, err = deleteWord(cachedWords, i)
+				if err != nil {
+					return nil, err
+				}
+
+			}
+
+		}
+
+		encoded = append(encoded, tokens...)
+
+		// Updae the cache if we need
+		if cachedWords != nil {
+			if shouldUpdateCache {
+				var cachedItems []CacheItem
+
+				err = util.Zip(keys, cachedWords, cachedItems)
+				if err != nil {
+					return nil, err
+				}
+
+				b.Cache.SetValues(cachedItems)
+			}
+		}
+
+	}
+
+	return encoded, nil
 }
 
 func (b BPE) TokenToId(token string) (id int, ok bool) {

@@ -12,7 +12,7 @@ import (
 	"github.com/sugarme/tokenizer"
 )
 
-const DefaultCacheCapacity uint = 10000
+const DefaultCacheCapacity int = 10000
 
 type Merge struct {
 	Pos   int
@@ -321,7 +321,7 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 					continue // TODO: do we skip one from outer loop?
 				}
 
-				nextPos := uint(w.Symbols[top.(Merge).Pos].Next)
+				nextPos := w.Symbols[top.(Merge).Pos].Next
 				right := w.Symbols[nextPos]
 
 				// Make sure we are not processing an expired queue entry
