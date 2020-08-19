@@ -152,7 +152,7 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 	return encoding, pairEncoding, nil
 }
 
-func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
+func PadEncodings(encodings []*Encoding, params PaddingParams) []*Encoding {
 	if len(encodings) == 0 {
 		return encodings
 	}
@@ -173,7 +173,7 @@ func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
 	}
 
 	// TODO: implement concurrency with for loop
-	var newEncodings []Encoding
+	var newEncodings []*Encoding
 	for _, e := range encodings {
 		e.Pad(padLength, params.PadId, params.PadTypeId, params.PadToken, params.Direction)
 		newEncodings = append(newEncodings, e)

@@ -7,13 +7,13 @@ import (
 	// "bufio"
 	// "context"
 	// "fmt"
-	// "log"
+	"log"
 	// "math"
 	// "os"
-	// "reflect"
+	"reflect"
+	"strings"
 	// "regexp"
-	// "strings"
-	// "sync"
+	"sync"
 
 	// progressbar "github.com/schollz/progressbar/v2"
 	// "golang.org/x/sync/errgroup"
@@ -80,12 +80,12 @@ type PostProcessor interface {
 	AddedTokens(isPair bool) int
 	// Process processes both encodings and returns a new merged one
 	// NOTE: pairEncoding is optional
-	Process(encoding Encoding, addSpecialTokens bool, encodingOpt ...Encoding) Encoding
+	Process(encoding *Encoding, addSpecialTokens bool, encodingOpt ...*Encoding) *Encoding
 }
 
 // DefaultProcess is a helper function of PostProcessor's Process method
 // It helps to fast track by just merging encoding and its pair.
-func DefaultProcess(encoding Encoding, encodingOpt ...Encoding) Encoding {
+func DefaultProcess(encoding *Encoding, encodingOpt ...*Encoding) *Encoding {
 	if len(encodingOpt) > 0 {
 		pairEncoding := encodingOpt[0]
 		return encoding.MergeWith(pairEncoding)
@@ -125,15 +125,40 @@ func NewToken(id int, value string, offsets Offsets) Token {
 // InputSequence :
 // ===============
 
-type InputSequence interface{}
+type InputType int
 
-func NewInputSequence(s string) (retVal InputSequence) {
-	// TODO. implement
-	return
+const (
+	RawInput = iota
+	PretokenizedInput
+)
+
+type InputSequence struct {
+	input     []string
+	inputType InputType
 }
 
-func NewInputSequenceFromPreTokenized(preTokenized []string) (retVal InputSequence) {
-	// TODO. implement
+// NewInputSequence creates a new InputSequence from input
+// A valid input can be a string type (RawInput) or slice of string (PretokenizedInput)
+func NewInputSequence(input interface{}) (retVal InputSequence) {
+
+	switch reflect.TypeOf(input).Name() {
+	case "string":
+		return InputSequence{
+			input:     []string{input.(string)},
+			inputType: RawInput,
+		}
+	case "slice":
+		if reflect.TypeOf(input).Elem().Name() != "string" {
+			log.Fatalf("Invalid input type: %v. Expect type of 'string' or '[]string'\n", reflect.TypeOf(input).Name())
+		}
+		return InputSequence{
+			input:     input.([]string),
+			inputType: PretokenizedInput,
+		}
+	default:
+		log.Fatalf("Invalid input type: %v. Expect type of 'string' or '[]string'\n", reflect.TypeOf(input).Name())
+	}
+
 	return
 }
 
@@ -161,7 +186,7 @@ type Tokenizer struct {
 	// Parts
 	normalizer    *normalizer.Normalizer // optional
 	preTokenizer  *PreTokenizer          // optional
-	model         Model
+	model         *Model
 	postProcessor *PostProcessor // optional
 	decoder       *Decoder       // optional
 
@@ -174,7 +199,7 @@ type Tokenizer struct {
 }
 
 // Implementing methods for Tokenizer
-func NewTokenizer(model Model) Tokenizer {
+func NewTokenizer(model *Model) Tokenizer {
 	return Tokenizer{
 		normalizer:      nil,
 		preTokenizer:    nil,
@@ -187,61 +212,65 @@ func NewTokenizer(model Model) Tokenizer {
 	}
 }
 
-func (t *Tokenizer) WithNormalizer(n normalizer.Normalizer) {
-	t.normalizer = &n
+func (t *Tokenizer) WithNormalizer(n *normalizer.Normalizer) {
+	t.normalizer = n
 }
 
-func (t *Tokenizer) GetNormalizer() normalizer.Normalizer {
-	return *t.normalizer
+func (t *Tokenizer) GetNormalizer() *normalizer.Normalizer {
+	return t.normalizer
 }
 
-func (t *Tokenizer) WithPreTokenizer(preTokenizer PreTokenizer) {
-	t.preTokenizer = &preTokenizer
+func (t *Tokenizer) WithPreTokenizer(preTokenizer *PreTokenizer) {
+	t.preTokenizer = preTokenizer
 }
 
-func (t *Tokenizer) GetPreTokenizer() PreTokenizer {
-	return *t.preTokenizer
+func (t *Tokenizer) GetPreTokenizer() *PreTokenizer {
+	return t.preTokenizer
 }
 
-func (t *Tokenizer) WithPostProcessor(postProcessor PostProcessor) {
-	t.postProcessor = &postProcessor
+func (t *Tokenizer) WithPostProcessor(postProcessor *PostProcessor) {
+	t.postProcessor = postProcessor
 }
 
-func (t *Tokenizer) GetPostProcessor() PostProcessor {
-	return *t.postProcessor
+func (t *Tokenizer) GetPostProcessor() *PostProcessor {
+	return t.postProcessor
 }
 
-func (t *Tokenizer) WithDecoder(decoder Decoder) {
-	t.decoder = &decoder
+func (t *Tokenizer) WithDecoder(decoder *Decoder) {
+	t.decoder = decoder
 }
 
-func (t *Tokenizer) GetDecoder() Decoder {
-	return *t.decoder
+func (t *Tokenizer) GetDecoder() *Decoder {
+	return t.decoder
 }
 
-func (t *Tokenizer) WithModel(model Model) {
+func (t *Tokenizer) WithModel(model *Model) {
 	t.model = model
 }
 
-func (t *Tokenizer) GetModel() Model {
+func (t *Tokenizer) GetModel() *Model {
 	return t.model
 }
 
-func (t *Tokenizer) WithTruncation(trunc TruncationParams) {
-	t.trunc = &trunc
+func (t *Tokenizer) WithTruncation(trunc *TruncationParams) {
+	t.trunc = trunc
 }
 
-func (t *Tokenizer) GetTruncation() TruncationParams {
-	return *t.trunc
+func (t *Tokenizer) GetTruncation() *TruncationParams {
+	return t.trunc
 }
 
-func (t *Tokenizer) WithPadding(padding PaddingParams) {
-	t.padding = &padding
+func (t *Tokenizer) WithPadding(padding *PaddingParams) {
+	t.padding = padding
+}
+
+func (t *Tokenizer) GetPadding() (retVal *PaddingParams) {
+	return t.padding
 }
 
 // GetVocab get the vocabulary
 func (t *Tokenizer) GetVocab(withAddedTokens bool) map[string]int {
-	finalVocab := t.model.GetVocab()
+	finalVocab := (*t.model).GetVocab()
 	if withAddedTokens {
 		addedVocab := t.addedVocabulary.GetVocab()
 		if len(addedVocab) > 0 {
@@ -257,387 +286,320 @@ func (t *Tokenizer) GetVocab(withAddedTokens bool) map[string]int {
 // GetVocabSize get the size of vocabulary
 func (t *Tokenizer) GetVocabSize(withAddedTokens bool) int {
 	if !withAddedTokens {
-		return t.model.GetVocabSize()
+		return (*t.model).GetVocabSize()
 	}
 
-	return t.model.GetVocabSize() + t.addedVocabulary.Len()
+	return (*t.model).GetVocabSize() + t.addedVocabulary.Len()
 }
 
 // TokenToId converts a token to a corresponding id
 func (t *Tokenizer) TokenToId(token string) (id int, ok bool) {
-	id, ok = t.addedVocabulary.TokenToId(token, t.model)
+	id, ok = t.addedVocabulary.TokenToId(token, *t.model)
 	return id, ok
 }
 
 // IdToToken converts an Id to a corresponding token
 func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
-	token, ok = t.addedVocabulary.IdToToken(id, t.model)
+	token, ok = t.addedVocabulary.IdToToken(id, *t.model)
 	return token, ok
 }
 
+// Normalize normalizes the given sentence and return the corresponding normalized string
+func (t *Tokenizer) Normalize(sentence string) (retVal normalizer.NormalizedString, err error) {
+
+	var subs []normalizer.NormalizedString
+	isPairs := t.addedVocabulary.ExtractAndNormalize(sentence, t.normalizer)
+	for _, isPair := range isPairs {
+		if isPair.Id != -1 { // id is optional
+			return isPair.Substring.Normalized, nil
+		} else {
+			// The PreTokenizers can still manipulate the normalized strings
+			// so we do this anyway and will merge it back a NormalizedString
+			preTok, err := t.doPreTokenize(sentence)
+			if err != nil {
+				return retVal, err
+			}
+
+			subs = append(subs, preTok.IntoMerged())
+		}
+	}
+
+	retVal = subs[0]
+	for i := 1; i < len(subs); i++ {
+		retVal = retVal.MergeWith(subs[i])
+	}
+
+	return retVal, nil
+}
+
+// EncodeSingleSequence encodes a single sequence
+func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (retVal *Encoding, err error) {
+
+	var subseqEncodings []*Encoding
+	for subseqIdx, subseq := range sequence.input {
+		ioPairs := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
+
+		var encodings []*Encoding
+		for _, ioPair := range ioPairs {
+			if ioPair.Id != -1 { // it's an added token, no need to tokenize. We have an ID
+				encoding := NewEncodingFromTokens([]Token{
+					NewToken(ioPair.Id, ioPair.Substring.Normalized.GetNormalized(), ioPair.Substring.OriginalOffsets),
+				}, typeId)
+
+				encoding.SetWord(0, 0)
+				return encoding, nil
+			} else { // let's tokenize
+				preTok, err := t.doPreTokenize(ioPair.Substring.Normalized.GetNormalized())
+				if err != nil {
+					return retVal, err
+				}
+				encoding := t.doTokenize(preTok, ioPair.Substring.OriginalOffsets, typeId)
+				encodings = append(encodings, encoding)
+			}
+		}
+
+		// At this point, the `words` are good for each sub encoding independently,
+		// but we need to make them grow sequentially.
+		var subseqEncoding *Encoding = DefaultEncoding()
+		for _, e := range encodings {
+			wordIds := subseqEncoding.GetWords()
+			lastWordId := wordIds[len(wordIds)-1]
+
+			for _, id := range e.GetWords() {
+				e.SetWord(id, id+lastWordId)
+			}
+
+			subseqEncoding = subseqEncoding.MergeWith(e)
+		}
+
+		// If we are handling already pre-tokenized input, each word should have the
+		// relevant index from the given input, not determined by the pre-tokenization step
+		if sequence.inputType == PretokenizedInput {
+			wordIds := subseqEncoding.GetWords()
+
+			for _, id := range wordIds {
+				subseqEncoding.SetWord(id, subseqIdx)
+			}
+		}
+
+		subseqEncodings = append(subseqEncodings, subseqEncoding)
+	}
+
+	retVal = DefaultEncoding()
+	for _, e := range subseqEncodings {
+		retVal = retVal.MergeWith(e)
+	}
+
+	return retVal, nil
+}
+
+// Encode the given input. This method accepts both single sequences, as well as pair
+// sequences. Also, a sequence can be a string, or already pre-tokenized input directly:
+func (t *Tokenizer) Encode(input EncodeInput, addSpecialTokens bool) (retVal *Encoding, err error) {
+	var encoding, pairEncoding *Encoding
+
+	// Encode and Postprocess
+	switch reflect.TypeOf(input).Name() {
+	case "Single":
+		seq := input.(Single).Sentence
+		encoding, err = t.EncodeSingleSequence(seq, 0)
+		if err != nil {
+			return retVal, err
+		}
+
+	case "Dual":
+		seq := input.(Dual).Sentence
+		encoding, err = t.EncodeSingleSequence(seq, 0)
+		if err != nil {
+			return retVal, err
+		}
+		pairSeq := input.(Dual).Pair
+		pairEncoding, err = t.EncodeSingleSequence(pairSeq, 1)
+		if err != nil {
+			return retVal, err
+		}
+
+	default:
+		log.Fatalf("Invalid input type - '%v'. \n", reflect.TypeOf(input).Name())
+	}
+
+	return t.PostProcess(encoding, pairEncoding, addSpecialTokens), nil
+}
+
+// Decode decodes the given ids, back to a String
+func (t *Tokenizer) Decode(ids []int, skipSpecialTokens bool) (retVal string) {
+
+	var tokens []string
+	for _, id := range ids {
+		if tok, ok := t.addedVocabulary.IdToToken(id, *t.model); ok {
+			if !skipSpecialTokens || !t.addedVocabulary.IsSpecialToken(tok) {
+				tokens = append(tokens, tok)
+			}
+		}
+	}
+
+	if t.decoder != nil {
+		return (*t.decoder).Decode(tokens)
+	}
+
+	return strings.Join(tokens, " ")
+}
+
+// AddSpecialTokens registers the given tokens as special tokens. This is especially useful for removing
+// these special tokens while decoding
+func (t *Tokenizer) AddSpecialTokens(tokens []AddedToken) (retVal int) {
+	return t.addedVocabulary.AddSpecialTokens(tokens, *t.model, t.normalizer)
+}
+
+// AddTokens adds the given tokens to the added vocabulary
+func (t *Tokenizer) AddTokens(tokens []AddedToken) (retVal int) {
+	return t.addedVocabulary.AddTokens(tokens, *t.model, t.normalizer)
+}
+
+// doNormalize does Normalization logic, go through all normalizers
+func (t *Tokenizer) doNormalize(s string) (retVal normalizer.NormalizedString, err error) {
+
+	normalized := normalizer.NewNormalizedFrom(s)
+	if t.normalizer != nil {
+		normalized, err = (*t.normalizer).Normalize(normalized)
+		if err != nil {
+			return retVal, err
+		}
+	}
+
+	return normalized, nil
+}
+
+// doPreTokenize does the pretokenization logic, handling the case where there is no PreTokenizer set
+func (t *Tokenizer) doPreTokenize(sentence string) (retVal PreTokenizedString, err error) {
+
+	pretokenized := NewPreTokenizedString(sentence)
+
+	if t.preTokenizer != nil {
+		pretokenized, err = (*t.preTokenizer).PreTokenize(pretokenized)
+		if err != nil {
+			return retVal, err
+		}
+	}
+
+	return pretokenized, nil
+}
+
+// doTokenize does Tokenization logic, makes the bridge between the pre-tokenization phase and the real
+// tokenization phase, and converting offsets back to the original referential.
+func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets Offsets, typeId int) (retVal *Encoding) {
+
+	// TODO: implement
+
+	return
+}
+
+// PostProcess does post-processing logic, handling the case where there is no PostProcessor set
+func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) (retVal *Encoding) {
+
+	// TODO: implement
+
+	return
+}
+
+// EncodeBatch encodes all sentences in concurrency
+func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (retVal []*Encoding, err error) {
+	var encodings []*Encoding
+	var wg sync.WaitGroup
+
+	wg.Add(len(inputs))
+
+	// Encoding concurrently
+	for i := 0; i < len(inputs); i++ {
+		go func(i int) {
+			defer wg.Done()
+
+			e, err := t.Encode(inputs[i], addSpecialTokens)
+			if err != nil {
+				log.Fatal(err)
+			}
+			encodings = append(encodings, e)
+
+		}(i)
+	}
+
+	wg.Wait()
+
+	// Do padding if included
+	if t.padding != nil {
+		PadEncodings(encodings, *t.padding)
+	}
+
+	return encodings, nil
+}
+
+// DecodeBatch decodes all sentences in concurrency
+func (t *Tokenizer) DecodeBatch(sentences [][]int, skipSpecialTokens bool) []string {
+	var decodings []string
+	var wg sync.WaitGroup
+
+	wg.Add(len(sentences))
+
+	// Decoding concurrently
+	for i := 0; i < len(sentences); i++ {
+		go func(i int) {
+			defer wg.Done()
+
+			s := t.Decode(sentences[i], skipSpecialTokens)
+			decodings = append(decodings, s)
+
+		}(i)
+	}
+
+	wg.Wait()
+
+	return decodings
+}
+
+// wordCount returns a map of word and its count
+func (t *Tokenizer) wordCount(trainer Model, files []string) (retVal map[string]int) {
+
+	// TODO: implement
+	return
+}
+
+// Train trains a model and return a new Tokenizer, using the given Trainer
+func (t *Tokenizer) Train(trainer Model, files []string) (retVal *Tokenizer) {
+
+	// TODO: implement
+
+	return
+}
+
+// Train a model and replace our current Model, using the given Trainer
+func (t *Tokenizer) TrainAndReplace(trainer Model, files []string) (err error) {
+
+	// TODO: implement
+	return
+}
+
+// NewTokenizerFromFile instantiates a new Tokenizer from the given file
+func NewTokenizerFromFile(file string) (retVal *Tokenizer) {
+
+	// TODO: implement
+	return
+}
+
+// Serialize serializes current Tokenizer to string
+func (t *Tokenizer) Serialize(pretty bool) (retVal string) {
+
+	// TODO: implement
+	return
+}
+
+// Save saves the current tokenizer at the given path
+func (t *Tokenizer) Save(path string, pretty bool) (err error) {
+
+	// TODO: implement
+	return
+}
+
 /*
- * // Normalize normalizes the given sentence and return the corresponding normalized string
- * func (t *Tokenizer) Normalize(sentence string) (retVal normalizer.NormalizedString) {
- *
- *   isPairs := t.addedVocabulary.ExtractAndNormalize(sentence, t.normalizer)
- *   for _, isPair := range isPairs {
- *     if isPair.Id != nil { // id is optional
- *       return isPair.Substring.Normalized
- *     } else {
- *       // The PreTokenizers can still manipulate the normalized strings
- *       // so we do this anyway and will merge it back a NormalizedString
- *       preTok, err := t.doPreTokenize(sentence)
- *       if err != nil {
- *         log.Fatal(err)
- *       }
- *
- *       return preTok.Substring.Normalized
- *     }
- *   }
- * }
- *
- * //doPreTokenize does the PreTokenization logic, handling the case where there is no PreTokenizer set
- * func (t *Tokenizer) doPreTokenize(sentence string) (retVal PreTokenizedString, err error) {
- *   pretokenized := NewPreTokenizedString(sentence)
- *   if t.preTokenizer != nil {
- *     pretok, err := (*t.preTokenizer).PreTokenize(pretokenized)
- *   } else {
- *     return pretokenized
- *   }
- * }
- *  */
-/*
- * func (t *Tokenizer) NumAddedTokens(isPair bool) int {
- *   return (*t.PostProcessor).AddedTokens(isPair)
- * }
- *
- * type splitRes struct {
- *   Content string
- *   Id      uint32
- *   Found   bool // whether split was found in AddedTokens/SpecialTokens
- * }
- *
- * // Encode encodes the given sentence
- * func (t *Tokenizer) Encode(input EncodeInput) Encoding {
- *
- *   var (
- *     sentence, pair         string
- *     encoding, pairEncoding Encoding
- *     isPair                 bool = false
- *   )
- *
- *   inputType := reflect.TypeOf(input)
- *
- *   switch inputType.Name() {
- *   case "Single":
- *     sentence = input.(Single).Sentence
- *     isPair = false
- *   case "Dual":
- *     sentence = input.(Dual).Sentence
- *     pair = input.(Dual).Pair
- *     isPair = true
- *   case "string":
- *     sentence = input.(string)
- *     isPair = false
- *   default:
- *     log.Fatalf("Unsupported type for input data type: %v. Input should have type of 'Single', 'Dual' or 'string' type.\n", inputType.Name())
- *   }
- *
- *   encoding = t.generateOutput(sentence, 0)
- *
- *   // 4. Post processing
- *   if t.PostProcessor != nil {
- *     if isPair {
- *       pairEncoding = t.generateOutput(pair, 1)
- *       return (*t.PostProcessor).Process(encoding, pairEncoding)
- *     } else {
- *       return (*t.PostProcessor).Process(encoding)
- *     }
- *   } else {
- *     if isPair {
- *       pairEncoding = t.generateOutput(pair, 1)
- *       encoding = t.postProcess(encoding, pairEncoding)
- *     } else {
- *       encoding = t.postProcess(encoding)
- *     }
- *
- *     // NOTE.Should we return pairEncoding as well?
- *     return encoding
- *   }
- * }
- *
- * func (t *Tokenizer) generateOutput(sentence string, typeId uint32) Encoding {
- *   // Split into as many sequences as needed to avoid splitting
- *   // on our added tokens
- *   var splits []splitRes
- *   var encodings []Encoding
- *
- *   splits = t.splitOnAddedTokens(sentence)
- *
- *   for _, s := range splits {
- *     // If this is one of our added tokens, return an encoding directly
- *     if s.Found {
- *       e := NewEncoding([]uint32{s.Id}, []uint32{typeId}, []string{s.Content}, []Offsets{{0, len(s.Content)}}, []uint32{0}, []uint32{1}, []Encoding{}) // TODO: add e.Words
- *
- *       encodings = append(encodings, e)
- *
- *     } else {
- *       // 1. Normalization
- *       var normalized normalizer.NormalizedString
- *       normalized = normalizer.NewNormalizedFrom(s.Content)
- *       if t.Normalizer != nil {
- *         nz := *t.Normalizer
- *         norm, err := nz.Normalize(normalized)
- *         if err != nil {
- *           log.Fatal(err)
- *         }
- *         normalized = norm
- *       }
- *
- *       // 2. Pre-tokenization
- *       var preTokenized *[]PreToken
- *       if t.PreTokenizer != nil {
- *         _, preTokenized = (*t.PreTokenizer).PreTokenize(&normalized)
- *       } else {
- *         str := normalized.GetNormalized()
- *         start := 0
- *         end := len(str)
- *         preToks := []PreToken{
- *           {
- *             Value: normalized.GetNormalized(),
- *             Offsets: Offsets{
- *               Start: start,
- *               End:   end,
- *             },
- *           },
- *         }
- *         preTokenized = &preToks
- *       }
- *
- *       fmt.Println("PreToken Offsets on Normalized string: ")
- *       for _, t := range *preTokenized {
- *         fmt.Printf("(%v %v)", t.Offsets.Start, t.Offsets.End)
- *       }
- *       fmt.Println()
- *
- *       fmt.Println("PreToken Offsets on Original string: ")
- *       for _, t := range *preTokenized {
- *         nRange := normalizer.NewRange(t.Offsets.Start, t.Offsets.End, normalizer.NormalizedTarget)
- *         oRange := normalized.ConvertOffset(nRange)
- *         fmt.Printf("(%v %v)", oRange.Start(), oRange.End())
- *       }
- *       fmt.Println()
- *
- *       // 3. Model
- *       output, err := (*t.Model).Tokenize(*preTokenized)
- *       if err != nil {
- *         log.Fatal(err)
- *       }
- *
- *       var en Encoding
- *       var offset int = 0
- *
- *       for _, t := range output {
- *         en.Ids = append(en.Ids, t.Id)
- *         en.Tokens = append(en.Tokens, t.Value)
- *
- *         start := t.Offsets.Start + offset
- *         end := t.Offsets.End + offset
- *         offset = end
- *
- *         // en.Offsets = append(en.Offsets, t.Offsets)
- *         en.Offsets = append(en.Offsets, Offsets{start, end})
- *         en.TypeIds = append(en.TypeIds, typeId)
- *         en.SpecialTokenMask = append(en.SpecialTokenMask, 0)
- *         en.AttentionMask = append(en.AttentionMask, 1)
- *       }
- *
- *       en.Overflowing = []Encoding{}
- *
- *       encodings = append(encodings, en)
- *     }
- *
- *   } // end loop over splits
- *
- *   if len(encodings) == 0 {
- *     return DefaultEncoding()
- *   }
- *
- *   // split off at position 1
- *   first := encodings[0]
- *   others := encodings[1:]
- *
- *   // Put others to overflowing of first
- *   for _, e := range others {
- *     first.MergeWith(e)
- *   }
- *
- *   return first
- * }
- *
- * // EncodeBatch encodes all sentences in concurrency
- * func (t *Tokenizer) EncodeBatch(inputs []EncodeInput) []Encoding {
- *   var encodings []Encoding
- *   var wg sync.WaitGroup
- *
- *   wg.Add(len(inputs))
- *
- *   // Encoding concurrently
- *   for i := 0; i < len(inputs); i++ {
- *     go func(i int) {
- *       defer wg.Done()
- *
- *       e := t.Encode(inputs[i])
- *       encodings = append(encodings, e)
- *
- *     }(i)
- *   }
- *
- *   wg.Wait()
- *
- *   // Do padding if included
- *   if t.Padding != nil {
- *     PadEncodings(encodings, *t.Padding)
- *   }
- *
- *   return encodings
- * }
- *
- * // Decode returns a corresponding string from an input id
- * func (t *Tokenizer) Decode(ids []uint32, skipSpecialTokens bool) string {
- *   var tokens []string
- *
- *   for _, id := range ids {
- *     // Look up at added tokens
- *     var token string
- *     tok, ok := t.AddedTokensR[id]
- *     if !ok {
- *       // Look up at model
- *       token, _ = t.IdToToken(id)
- *     }
- *
- *     token = tok.Content
- *
- *     _, ok = t.SpecialTokens[token]
- *
- *     if !skipSpecialTokens || !ok {
- *       tokens = append(tokens, token)
- *     }
- *   }
- *
- *   if t.Decoder != nil {
- *     return (*t.Decoder).Decode(tokens)
- *   }
- *
- *   return strings.Join(tokens, " ")
- * }
- *
- * // DecodeBatch decodes all sentences in concurrency
- * func (t *Tokenizer) DecodeBatch(sentences [][]uint32, skipSpecialTokens bool) []string {
- *   var decodings []string
- *   var wg sync.WaitGroup
- *
- *   wg.Add(len(sentences))
- *
- *   // Decoding concurrently
- *   for i := 0; i < len(sentences); i++ {
- *     go func(i int) {
- *       defer wg.Done()
- *
- *       s := t.Decode(sentences[i], skipSpecialTokens)
- *       decodings = append(decodings, s)
- *
- *     }(i)
- *   }
- *
- *   wg.Wait()
- *
- *   return decodings
- * }
- *
- * func (t *Tokenizer) splitOnAddedTokens(sentence string) []splitRes {
- *
- *   var splits []splitRes
- *   rs := []rune(sentence)
- *   var allSplits [][]int
- *
- *   // if there's no splitRe (regular epxression to split), do nothing
- *   if t.SplitRe == nil {
- *     splits = append(splits, splitRes{sentence, 0, false})
- *     return splits
- *   }
- *
- *   // matches contains slice of 2-element items (start and end byte position)
- *   // of the matched strings
- *   matches := t.SplitRe.FindAllStringIndex(sentence, -1)
- *
- *   // if no matches, just return the whole sentence
- *   if len(matches) == 0 {
- *     splits = append(splits, splitRes{sentence, 0, false})
- *     return splits
- *   }
- *
- *   for _, m := range matches {
- *     splits = append(splits, splitRes{
- *       Content: string(rs[m[0]:m[1]]),
- *       Id:      0,
- *     })
- *   }
- *
- *   // Collect also the splits in-between added tokens
- *   startOffset := 0
- *   for _, m := range matches {
- *     if startOffset < m[0] {
- *       allSplits = append(allSplits, []int{startOffset, m[0]})
- *     }
- *
- *     allSplits = append(allSplits, []int{m[0], m[1]})
- *     startOffset = m[1]
- *   }
- *
- *   // Check for the last piece
- *   fmt.Printf("Num of All Splits: %v\n", len(allSplits))
- *   fmt.Printf("All Splits: %v\n", allSplits)
- *   last := allSplits[len(allSplits)-1]
- *   if last[1] < len(sentence) {
- *     allSplits = append(allSplits, []int{last[1], len(sentence)})
- *   }
- *
- *   if len(allSplits) == 0 {
- *     splits = append(splits, splitRes{sentence, 0, false})
- *     return splits
- *   }
- *
- *   for _, m := range allSplits {
- *     s := string(rs[m[0]:m[1]])
- *     // Look up at special tokens
- *     id, ok := t.SpecialTokens[s]
- *     // not found. Look up at added tokens
- *     if !ok {
- *       // If not found, id will be 0 and ok = false
- *       id, ok = t.AddedTokens[AddedToken{
- *         Content:      s,
- *         IsSingleWord: false,
- *       }]
- *       if !ok {
- *         splits = append(splits, splitRes{
- *           Content: s,
- *           Id:      0,
- *           Found:   false,
- *         })
- *       }
- *     }
- *     splits = append(splits, splitRes{
- *       Content: s,
- *       Id:      id,
- *       Found:   true,
- *     })
- *   }
- *
- *   return splits
- *
- * }
- *
  * // Train trains a model and replaces the current model using a given trainer
  * // The tokenizer does the following steps
  * // 1. Concurrently, reads training data (text) from files, normalizes text using
@@ -757,7 +719,9 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
  *
  *   return nil
  * }
- *
+ *  */
+
+/*
  * // processChunk reads file chunk and processes it to word-count and sends off to channel
  * // offset: start bound
  * // limit: end bound
@@ -816,6 +780,10 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
  *
  * }
  *
+ *  */
+
+/*
+ *
  * func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
  *   type Job struct {
  *     File     string
@@ -871,7 +839,7 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
  *
  *         select {
  *         case lnChan <- words:
- *           // Keep going
+ *         // Keep going
  *         case <-ctx.Done():
  *           return ctx.Err()
  *         }
@@ -926,218 +894,6 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
  *   t.AddSpecialTokens(specialTokens)
  *
  *   return nil
- *
  * }
  *
- * // PreTokenize processes logic, handling the case where there is no PreTokenizer set
- * func (t *Tokenizer) preTokenize(sentence string) []PreToken {
- *   // If there is no `PreTokenizer` setup, just return a slice
- *   // with one element of the whole string
- *   // TODO: should we split sentence into words?
- *   if t.PreTokenizer == nil {
- *     return []PreToken{
- *       {
- *         Value:   sentence,
- *         Offsets: Offsets{0, len(sentence)},
- *       },
- *     }
- *   }
- *
- *   normalized := normalizer.NewNormalizedFrom(sentence)
- *
- *   _, res := (*t.PreTokenizer).PreTokenize(&normalized)
- *   return *res
- * }
- *
- * // normalize normalizes using given normalizer
- * func (t *Tokenizer) normalize(sequence string) normalizer.NormalizedString {
- *   return normalizer.NewNormalizedFrom(sequence)
- * }
- *
- * // AddSpecialTokens registers give tokens as special tokens. This is especially useful
- * // for removing them while decoding.
- * func (t *Tokenizer) AddSpecialTokens(tokens []string) int {
- *   var addedTokens []AddedToken
- *   for _, tok := range tokens {
- *     addedTok := AddedTokenFrom(tok)
- *     addedTokens = append(addedTokens, addedTok)
- *
- *     // add to special tokens
- *     id, _ := t.TokenToId(tok)
- *     if id > 0 {
- *       t.SpecialTokens[tok] = id
- *     }
- *   }
- *
- *   added := t.AddTokens(addedTokens)
- *
- *   t.refreshAddedTokens()
- *
- *   return added
- *
- * }
- *
- * // AddTokens adds given tokens to added vocabulary
- * func (t *Tokenizer) AddTokens(tokens []AddedToken) int {
- *   var ignored = 0
- *   for _, tok := range tokens {
- *     _, ok := t.TokenToId(tok.Content)
- *     if len(tok.Content) == 0 || ok {
- *       ignored += 1
- *       continue
- *     }
- *
- *     newId := uint32((*t.Model).GetVocabSize()) + uint32(len(t.AddedTokens))
- *     id := t.AddedTokens[tok]
- *     // found
- *     if id > 0 {
- *       ignored += 1
- *     }
- *     // not found. Add it
- *     t.AddedTokens[tok] = newId
- *     // update the current revert map
- *     t.AddedTokensR[newId] = tok
- *
- *   }
- *
- *   t.refreshAddedTokens()
- *
- *   // Return the number of added tokens
- *   return len(tokens) - ignored
- * }
- *
- * // PostProcess processes the case where there is no PostProcessor set
- * func (t *Tokenizer) postProcess(encoding Encoding, pairEncodings ...Encoding) Encoding {
- *
- *   var (
- *     isPaired     bool = false
- *     pairEncoding Encoding
- *   )
- *   // 1. Truncate if needed
- *   if t.Trunc != nil {
- *     var nAddedTokens int
- *     if t.PostProcessor == nil {
- *       nAddedTokens = 0
- *     }
- *
- *     if pairEncodings != nil {
- *       isPaired = true
- *       pairEncoding = pairEncodings[0]
- *     }
- *     nAddedTokens = (*t.PostProcessor).AddedTokens(isPaired)
- *
- *     if nAddedTokens > 0 {
- *       params := t.Trunc
- *       params.MaxLength = t.Trunc.MaxLength - uint(nAddedTokens)
- *       TruncateEncodings(encoding, *params, pairEncoding)
- *     } else {
- *       TruncateEncodings(encoding, *t.Trunc, pairEncoding)
- *     }
- *   }
- *
- *   // 2. Post processing
- *   var finalEncoding Encoding
- *   if t.PostProcessor != nil {
- *     finalEncoding = (*t.PostProcessor).Process(encoding, pairEncoding)
- *   } else {
- *     if isPaired {
- *       finalEncoding = encoding
- *     }
- *
- *     encoding.MergeWith(pairEncoding)
- *     finalEncoding = encoding
- *   }
- *
- *   // 3. Padding if needed
- *   if t.Padding != nil {
- *     // We can only pad for a given size. If the Strategy is BatchLongest,
- *     // It will be done when we handle a batch
- *     var size uint
- *     if t.Padding.Strategy.Name == "Fixed" {
- *       size = t.Padding.Strategy.Value.(uint)
- *     } else {
- *       size = uint(len(finalEncoding.GetIds()))
- *     }
- *
- *     finalEncoding.Pad(size, t.Padding.PadId, t.Padding.PadTypeId, t.Padding.PadToken, t.Padding.Direction)
- *   }
- *
- *   return finalEncoding
- * }
- *
- * func (t *Tokenizer) refreshAddedTokens() {
- *   // We need to rebuild regexp here everytime
- *   // because the added tokens may have changed
- *   var specialTokens []AddedToken
- *   var newTokens []string
- *
- *   for k := range t.SpecialTokens {
- *     addedTok := AddedToken{
- *       Content:      k,
- *       IsSingleWord: true,
- *     }
- *     specialTokens = append(specialTokens, addedTok)
- *   }
- *
- *   var addedTokens []AddedToken
- *   for k := range t.AddedTokens {
- *     addedTokens = append(addedTokens, k)
- *   }
- *
- *   // merge with the one from special tokens
- *   addedTokens = append(addedTokens, specialTokens...)
- *
- *   for _, tok := range addedTokens {
- *     newTok := getPattern(tok)
- *     newTokens = append(newTokens, newTok)
- *   }
- *
- *   if len(newTokens) == 0 {
- *     t.SplitRe = nil
- *   }
- *
- *   re := strings.Join(newTokens, "|")
- *   t.SplitRe = regexp.MustCompile(re)
- * }
- *
- * func getPattern(tok AddedToken) string {
- *   var r string
- *   if tok.IsSingleWord {
- *     var (
- *       firstB string // first boundary
- *       lastB  string // last boundary
- *     )
- *     chars := strings.Split(tok.Content, "")
- *     firstChar := chars[0]
- *     lastChar := chars[len(chars)]
- *
- *     isWordChar := func(char string) bool {
- *       m, err := regexp.MatchString(`\w`, char)
- *       if err != nil {
- *         log.Fatal(err)
- *       }
- *       return m
- *     }
- *
- *     if isWordChar(firstChar) {
- *       firstB = fmt.Sprintf("%v", `\b`) // NOTE: back tick for raw string
- *     } else {
- *       firstB = ""
- *     }
- *
- *     if isWordChar(lastChar) {
- *       lastB = fmt.Sprintf("%v", `\b`)
- *     } else {
- *       lastB = ""
- *     }
- *
- *     // Escape all regular expression metacharacters
- *     // so the return is safe to use in a regular expression
- *     escapeTok := regexp.QuoteMeta(tok.Content)
- *     r = fmt.Sprintf("%v%v%v", firstB, escapeTok, lastB)
- *   } else {
- *     r = regexp.QuoteMeta(tok.Content)
- *   }
- *
- *   return r
- * } */
+ *  */

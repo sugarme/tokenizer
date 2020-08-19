@@ -17,7 +17,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Offsets:          []tokenizer.Offsets{{0, 6}},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      make([]*tokenizer.Encoding, 0),
 		Words:            []int{0},
 	}
 
@@ -31,13 +31,13 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      make([]*tokenizer.Encoding, 0),
 		Words:            []int{0},
 	}
 
-	got := a.MergeWith(b)
+	got := a.MergeWith(&b)
 
-	want := tokenizer.Encoding{
+	want := &tokenizer.Encoding{
 		Ids:     []int{1, 2},
 		TypeIds: []int{0, 1},
 		Tokens:  []string{fmt.Sprintf("%v", "Hello "), fmt.Sprintf("%v", "World!")},
@@ -47,7 +47,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		},
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      make([]*tokenizer.Encoding, 0),
 		Words:            []int{0, 1},
 	}
 
@@ -76,7 +76,7 @@ func TestTokenizer_Truncate(t *testing.T) {
 		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}, {11, 12}},
 		SpecialTokenMask: []int{0, 0, 0},
 		AttentionMask:    []int{1, 1, 1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      make([]*tokenizer.Encoding, 0),
 		Words:            []int{0, 1, 2},
 	}
 
@@ -85,7 +85,7 @@ func TestTokenizer_Truncate(t *testing.T) {
 		t.Error(err)
 	}
 
-	want := tokenizer.Encoding{
+	want := &tokenizer.Encoding{
 		Ids:     []int{1, 2},
 		TypeIds: []int{0, 0},
 		Tokens: []string{
@@ -95,7 +95,7 @@ func TestTokenizer_Truncate(t *testing.T) {
 		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}},
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
-		Overflowing: []tokenizer.Encoding{
+		Overflowing: []*tokenizer.Encoding{
 			{
 				Ids:     []int{3},
 				TypeIds: []int{0},
@@ -105,7 +105,7 @@ func TestTokenizer_Truncate(t *testing.T) {
 				Offsets:          []tokenizer.Offsets{{11, 12}},
 				SpecialTokenMask: []int{0},
 				AttentionMask:    []int{1},
-				Overflowing:      make([]tokenizer.Encoding, 0),
+				Overflowing:      make([]*tokenizer.Encoding, 0),
 				Words:            []int{2},
 			},
 		},
