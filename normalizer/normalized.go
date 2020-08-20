@@ -28,6 +28,11 @@ const (
 	MergedWithNextBehavior
 )
 
+type OffsetsRemove struct {
+	Offsets      []int
+	ShouldRemove bool
+}
+
 // RangeType is a enum like representing
 // which string (original or normalized) then range
 // indexes on.
@@ -105,7 +110,7 @@ type Alignment struct {
  * } */
 
 // NewNormalizedFrom creates a Normalized instance from string input
-func NewNormalizedFrom(s string) (retVal NormalizedString) {
+func NewNormalizedFrom(s string) (retVal *NormalizedString) {
 	var alignments []Alignment
 
 	// Break down string to slice of runes
@@ -116,7 +121,7 @@ func NewNormalizedFrom(s string) (retVal NormalizedString) {
 		})
 	}
 
-	return NormalizedString{
+	return &NormalizedString{
 		original:   s,
 		normalized: s,
 		alignments: alignments,
@@ -124,24 +129,24 @@ func NewNormalizedFrom(s string) (retVal NormalizedString) {
 }
 
 // GetNormalized returns the Normalized struct
-func (n NormalizedString) GetNormalized() string {
+func (n *NormalizedString) GetNormalized() string {
 	return n.normalized
 }
 
 // GetOriginal return the original string
-func (n NormalizedString) GetOriginal() string {
+func (n *NormalizedString) GetOriginal() string {
 	return n.original
 }
 
 // Alignments returns alignments mapping `chars` from
 // normalized string to original string
-func (n NormalizedString) Alignments() (retVal []Alignment) {
+func (n *NormalizedString) Alignments() (retVal []Alignment) {
 	return n.alignments
 }
 
 // ConvertOffset converts the given offsets range from referential to the the
 // other one (`Original` to `Normalized` and vice versa)
-func (n NormalizedString) ConvertOffset(inputRange Range) (retVal Range) {
+func (n *NormalizedString) ConvertOffset(inputRange Range) (retVal Range) {
 
 	switch inputRange.indexOn {
 	case OriginalTarget:
@@ -293,7 +298,7 @@ func RangeOf(s string, r []int) (retVal string) {
 }
 
 // Range returns a substring of the NORMALIZED string (indexing on character not byte)
-func (n NormalizedString) Range(r Range) (retVal string) {
+func (n *NormalizedString) Range(r Range) (retVal string) {
 	var nRange Range
 
 	// Convert to NormalizedRange if r is OriginalRange
@@ -310,7 +315,7 @@ func (n NormalizedString) Range(r Range) (retVal string) {
 }
 
 // RangeOriginal returns substring of ORIGINAL string
-func (n NormalizedString) RangeOriginal(r Range) string {
+func (n *NormalizedString) RangeOriginal(r Range) string {
 	var oRange Range
 	switch r.indexOn {
 	case NormalizedTarget:
@@ -338,7 +343,7 @@ func (n NormalizedString) RangeOriginal(r Range) string {
 // is no previous part. The right is always included, up to what's covered
 // by the next part of the normalized string.  This is important to be able
 // to build a new `NormalizedString` from multiple contiguous slices
-func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString) {
+func (n *NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString) {
 	var (
 		r      Range
 		s      string
@@ -413,7 +418,7 @@ func (n NormalizedString) SliceBytes(inputRange Range) (retVal *NormalizedString
 // is no previous part. The right is always included, up to what's covered
 // by the next part of the normalized string.  This is important to be able
 // to build a new `NormalizedString` from multiple contiguous slices
-func (n NormalizedString) Slice(inputRange Range) (retVal *NormalizedString) {
+func (n *NormalizedString) Slice(inputRange Range) (retVal *NormalizedString) {
 
 	lenOriginal := n.LenOriginal()
 	lenNormalized := n.Len()
@@ -513,7 +518,7 @@ type ChangeMap struct {
 // {4, 5},
 // {5, 6},
 // {6, 7},
-func (n NormalizedString) Transform(m []ChangeMap, initialOffset int) (retVal NormalizedString) {
+func (n *NormalizedString) Transform(m []ChangeMap, initialOffset int) (retVal *NormalizedString) {
 
 	offset := -initialOffset
 	var (
@@ -547,7 +552,7 @@ func (n NormalizedString) Transform(m []ChangeMap, initialOffset int) (retVal No
 	return n
 }
 
-func (n NormalizedString) NFD() (retVal NormalizedString) {
+func (n *NormalizedString) NFD() (retVal *NormalizedString) {
 
 	s := n.normalized
 	var (
@@ -592,7 +597,7 @@ func (n NormalizedString) NFD() (retVal NormalizedString) {
 	return n.Transform(changeMap, 0)
 }
 
-func (n NormalizedString) NFC() (retVal NormalizedString) {
+func (n *NormalizedString) NFC() (retVal *NormalizedString) {
 
 	var (
 		changeMap []ChangeMap
@@ -627,7 +632,7 @@ func (n NormalizedString) NFC() (retVal NormalizedString) {
 	return n.Transform(changeMap, 0)
 }
 
-func (n NormalizedString) NFKD() (retVal NormalizedString) {
+func (n *NormalizedString) NFKD() (retVal *NormalizedString) {
 
 	s := n.normalized
 	isNFKD := norm.Form.IsNormalString(norm.NFKD, s)
@@ -663,7 +668,7 @@ func (n NormalizedString) NFKD() (retVal NormalizedString) {
 	return n.Transform(changeMap, 0)
 }
 
-func (n NormalizedString) NFKC() (retVal NormalizedString) {
+func (n *NormalizedString) NFKC() (retVal *NormalizedString) {
 
 	var (
 		changeMap []ChangeMap
@@ -700,7 +705,7 @@ func (n NormalizedString) NFKC() (retVal NormalizedString) {
 }
 
 // Filter applies filtering on NormalizedString
-func (n NormalizedString) Filter(fr rune) (retVal NormalizedString) {
+func (n *NormalizedString) Filter(fr rune) (retVal *NormalizedString) {
 	s := n.normalized
 	var changeMap []ChangeMap
 
@@ -751,7 +756,7 @@ func (n NormalizedString) Filter(fr rune) (retVal NormalizedString) {
 }
 
 // Prepend adds given string to the begining of NormalizedString
-func (n NormalizedString) Prepend(s string) (retVal NormalizedString) {
+func (n *NormalizedString) Prepend(s string) (retVal *NormalizedString) {
 	newString := fmt.Sprintf("%s%s", s, n.GetNormalized())
 	var newAligments []Alignment
 	for i := 0; i < len([]rune(s)); i++ {
@@ -765,7 +770,7 @@ func (n NormalizedString) Prepend(s string) (retVal NormalizedString) {
 }
 
 // Append adds given string to the end of NormalizedString
-func (n NormalizedString) Append(s string) (retVal NormalizedString) {
+func (n *NormalizedString) Append(s string) (retVal *NormalizedString) {
 	newString := fmt.Sprintf("%s%s", n.GetNormalized(), s)
 	var newAligments []Alignment
 	lastAlign := n.alignments[len(n.alignments)-1]
@@ -784,7 +789,7 @@ func (n NormalizedString) Append(s string) (retVal NormalizedString) {
 type NormFn func(rune) rune
 
 // Map maps and applies function to each `char` of normalized string
-func (n NormalizedString) Map(nfn NormFn) (retVal NormalizedString) {
+func (n *NormalizedString) Map(nfn NormFn) (retVal *NormalizedString) {
 	s := n.normalized
 	var runes []rune
 	for _, r := range []rune(s) {
@@ -798,7 +803,7 @@ func (n NormalizedString) Map(nfn NormFn) (retVal NormalizedString) {
 
 // ForEach applies function on each `char` of normalized string
 // Similar to Map???
-func (n NormalizedString) ForEach(nfn NormFn) (retVal NormalizedString) {
+func (n *NormalizedString) ForEach(nfn NormFn) (retVal *NormalizedString) {
 	s := n.normalized
 	var runes []rune
 	for _, r := range []rune(s) {
@@ -810,7 +815,7 @@ func (n NormalizedString) ForEach(nfn NormFn) (retVal NormalizedString) {
 }
 
 // RemoveAccents removes all Unicode Mn group (M non-spacing)
-func (n NormalizedString) RemoveAccents() (retVal NormalizedString) {
+func (n *NormalizedString) RemoveAccents() (retVal *NormalizedString) {
 
 	s := n.normalized
 	b := make([]byte, len(s))
@@ -828,23 +833,29 @@ func (n NormalizedString) RemoveAccents() (retVal NormalizedString) {
 }
 
 // Lowercase transforms string to lowercase
-func (n NormalizedString) Lowercase() (retVal NormalizedString) {
+func (n *NormalizedString) Lowercase() (retVal *NormalizedString) {
 	n.normalized = strings.ToLower(n.normalized)
 
 	return n
 }
 
 // Uppercase transforms string to uppercase
-func (n NormalizedString) Uppercase() (retVal NormalizedString) {
+func (n *NormalizedString) Uppercase() (retVal *NormalizedString) {
 	n.normalized = strings.ToUpper(n.normalized)
 
 	return n
 }
 
+// Clear clears the normalized part of the string
+func (n *NormalizedString) Clear() {
+	n.normalized = ""
+	n.alignments = make([]Alignment, 0)
+}
+
 // Split the current string in many subparts. Specify what to do with the
 // delimiter.
 //
-// This method will always ensure that the entire `self` is covered in the
+// This method will always ensure that the entire `NOrmalizedString` is covered in the
 // produced subparts. This means that the delimiter parts will also be included,
 // and will appear empty if we don't want to include them (their `original`
 // part will still be present). It should always be possible to merge all the
@@ -854,19 +865,86 @@ func (n NormalizedString) Uppercase() (retVal NormalizedString) {
 //
 // The behavior can be one of the followings:
 // When splitting on `'-'` for example, with input `the-final--countdown`:
-//  - Removed => `[ "the", "", "final", "", "", "countdown" ]`
-//  - Isolated => `[ "the", "-", "final", "-", "-", "countdown" ]`
-//  - MergedWithPrevious => `[ "the-", "final-", "-", "countdown" ]`
-//  - MergedWithNext => `[ "the", "-final", "-", "-countdown" ]`
-func (n NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
+//  - RemovedBehavior => `[ "the", "", "final", "", "", "countdown" ]`
+//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []*NormalizedString) {
 
-	return
+	matches := pattern.FindMatches(n.GetNormalized())
+
+	// Process the matches according to the selected behavior: Vec<(Offsets, should_remove)>
+	var splits []OffsetsMatch
+	switch behavior {
+	case IsolatediBehavior:
+		for _, m := range matches {
+			m.Match = !m.Match
+			splits = append(splits, m)
+		}
+	case RemovedBehavior:
+		splits = matches
+	case MergedWithPreviousBehavior:
+		previousMatch := false
+		var acc []OffsetsMatch
+		for _, m := range matches {
+			if m.Match && !previousMatch {
+				if len(acc) > 0 {
+					// update last item of acc
+					acc[len(acc)-1].Offsets[1] = m.Offsets[1]
+				} else {
+					acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+				}
+			} else {
+				acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+			}
+
+			previousMatch = m.Match
+		}
+		splits = acc
+
+	case MergedWithNextBehavior:
+		previousMatch := false
+		var acc []OffsetsMatch
+		// iterate reversively
+		for i := len(matches) - 1; i >= 0; i-- {
+			m := matches[i]
+			if m.Match && !previousMatch {
+				if len(acc) > 0 {
+					// update last item of acc
+					acc[len(acc)-1].Offsets[0] = m.Offsets[0]
+				} else {
+					acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+				}
+			} else {
+				acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+			}
+
+			previousMatch = m.Match
+		}
+
+		// reverse back
+		for i := len(acc) - 1; i >= 0; i-- {
+			splits = append(splits, acc[i])
+		}
+	}
+
+	// Then split according to the computed splits
+	var slices []*NormalizedString
+	for _, split := range splits {
+		slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
+		if split.Match {
+			slice.Clear()
+		}
+		slices = append(slices, slice)
+	}
+
+	return slices
 }
 
 // SplitOff truncates string with the range [at, len).
 // remaining string will contain the range [0, at).
 // The provided `at` indexes on `char` not bytes.
-func (n NormalizedString) SplitOff(at int) (retVal NormalizedString) {
+func (n *NormalizedString) SplitOff(at int) (retVal *NormalizedString) {
 	if at < 0 {
 		log.Fatal("Split off point must be a positive interger number.")
 	}
@@ -916,7 +994,7 @@ func (n NormalizedString) SplitOff(at int) (retVal NormalizedString) {
 }
 
 // MergeWith merges an input string with existing one
-func (n NormalizedString) MergeWith(other NormalizedString) (retVal NormalizedString) {
+func (n *NormalizedString) MergeWith(other *NormalizedString) (retVal *NormalizedString) {
 	len := n.Len()
 	n.original = strings.Join([]string{n.original, other.original}, "")
 	n.normalized = strings.Join([]string{n.normalized, other.normalized}, "")
@@ -937,22 +1015,22 @@ func (n NormalizedString) MergeWith(other NormalizedString) (retVal NormalizedSt
 }
 
 // LStrip removes leading spaces
-func (n NormalizedString) LStrip() (retVal NormalizedString) {
+func (n *NormalizedString) LStrip() (retVal *NormalizedString) {
 	return n.lrstrip(true, false)
 }
 
 // RStrip removes trailing spaces
-func (n NormalizedString) RStrip() (retVal NormalizedString) {
+func (n *NormalizedString) RStrip() (retVal *NormalizedString) {
 	return n.lrstrip(false, true)
 }
 
 // Strip remove leading and trailing spaces
-func (n NormalizedString) Strip() (retVal NormalizedString) {
+func (n *NormalizedString) Strip() (retVal *NormalizedString) {
 	return n.lrstrip(true, true)
 }
 
 // lrstrip - Private func to help with exposed strip funcs
-func (n NormalizedString) lrstrip(left, right bool) (retVal NormalizedString) {
+func (n *NormalizedString) lrstrip(left, right bool) (retVal *NormalizedString) {
 	var (
 		leadingSpaces  int = 0
 		trailingSpaces int = 0
@@ -1008,18 +1086,18 @@ func (n NormalizedString) lrstrip(left, right bool) (retVal NormalizedString) {
 }
 
 // Len returns length (number of runes) of normalized string
-func (n NormalizedString) Len() int {
+func (n *NormalizedString) Len() int {
 	runes := []rune(n.normalized)
 	return len(runes)
 }
 
 // LenOriginal returns the length of Original string in `char` (rune)
-func (n NormalizedString) LenOriginal() int {
+func (n *NormalizedString) LenOriginal() int {
 	return len([]rune(n.GetOriginal()))
 }
 
 // IsEmpty returns whether the normalized string is empty
-func (n NormalizedString) IsEmpty() bool {
+func (n *NormalizedString) IsEmpty() bool {
 	return n.Len() == 0
 }
 

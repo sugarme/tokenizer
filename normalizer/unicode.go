@@ -49,7 +49,7 @@ func NewUnicodeNormalizer(form norm.Form) UnicodeNormalizer {
 	}
 }
 
-func (un *UnicodeNormalizer) Normalize(n NormalizedString) (NormalizedString, error) {
+func (un *UnicodeNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
 	switch un.Form {
 	case norm.NFC:
 		return n.NFC(), nil

@@ -87,7 +87,7 @@ func isChinese(c rune) bool {
 	return unicode.In(c, cjk, unicode.P)
 }
 
-func doCleanText(n NormalizedString) NormalizedString {
+func doCleanText(n *NormalizedString) *NormalizedString {
 
 	s := n.normalized
 	var changeMap []ChangeMap
@@ -133,7 +133,7 @@ func doCleanText(n NormalizedString) NormalizedString {
 	return n.Transform(unrevMap, removed)
 }
 
-func doHandleChineseChars(n NormalizedString) NormalizedString {
+func doHandleChineseChars(n *NormalizedString) *NormalizedString {
 	var changeMap []ChangeMap
 	runes := []rune(n.normalized)
 	for _, r := range runes {
@@ -161,16 +161,16 @@ func doHandleChineseChars(n NormalizedString) NormalizedString {
 	return n.Transform(changeMap, 0)
 }
 
-func doLowercase(n NormalizedString) NormalizedString {
+func doLowercase(n *NormalizedString) *NormalizedString {
 	return n.Lowercase()
 }
 
-func stripAccents(n NormalizedString) NormalizedString {
+func stripAccents(n *NormalizedString) *NormalizedString {
 	return n.RemoveAccents()
 }
 
 // Normalize implements Normalizer interface for BertNormalizer
-func (bn BertNormalizer) Normalize(n NormalizedString) (NormalizedString, error) {
+func (bn BertNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
 	if bn.CleanText {
 		n = doCleanText(n)
 	}

@@ -47,9 +47,9 @@ func WithStrip(strip bool) DefaultOption {
  * }
  *  */
 
-func (dn DefaultNormalizer) Normalize(n NormalizedString) (NormalizedString, error) {
+func (dn DefaultNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
 
-	var normalized NormalizedString = n
+	var normalized *NormalizedString = n
 
 	if dn.lower {
 		normalized = normalized.Lowercase()

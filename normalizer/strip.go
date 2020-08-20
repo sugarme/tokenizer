@@ -15,7 +15,7 @@ func NewStrip(stripLeft, stripRight bool) (retVal Strip) {
 // Implement Normalizer interface for Strip:
 // =========================================
 
-func (s Strip) Normalize(normalized NormalizedString) (retVal NormalizedString, err error) {
+func (s Strip) Normalize(normalized *NormalizedString) (retVal *NormalizedString, err error) {
 
 	if s.stripLeft && s.stripRight {
 		return normalized.Strip(), nil
