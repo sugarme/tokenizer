@@ -45,16 +45,18 @@ func (r RunePattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 		}
 	}
 
-	var subs []OffsetsMatch
-	var prevStart int = 0
-	var hasPrevious bool = false
+	var (
+		subs        []OffsetsMatch
+		prevStart   int  = 0
+		hasPrevious bool = false
+	)
 
 	for byteIdx, char := range inside {
 		if char == r.rune {
 			nextIdx := byteIdx + len(string(char))
 			// 1. Add previous unmatched if any
 			if hasPrevious {
-				prev := OffsetsMatch{Offsets: []int{prevStart, byteIdx}}
+				prev := OffsetsMatch{Offsets: []int{prevStart, byteIdx}, Match: false}
 				subs = append(subs, prev)
 			}
 
@@ -94,10 +96,10 @@ func NewStringPattern(s string) StringPattern {
 
 func (s StringPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 	// If we try to find the matches with an empty string, just don't match anything
-	if len(s.string) == 0 {
+	if s.string == "" {
 		return []OffsetsMatch{
 			{
-				Offsets: []int{0, len([]rune(s.string))},
+				Offsets: []int{0, len(inside)},
 				Match:   false,
 			},
 		}
@@ -111,36 +113,71 @@ func (s StringPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 
 func findMatches(re *regexp.Regexp, inside string) (retVal []OffsetsMatch) {
 	matches := re.FindAllStringIndex(inside, -1)
-	var subs []OffsetsMatch
+	var (
+		currRuneIdx int = 0
+		subs        []OffsetsMatch
+	)
+
+	// 0. If no matches, just return
+	if len(matches) == 0 {
+		return []OffsetsMatch{
+			{
+				Offsets: []int{0, len([]rune(inside))},
+				Match:   false,
+			},
+		}
+	}
+
 	for i, m := range matches {
 		// 1. First unmatched substring if first match is not start at 0
 		if i == 0 && m[0] > 0 {
+			substring := inside[0:m[0]]
+			runes := []rune(substring)
+
 			first := OffsetsMatch{
-				Offsets: []int{0, m[0]},
+				Offsets: []int{0, len(runes)},
 				Match:   false,
 			}
 			subs = append(subs, first)
+			currRuneIdx += len(runes)
 		}
 
 		// 2. Matched sub itself
+		matchedSubstring := inside[m[0]:m[1]]
+		matchedRunes := []rune(matchedSubstring)
 		matched := OffsetsMatch{
-			Offsets: []int{m[0], m[1]},
+			Offsets: []int{currRuneIdx, currRuneIdx + len(matchedRunes)},
 			Match:   true,
 		}
 		subs = append(subs, matched)
+		currRuneIdx += len(matchedRunes)
 
 		// 3. Unmatched sub between matched sub if any
 		if i+1 < len(matches) {
 			next := matches[i+1]
-
 			if next[0] > m[1] {
+				betweenSubstring := inside[m[1]:next[0]]
+				betweenRunes := []rune(betweenSubstring)
 				between := OffsetsMatch{
-					Offsets: []int{m[1], next[0]},
+					Offsets: []int{currRuneIdx, currRuneIdx + len(betweenRunes)},
 					Match:   false,
 				}
 				subs = append(subs, between)
+				currRuneIdx += len(betweenRunes)
 			}
 		}
+	}
+
+	// 4. Added last one if any
+	lastMatch := matches[len(matches)-1]
+	if lastMatch[1] < len(inside) {
+		lastSubstring := inside[lastMatch[1]:]
+		lastRunes := []rune(lastSubstring)
+		last := OffsetsMatch{
+			Offsets: []int{currRuneIdx, currRuneIdx + len(lastRunes)},
+			Match:   false,
+		}
+		subs = append(subs, last)
 	}
 
 	return subs
@@ -171,66 +208,6 @@ func (rp RegexpPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 	return findMatches(rp.re, inside)
 }
 
-/*
- *
- * func (rp RegexpPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
- *   if len(inside) == 0 {
- *     return []OffsetsMatch{
- *       {
- *         offsets: tokenizer.Offsets{Start: 0, End: 0},
- *         match:   false,
- *       },
- *     }
- *   }
- *
- *   // charIndices contains position of rune in string
- *   var charIndices [][]int
- *   var currIdx int = 0
- *   for charIdx := range []rune(inside) {
- *     charIndices = append(charIndices, []int{currIdx, charIdx})
- *     currIdx = charIdx
- *   }
- *   var (
- *     charIdx int = 0
- *     prev    int = 0
- *     splits  []OffsetsMatch
- *   )
- *
- *   matches := rp.re.FindAllStringIndex(inside, -1)
- *   for _, m := range matches {
- *     prevIdx := charIdx
- *     startIdx := charIdx
- *     for charIdx < len(charIndices) && charIndices[charIdx][0] < m[1] {
- *       if charIndices[charIdx][0] == m[0] {
- *         startIdx = charIdx
- *       }
- *       charIdx++
- *     }
- *
- *     if prev != m[0] {
- *       splits = append(splits, OffsetsMatch{
- *         offsets: tokenizer.Offsets{Start: prevIdx, End: startIdx},
- *         match:   false,
- *       })
- *     }
- *
- *     splits = append(splits, OffsetsMatch{
- *       offsets: tokenizer.Offsets{Start: startIdx, End: charIdx},
- *       match:   true,
- *     })
- *     prev = m[1]
- *   }
- *
- *   if prev != len(inside) {
- *     splits = append(splits, OffsetsMatch{
- *       offsets: tokenizer.Offsets{Start: charIdx, End: len(charIndices)},
- *       match:   false,
- *     })
- *   }
- *
- *   return splits
- * } */
-
 // PatternFn is a func type to apply pattern
 type PatternFn func(rune) bool
 
@@ -254,19 +231,43 @@ func (fp FnPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 	}
 
 	var (
-		currIdx int = 0
-		matches []OffsetsMatch
+		subs        []OffsetsMatch
+		prevStart   int  = 0
+		hasPrevious bool = false
 	)
 
 	for byteIdx, char := range inside {
-		m := OffsetsMatch{
-			Offsets: []int{currIdx, byteIdx},
-			Match:   fp.fn(char),
+		if fp.fn(char) {
+			nextIdx := byteIdx + len(string(char))
+			// 1. Add previous unmatched if any
+			if hasPrevious {
+				prev := OffsetsMatch{Offsets: []int{prevStart, byteIdx}, Match: false}
+				subs = append(subs, prev)
+			}
+
+			// 2. Add matched one
+			matched := OffsetsMatch{
+				Offsets: []int{byteIdx, nextIdx},
+				Match:   true,
+			}
+			subs = append(subs, matched)
+
+			// 3. update prevStart
+			prevStart = nextIdx
+			hasPrevious = false
+		} else {
+			hasPrevious = true
 		}
-		matches = append(matches, m)
 	}
 
-	return
+	// 4. Add last unmatched if any
+	if hasPrevious {
+		prev := OffsetsMatch{Offsets: []int{prevStart, len(inside)}}
+		subs = append(subs, prev)
+	}
+
+	return subs
+
 }
 
 // Invert the `is_match` flags for the wrapped Pattern. This is usefull
