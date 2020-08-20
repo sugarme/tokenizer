@@ -81,8 +81,11 @@ func NewBertPreTokenizer() (retVal BertPreTokenizer) {
 // Implement PreTokenizer interface for BertTokenizer:
 // ===================================================
 
-// PreTokenize(*normalizer.Normalized) (*normalizer.Normalized, *[]PreToken)
-func (bt BertPreTokenizer) PreTokenize(normalized *normalizer.NormalizedString) (n *normalizer.NormalizedString, preTokens *[]tokenizer.PreToken) {
+func (bt BertPreTokenizer) PreTokenize(pretokenized tokenizer.PreTokenizedString) (retVal tokenizer.PreTokenizedString, err error) {
+
+	err = pretokenized.Split(func(noUse int, normalized normalizer.NormalizedString) normalizer.NormalizedString {
+
+	})
 
 	var splitTokens []tokenizer.PreToken
 

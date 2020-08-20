@@ -12,6 +12,22 @@ import (
 	"github.com/sugarme/tokenizer/util"
 )
 
+// SplitDelimiterBehavior is a enum-like type . It defines the expected behavior
+// for the delimiter of a Split Pattern
+// When splitting on `'-'` for example, with input `the-final--countdown`:
+//  - RemovedBehavior => `[ "the", "final", "countdown" ]`
+//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+type SplitDelimiterBehavior int
+
+const (
+	RemovedBehavior = iota
+	IsolatediBehavior
+	MergedWithPreviousBehavior
+	MergedWithNextBehavior
+)
+
 // RangeType is a enum like representing
 // which string (original or normalized) then range
 // indexes on.
@@ -823,6 +839,28 @@ func (n NormalizedString) Uppercase() (retVal NormalizedString) {
 	n.normalized = strings.ToUpper(n.normalized)
 
 	return n
+}
+
+// Split the current string in many subparts. Specify what to do with the
+// delimiter.
+//
+// This method will always ensure that the entire `self` is covered in the
+// produced subparts. This means that the delimiter parts will also be included,
+// and will appear empty if we don't want to include them (their `original`
+// part will still be present). It should always be possible to merge all the
+// subparts back to the original `NormalizedString`
+//
+// ## Splitting Behavior for the delimiter
+//
+// The behavior can be one of the followings:
+// When splitting on `'-'` for example, with input `the-final--countdown`:
+//  - Removed => `[ "the", "", "final", "", "", "countdown" ]`
+//  - Isolated => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//  - MergedWithPrevious => `[ "the-", "final-", "-", "countdown" ]`
+//  - MergedWithNext => `[ "the", "-final", "-", "-countdown" ]`
+func (n NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
+
+	return
 }
 
 // SplitOff truncates string with the range [at, len).
