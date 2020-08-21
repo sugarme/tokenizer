@@ -83,7 +83,7 @@ func TestAddPrefixSpace(t *testing.T) {
 		var normalized *normalizer.NormalizedString
 		n := normalizer.NewNormalizedFrom(l)
 
-		normalized, res := bytelevel.PreTokenize(&n)
+		normalized, res := bytelevel.PreTokenize(n)
 
 		nwant := "ĠHelloĠmyĠfriend,ĠhowĠisĠyourĠdayĠgoing?"
 		ngot := normalized.GetNormalized()
@@ -127,10 +127,10 @@ func TestDecodeWorksOnSeparatedTokens(t *testing.T) {
 	}
 
 	for _, l := range lines {
-		var normalized normalizer.NormalizedString
+		var normalized *normalizer.NormalizedString
 		normalized = normalizer.NewNormalizedFrom(l)
 
-		_, preTokenized := bytelevel.PreTokenize(&normalized)
+		_, preTokenized := bytelevel.PreTokenize(normalized)
 
 		var separatedTokens []string
 		for _, preTok := range *preTokenized {
@@ -153,10 +153,10 @@ func TestHandlingOfNewLines(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	var normalized normalizer.NormalizedString
+	var normalized *normalizer.NormalizedString
 	normalized = normalizer.NewNormalizedFrom("Hello there\nHello there")
 
-	_, preTokenized := bytelevel.PreTokenize(&normalized)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
 
 	var separatedTokens []string
 	for _, preTok := range *preTokenized {
@@ -184,10 +184,10 @@ func TestHandlingOfMultipleSpaces(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	var normalized normalizer.NormalizedString
+	var normalized *normalizer.NormalizedString
 	normalized = normalizer.NewNormalizedFrom("Hello there       dear")
 
-	_, preTokenized := bytelevel.PreTokenize(&normalized)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
 
 	var separatedTokens []string
 	for _, preTok := range *preTokenized {
@@ -214,10 +214,10 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	var normalized normalizer.NormalizedString
+	var normalized *normalizer.NormalizedString
 	normalized = normalizer.NewNormalizedFrom("i⭢j")
 
-	_, preTokenized := bytelevel.PreTokenize(&normalized)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
 
 	var separatedTokens []string
 	for _, preTok := range *preTokenized {
@@ -254,7 +254,7 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			{Start: 25, End: 29},
 		},
 		[]int{}, []int{},
-		[]tokenizer.Encoding{},
+		[]*tokenizer.Encoding{},
 	)
 
 	want := tokenizer.NewEncoding(
@@ -271,7 +271,7 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			{Start: 29, End: 29},
 		},
 		[]int{}, []int{},
-		[]tokenizer.Encoding{},
+		[]*tokenizer.Encoding{},
 	)
 
 	bytelevel := pretokenizer.NewByteLevel()

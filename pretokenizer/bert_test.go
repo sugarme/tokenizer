@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	tokenizer "github.com/sugarme/tokenizer"
-	normalizer "github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 )
 
@@ -13,9 +12,27 @@ func TestBertPreTokenize(t *testing.T) {
 
 	var preTok pretokenizer.BertPreTokenizer
 
-	input := normalizer.NewNormalizedFrom("Hey friend!     How are you?!?")
+	input := tokenizer.NewPreTokenizedString("Hey friend!     How are you?!?")
 
-	_, got := preTok.PreTokenize(&input)
+	pretokenized, err := preTok.PreTokenize(input)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var got []tokenizer.PreToken
+
+	for {
+		sub, ok := pretokenized.Next()
+		if !ok {
+			break
+		}
+
+		pretok := tokenizer.PreToken{
+			Value:   (*sub.Normalized).GetNormalized(),
+			Offsets: sub.OriginalOffsets,
+		}
+		got = append(got, pretok)
+	}
 
 	want := &[]tokenizer.PreToken{
 		{Value: "Hey", Offsets: tokenizer.Offsets{Start: 0, End: 3}},
@@ -32,5 +49,4 @@ func TestBertPreTokenize(t *testing.T) {
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want:\n%v\n Got:\n%v\n", want, got)
 	}
-
 }

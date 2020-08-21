@@ -680,4 +680,36 @@ func TestNormalized_SliceBytes(t *testing.T) {
 
 }
 
-// TODO. more unit tests.
+func TestSliceCoverage(t *testing.T) {
+
+	// TODO. implement
+}
+
+func TestReplace(t *testing.T) {
+
+	// TODO. implement
+}
+
+func TestSplit(t *testing.T) {
+	s := normalizer.NewNormalizedFrom("The-final--countdown")
+
+	testSplit(t, s, normalizer.RemovedBehavior, []string{"The", "", "final", "", "", "countdown"})
+	testSplit(t, s, normalizer.IsolatediBehavior, []string{"The", "-", "final", "-", "-", "countdown"})
+	testSplit(t, s, normalizer.MergedWithPreviousBehavior, []string{"The-", "final-", "-", "countdown"})
+	testSplit(t, s, normalizer.MergedWithNextBehavior, []string{"The", "-final", "-", "-countdown"})
+}
+
+func testSplit(t *testing.T, s *normalizer.NormalizedString, behavior normalizer.SplitDelimiterBehavior, want []string) {
+
+	p := normalizer.NewRunePattern('-')
+	splits := s.Split(p, behavior)
+	var got []string
+	for _, split := range splits {
+		got = append(got, split.GetNormalized())
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: %v\n", want)
+		t.Errorf("Got: %v\n", got)
+	}
+}

@@ -305,9 +305,9 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
 }
 
 // Normalize normalizes the given sentence and return the corresponding normalized string
-func (t *Tokenizer) Normalize(sentence string) (retVal normalizer.NormalizedString, err error) {
+func (t *Tokenizer) Normalize(sentence string) (retVal *normalizer.NormalizedString, err error) {
 
-	var subs []normalizer.NormalizedString
+	var subs []*normalizer.NormalizedString
 	isPairs := t.addedVocabulary.ExtractAndNormalize(sentence, t.normalizer)
 	for _, isPair := range isPairs {
 		if isPair.Id != -1 { // id is optional
@@ -461,7 +461,7 @@ func (t *Tokenizer) AddTokens(tokens []AddedToken) (retVal int) {
 }
 
 // doNormalize does Normalization logic, go through all normalizers
-func (t *Tokenizer) doNormalize(s string) (retVal normalizer.NormalizedString, err error) {
+func (t *Tokenizer) doNormalize(s string) (retVal *normalizer.NormalizedString, err error) {
 
 	normalized := normalizer.NewNormalizedFrom(s)
 	if t.normalizer != nil {

@@ -873,12 +873,13 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 
 	matches := pattern.FindMatches(n.GetNormalized())
 
-	// Process the matches according to the selected behavior: Vec<(Offsets, should_remove)>
+	// Process the matches according to the selected behavior: []OfssetsMatch
+	// where `Match` field is `shouldRemove`
 	var splits []OffsetsMatch
 	switch behavior {
 	case IsolatediBehavior:
 		for _, m := range matches {
-			m.Match = !m.Match
+			m.Match = false
 			splits = append(splits, m)
 		}
 	case RemovedBehavior:

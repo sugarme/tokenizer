@@ -126,7 +126,7 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*norm
 		normalizedString = fmt.Sprintf(" %v", normalizedString)
 		// update normalized with modified string
 		newNormalized := normalizer.NewNormalizedFrom(normalizedString)
-		normalized = &newNormalized
+		normalized = newNormalized
 	}
 
 	// positions holds slice of matches' loc

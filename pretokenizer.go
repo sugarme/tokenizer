@@ -18,7 +18,7 @@ type SubString struct {
 	// is represented by a `NormalizedString`. In the end, there might
 	// be many SubStrings representing various parts of the original
 	// input string.
-	Normalized normalizer.NormalizedString
+	Normalized *normalizer.NormalizedString
 
 	// OriginalOffsets is the Offsets of `NormalizedString` in the `original`
 	// input string. These is useful to find sub-part of the input string
@@ -28,7 +28,7 @@ type SubString struct {
 
 // NewSubString creates a new SubString with input of a NormalizedString and its
 // offsets on `original` input string
-func NewSubString(normalized normalizer.NormalizedString, originalOffsets Offsets) (retVal SubString) {
+func NewSubString(normalized *normalizer.NormalizedString, originalOffsets Offsets) (retVal SubString) {
 	return SubString{normalized, originalOffsets}
 }
 
@@ -47,7 +47,7 @@ type PreTokenizedString struct {
 // the same `original` string as the original one given to `SplitFn`. This
 // means that for the offsets tracking to work as expected, `SplitFn` must
 // produce "splits" of the ORIGINAL string.
-type SplitFn func(int, normalizer.NormalizedString) []normalizer.NormalizedString
+type SplitFn func(int, *normalizer.NormalizedString) []*normalizer.NormalizedString
 
 // Split splits the `PreTokenizedString` by providing a `SplitFn` which is in
 // charge of splitting each substring (`NormalizedString`) into multiple parts.
@@ -92,7 +92,7 @@ func (pt *PreTokenizedString) Next() (retVal SubString, ok bool) {
 }
 
 // IntoMerged merges back to a NormalizedString
-func (pt *PreTokenizedString) IntoMerged() (retVal normalizer.NormalizedString) {
+func (pt *PreTokenizedString) IntoMerged() (retVal *normalizer.NormalizedString) {
 
 	var end int = 0
 	if len(pt.parts) > 0 {
@@ -100,7 +100,7 @@ func (pt *PreTokenizedString) IntoMerged() (retVal normalizer.NormalizedString) 
 	}
 
 	offsets := Offsets{0, end}
-	var normalized normalizer.NormalizedString
+	var normalized *normalizer.NormalizedString
 	for i, sub := range pt.parts {
 		if i == 0 {
 			normalized = sub.Normalized
@@ -118,7 +118,7 @@ func (pt *PreTokenizedString) IntoMerged() (retVal normalizer.NormalizedString) 
 
 // NewNormalizedStringFromNS creates a PreTokenizedString from input
 // NormalizedString
-func NewPreTokenizedStringFromNS(n normalizer.NormalizedString) (retVal PreTokenizedString) {
+func NewPreTokenizedStringFromNS(n *normalizer.NormalizedString) (retVal PreTokenizedString) {
 	originalOffsets := Offsets{0, n.LenOriginal()}
 
 	return PreTokenizedString{

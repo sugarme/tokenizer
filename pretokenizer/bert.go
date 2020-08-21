@@ -1,6 +1,7 @@
 package pretokenizer
 
 import (
+	"fmt"
 	"unicode"
 
 	"github.com/sugarme/tokenizer"
@@ -78,42 +79,27 @@ func NewBertPreTokenizer() (retVal BertPreTokenizer) {
 	return BertPreTokenizer{}
 }
 
-// Implement PreTokenizer interface for BertTokenizer:
-// ===================================================
-
+// PreTokenize implements PreTokenizer interface for BertPreTokenizer
 func (bt BertPreTokenizer) PreTokenize(pretokenized tokenizer.PreTokenizedString) (retVal tokenizer.PreTokenizedString, err error) {
 
-	err = pretokenized.Split(func(noUse int, normalized normalizer.NormalizedString) normalizer.NormalizedString {
+	err = pretokenized.Split(func(noop int, sub *normalizer.NormalizedString) []*normalizer.NormalizedString {
 
-	})
+		var res []*normalizer.NormalizedString
 
-	var splitTokens []tokenizer.PreToken
+		isWhiteSpace := func(r rune) bool {
+			return unicode.IsSpace(r)
+		}
+		p := normalizer.NewFnPattern(isWhiteSpace)
+		subs := sub.Split(p, normalizer.RemovedBehavior)
 
-	shouldSplit := func(r rune) bool {
-		return unicode.IsSpace(r)
-	}
-
-	preToks := splitOn(normalized.GetNormalized(), shouldSplit, false)
-	for _, preTok := range preToks {
-		token := preTok.Value
-		offsets := preTok.Offsets
-
-		splitToksTmp := splitOn(token, isBertPunc, true)
-
-		var splitToks []tokenizer.PreToken
-		for _, splitTok := range splitToksTmp {
-			tok := splitTok.Value
-			offStart := splitTok.Offsets.Start + offsets.Start
-			offEnd := splitTok.Offsets.End + offsets.Start
-
-			splitToks = append(splitToks, tokenizer.PreToken{
-				Value:   tok,
-				Offsets: tokenizer.Offsets{Start: offStart, End: offEnd},
-			})
+		for _, sub := range subs {
+			fmt.Printf("sub: '%v', alignments: %+v\n", sub.GetNormalized(), sub.Alignments())
+			splits := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)
+			res = append(res, splits...)
 		}
 
-		splitTokens = append(splitTokens, splitToks...)
-	}
+		return res
+	})
 
-	return normalized, &splitTokens
+	return pretokenized, err
 }

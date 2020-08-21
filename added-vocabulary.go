@@ -467,13 +467,13 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 // the list of corresponding IDs.
 //
 // NOTE.The list of IDs have the exact same number of elements as the Iterator.
-func (av *AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []normalizer.NormalizedString) {
+func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []*normalizer.NormalizedString) {
 
 	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
 
 	var (
 		indices []int
-		nSplits []normalizer.NormalizedString
+		nSplits []*normalizer.NormalizedString
 	)
 
 	for _, ioPair := range ioPairs {
@@ -486,7 +486,7 @@ func (av *AddedVocabulary) splitWithIndices(sentence normalizer.NormalizedString
 		}
 
 		nSplit := sentence.SliceBytes(normalizer.NewRange(start, end, normalizer.NormalizedTarget))
-		nSplits = append(nSplits, *nSplit)
+		nSplits = append(nSplits, nSplit)
 	}
 
 	return indices, nSplits
@@ -515,7 +515,7 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 
 	// 1. Extract all non-normalized tokens from the non-normalized string
 	var indices []int
-	err := pretokenized.Split(func(idx int, seq normalizer.NormalizedString) []normalizer.NormalizedString {
+	err := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []*normalizer.NormalizedString {
 		idxs, splits := av.splitWithIndices(seq, av.splitRe)
 		indices = idxs
 		return splits
@@ -526,14 +526,14 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 
 	// 2. Extract the normalized tokens from the normalized pieces of the string
 	var multiIndices []int
-	err = pretokenized.Split(func(i int, seq normalizer.NormalizedString) []normalizer.NormalizedString {
+	err = pretokenized.Split(func(i int, seq *normalizer.NormalizedString) []*normalizer.NormalizedString {
 		// if i >= 0 && i < len(indices) {
 		if indices[i] != -1 {
 			multiIndices = append(multiIndices, indices[i])
-			return []normalizer.NormalizedString{seq}
+			return []*normalizer.NormalizedString{seq}
 		} else {
 			var (
-				nSeq normalizer.NormalizedString
+				nSeq *normalizer.NormalizedString
 				err  error
 			)
 			if n != nil { // having a normalizer
