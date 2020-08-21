@@ -212,8 +212,8 @@ func NewTokenizer(model Model) Tokenizer {
 	}
 }
 
-func (t *Tokenizer) WithNormalizer(n *normalizer.Normalizer) {
-	t.normalizer = n
+func (t *Tokenizer) WithNormalizer(n normalizer.Normalizer) {
+	t.normalizer = &n
 }
 
 func (t *Tokenizer) GetNormalizer() *normalizer.Normalizer {
@@ -228,8 +228,8 @@ func (t *Tokenizer) GetPreTokenizer() *PreTokenizer {
 	return t.preTokenizer
 }
 
-func (t *Tokenizer) WithPostProcessor(postProcessor *PostProcessor) {
-	t.postProcessor = postProcessor
+func (t *Tokenizer) WithPostProcessor(postProcessor PostProcessor) {
+	t.postProcessor = &postProcessor
 }
 
 func (t *Tokenizer) GetPostProcessor() *PostProcessor {

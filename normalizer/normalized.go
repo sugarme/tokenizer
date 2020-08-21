@@ -76,6 +76,10 @@ func (r Range) intoFullRange(maxLen int) (retVal Range) {
 		r.start = 0
 	}
 
+	if r.start > r.end {
+		r.start = r.end - 1
+	}
+
 	//  case: end out of bound
 	if r.end > maxLen {
 		r.end = maxLen
@@ -289,7 +293,7 @@ func RangeOf(s string, r []int) (retVal string) {
 	}
 
 	// if out of range, return 'empty' string
-	if start >= sLen || end > sLen || start >= end {
+	if start < 0 || start >= sLen || end > sLen || start >= end {
 		return ""
 	}
 

@@ -32,7 +32,9 @@ func (bp *BertProcessing) AddedTokens(isPair bool) (retVal int) {
 	}
 }
 
-func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, pairEncodingOpt ...*tokenizer.Encoding) (retVal *tokenizer.Encoding) {
+func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, addSpecialTokens bool, pairEncodingOpt ...*tokenizer.Encoding) (retVal *tokenizer.Encoding) {
+
+	// TODO: update with addSpecialTokens
 
 	var ids []int
 	ids = append(ids, bp.cls.Id)

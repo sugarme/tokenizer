@@ -49,19 +49,23 @@ func main() {
 	sentence := `Hello, y'all! How are you 😁 ?`
 	// sentence := `a visually stunning rumination on love`
 
-	// en := tk.Encode(sentence)
-	en := tk.Encode(tokenizer.NewSingleEncodeInput(sentence))
-	// en := tk.Encode(tokenizer.NewDualEncodeInput(sentence, "And its pair."))
+	// // en := tk.Encode(sentence)
+	input := tokenizer.NewInputSequence(sentence)
+	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), false)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// fmt.Printf("Sentence: '%v'\n", sentence)
+	fmt.Printf("Sentence: '%v'\n", sentence)
 
 	// Output should be:
 	// [101, 7592, 1010, 1061, 1005, 2035, 999, 2129, 2024, 2017, 100, 1029, 102]
 	// ['[CLS]', 'hello', ',', 'y', "'", 'all', '!', 'how', 'are', 'you', '[UNK]', '?', '[SEP]']
 	// [(0, 0), (0, 5), (5, 6), (7, 8), (8, 9), (9, 12), (12, 13), (14, 17), (18, 21), (22, 25), (26, 27),
 	// (28, 29), (0, 0)]
-	fmt.Printf("Original string: \t'%v'\n", en.Normalized.GetOriginal())
-	fmt.Printf("Normalized string: \t'%v'\n", en.Normalized.GetNormalized())
+	// fmt.Printf("Original string: \t'%v'\n", en.Normalized.GetOriginal())
+	// fmt.Printf("Normalized string: \t'%v'\n", en.Normalized.GetNormalized())
+
 	fmt.Printf("Ids: \t\t\t%v\n", en.GetIds())
 	fmt.Printf("Tokens: \t\t%+v\n", en.GetTokens())
 	fmt.Printf("Offsets: \t\t%v\n", en.GetOffsets())

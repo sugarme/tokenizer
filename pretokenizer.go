@@ -70,7 +70,7 @@ func (pt *PreTokenizedString) Split(splitFn SplitFn) (err error) {
 		}
 
 		if originalLen != newLen {
-			return fmt.Errorf("Split pre-tokenized string must represent the entire original string.\n")
+			return fmt.Errorf("Split pre-tokenized string must represent the entire original string.\nOriginal length %v - new length %v\n", originalLen, newLen)
 		}
 	}
 
@@ -89,6 +89,33 @@ func (pt *PreTokenizedString) Next() (retVal SubString, ok bool) {
 	pt.nextIdx += 1
 
 	return retVal, true
+}
+
+// Returns a list of normalized string and the associated offsets,
+// either in original or normalized referential
+func (pt *PreTokenizedString) GetNormalized(offsetType normalizer.IndexOn) (retVal []PreToken) {
+	var (
+		offset  int = 0
+		preToks []PreToken
+	)
+
+	for _, sub := range pt.parts {
+		var offsets Offsets
+		switch offsetType {
+		case normalizer.OriginalTarget:
+			offsets = Offsets{
+				Start: sub.OriginalOffsets.Start,
+				End:   sub.OriginalOffsets.Start + sub.Normalized.LenOriginal(),
+			}
+		case normalizer.NormalizedTarget:
+			length := sub.Normalized.Len()
+			offset += length
+			offsets = Offsets{Start: offset - length, End: offset}
+		}
+		preToks = append(preToks, PreToken{Value: sub.Normalized.GetNormalized(), Offsets: offsets})
+	}
+
+	return preToks
 }
 
 // IntoMerged merges back to a NormalizedString

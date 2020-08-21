@@ -1,7 +1,6 @@
 package pretokenizer
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/sugarme/tokenizer"
@@ -93,7 +92,6 @@ func (bt BertPreTokenizer) PreTokenize(pretokenized tokenizer.PreTokenizedString
 		subs := sub.Split(p, normalizer.RemovedBehavior)
 
 		for _, sub := range subs {
-			fmt.Printf("sub: '%v', alignments: %+v\n", sub.GetNormalized(), sub.Alignments())
 			splits := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)
 			res = append(res, splits...)
 		}
