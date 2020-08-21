@@ -169,24 +169,21 @@ func (e *Encoding) TakeOverflowing() []*Encoding {
 // if `none` result, `ok` will be false.
 func (e *Encoding) Word2Tokens(word int) (startTok, endTok int, ok bool) {
 
-	var start, end int
+	var start, end int = -1, -1
 
-	var words []int
+	var inRangeWords []int
 	for _, w := range e.Words {
-		if w == word {
-			words = append(words, w)
+		if w <= word {
+			inRangeWords = append(inRangeWords, w)
 		}
 	}
-	for i, _ := range words {
-		if start == -1 || i < start {
+	for i, w := range inRangeWords {
+		if w == word && start < 0 {
 			start = i
 		}
-
-		if end == -1 || i >= end {
-			tmp := i + 1
-			end = tmp
-		}
 	}
+
+	end = len(inRangeWords)
 
 	if start != -1 && end != -1 {
 		return start, end, true
@@ -220,8 +217,8 @@ func (e *Encoding) Token2Chars(tokenIdx int) (retVal Offsets, ok bool) {
 // Token2Word get the word index of corresponding token if existing
 func (e *Encoding) Token2Word(tokenIdx int) (retVal int, ok bool) {
 	// naive search. TODO. improve algorithm
-	for _, w := range e.Words {
-		if w == tokenIdx {
+	for i, w := range e.Words {
+		if i == tokenIdx {
 			return w, true
 		}
 	}

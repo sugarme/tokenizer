@@ -8,7 +8,7 @@ import (
 	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/processor"
+	// "github.com/sugarme/tokenizer/processor"
 )
 
 func main() {
@@ -21,37 +21,34 @@ func main() {
 
 	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
-	// var id uint32 = 2500
-	// val, _ := tk.IdToToken(id)
-	// fmt.Printf("Value at Key %v: %v\n", id, val)
-
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
 
-	sepId, ok := tk.TokenToId("[SEP]")
-	if !ok {
-		log.Fatalf("Cannot find ID for [SEP] token.\n")
-	}
-	sep := processor.PostToken{Id: sepId, Value: "[SEP]"}
-
-	clsId, ok := tk.TokenToId("[CLS]")
-	if !ok {
-		log.Fatalf("Cannot find ID for [CLS] token.\n")
-	}
-	cls := processor.PostToken{Id: clsId, Value: "[CLS]"}
-
-	postProcess := processor.NewBertProcessing(sep, cls)
-	tk.WithPostProcessor(postProcess)
+	/*
+	 *   sepId, ok := tk.TokenToId("[SEP]")
+	 *   if !ok {
+	 *     log.Fatalf("Cannot find ID for [SEP] token.\n")
+	 *   }
+	 *   sep := processor.PostToken{Id: sepId, Value: "[SEP]"}
+	 *
+	 *   clsId, ok := tk.TokenToId("[CLS]")
+	 *   if !ok {
+	 *     log.Fatalf("Cannot find ID for [CLS] token.\n")
+	 *   }
+	 *   cls := processor.PostToken{Id: clsId, Value: "[CLS]"}
+	 *
+	 *   postProcess := processor.NewBertProcessing(sep, cls)
+	 *   tk.WithPostProcessor(postProcess) */
 
 	sentence := `Hello, y'all! How are you 😁 ?`
 	// sentence := `a visually stunning rumination on love`
 
 	// // en := tk.Encode(sentence)
 	input := tokenizer.NewInputSequence(sentence)
-	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), false)
+	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
 	if err != nil {
 		log.Fatal(err)
 	}
