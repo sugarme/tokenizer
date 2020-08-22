@@ -80,15 +80,14 @@ type PostProcessor interface {
 	AddedTokens(isPair bool) int
 	// Process processes both encodings and returns a new merged one
 	// NOTE: pairEncoding is optional
-	Process(encoding *Encoding, addSpecialTokens bool, encodingOpt ...*Encoding) *Encoding
+	Process(encoding, pairEncoding *Encoding, addSpecialTokens bool) *Encoding
 }
 
 // DefaultProcess is a helper function of PostProcessor's Process method
 // It helps to fast track by just merging encoding and its pair.
-func DefaultProcess(encoding *Encoding, encodingOpt ...*Encoding) *Encoding {
-	if len(encodingOpt) > 0 {
-		pairEncoding := encodingOpt[0]
-		return encoding.MergeWith(pairEncoding)
+func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *Encoding {
+	if pairEncoding != nil {
+		return encoding.MergeWith(pairEncoding, false)
 	}
 
 	return encoding
@@ -373,7 +372,7 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 				e.SetWord(id, id+lastWordId)
 			}
 
-			subseqEncoding = subseqEncoding.MergeWith(e)
+			subseqEncoding = subseqEncoding.MergeWith(e, false)
 		}
 
 		// If we are handling already pre-tokenized input, each word should have the
@@ -391,7 +390,7 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 
 	retVal = DefaultEncoding()
 	for _, e := range subseqEncodings {
-		retVal = retVal.MergeWith(e)
+		retVal = retVal.MergeWith(e, true) // TODO. double-check whether growing offsets???
 	}
 
 	return retVal, nil
@@ -535,16 +534,57 @@ func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets 
 	}
 
 	mergedEncoding := DefaultEncoding()
-	return mergedEncoding.Merge(encodings), nil
-
+	return mergedEncoding.Merge(encodings, true), nil
 }
 
 // PostProcess does post-processing logic, handling the case where there is no PostProcessor set
 func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) (retVal *Encoding) {
 
-	// TODO: implement
+	var tEncoding, tPairEncoding *Encoding
 
-	return
+	// 1. Truncate if needed
+	if t.trunc == nil {
+		tEncoding, tPairEncoding = encoding, pairEncoding
+	} else {
+		trunc := t.trunc
+		var nAddedTokens int = 0 // number of AddedToken
+		if t.postProcessor != nil {
+			processor := *t.postProcessor
+			nAddedTokens = processor.AddedTokens(pairEncoding != nil)
+		}
+
+		if addSpecialTokens && nAddedTokens > 0 {
+			params := trunc
+			params.MaxLength = trunc.MaxLength - nAddedTokens
+
+			tEncoding, tPairEncoding = TruncateEncodings(encoding, pairEncoding, params)
+		} else {
+			tEncoding, tPairEncoding = TruncateEncodings(encoding, pairEncoding, trunc)
+		}
+	}
+
+	// 2. Post-process
+	var finalEncoding *Encoding
+	if t.postProcessor != nil {
+		processor := *t.postProcessor
+		finalEncoding = processor.Process(tEncoding, tPairEncoding, addSpecialTokens)
+	} else {
+		finalEncoding = DefaultProcess(tEncoding, tPairEncoding, addSpecialTokens)
+	}
+
+	// 3. Pad if needed
+	if t.padding == nil {
+		return finalEncoding
+	}
+
+	var padEncodings []*Encoding
+	encodings := []*Encoding{finalEncoding}
+	padEncodings = PadEncodings(encodings, *t.padding)
+	if len(padEncodings) <= 1 {
+		return finalEncoding
+	} else {
+		return padEncodings[0].Merge(padEncodings[1:], true)
+	}
 }
 
 // EncodeBatch encodes all sentences in concurrency

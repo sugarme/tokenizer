@@ -35,7 +35,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Words:            []int{0},
 	}
 
-	got := a.MergeWith(&b)
+	got := a.MergeWith(&b, true)
 
 	want := &tokenizer.Encoding{
 		Ids:     []int{1, 2},

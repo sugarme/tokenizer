@@ -2,6 +2,7 @@ package tokenizer
 
 import (
 	"errors"
+	"log"
 )
 
 type TruncationParams struct {
@@ -78,21 +79,15 @@ const (
 	SequenceTooShort          = "Truncation error: Sequence to truncate too short to respect the provided max_length"
 )
 
-func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding) (*Encoding, *Encoding, error) {
+func TruncateEncodings(encoding, pairEncoding *Encoding, params *TruncationParams) (tEncoding, tPairEncoding *Encoding) {
 	var (
-		encoding     *Encoding = &e
-		pairEncoding *Encoding = nil
-		totalLength  int
-		toRemove     int
-		err          error
+		totalLength int
+		toRemove    int
+		err         error
 	)
 
-	if len(pairOpt) > 0 {
-		pairEncoding = &pairOpt[0]
-	}
-
 	if params.MaxLength == 0 {
-		return encoding, pairEncoding, nil
+		return encoding, pairEncoding
 	}
 
 	totalLength = len(encoding.GetIds())
@@ -101,7 +96,7 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 	}
 
 	if totalLength < params.MaxLength {
-		return encoding, pairEncoding, nil
+		return encoding, pairEncoding
 	}
 
 	toRemove = totalLength - params.MaxLength
@@ -146,10 +141,10 @@ func TruncateEncodings(e Encoding, params TruncationParams, pairOpt ...Encoding)
 	}
 
 	if err != nil {
-		return nil, nil, err
+		log.Fatal(err)
 	}
 
-	return encoding, pairEncoding, nil
+	return encoding, pairEncoding
 }
 
 func PadEncodings(encodings []*Encoding, params PaddingParams) []*Encoding {

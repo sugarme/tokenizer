@@ -32,9 +32,11 @@ func (bp *BertProcessing) AddedTokens(isPair bool) (retVal int) {
 	}
 }
 
-func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, addSpecialTokens bool, pairEncodingOpt ...*tokenizer.Encoding) (retVal *tokenizer.Encoding) {
+func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) (retVal *tokenizer.Encoding) {
 
-	// TODO: update with addSpecialTokens
+	if !addSpecialTokens {
+		return tokenizer.DefaultProcess(encoding, pairEncoding, addSpecialTokens)
+	}
 
 	var ids []int
 	ids = append(ids, bp.cls.Id)
@@ -66,10 +68,7 @@ func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, addSpecialTokens
 
 	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing())
 
-	var pairEncoding *tokenizer.Encoding
-	if len(pairEncodingOpt) > 0 {
-		pairEncoding = pairEncodingOpt[0]
-
+	if pairEncoding != nil {
 		var pairIds []int
 		pairIds = append(pairIds, pairEncoding.GetTypeIds()...)
 		pairIds = append(pairIds, bp.sep.Id)
@@ -98,7 +97,7 @@ func (bp *BertProcessing) Process(encoding *tokenizer.Encoding, addSpecialTokens
 		newPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing())
 
 		// Merge newPairEncoding with newEncoding
-		newEncoding.MergeWith(newPairEncoding)
+		newEncoding.MergeWith(newPairEncoding, false)
 
 	}
 

@@ -275,16 +275,15 @@ func (bl *ByteLevel) AddedToken(isPair bool) uint {
 	return 0
 }
 
-func (bl *ByteLevel) Process(encoding *tokenizer.Encoding, addSpecialTokens bool, pairEncodingOpt ...*tokenizer.Encoding) *tokenizer.Encoding {
+func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) *tokenizer.Encoding {
 
 	var finalEncoding *tokenizer.Encoding
 
 	enc := processOffsets(bl.TrimOffsets, encoding)
 
 	finalEncoding = enc
-	if pairEncodingOpt != nil {
-		pairEnc := processOffsets(bl.TrimOffsets, pairEncodingOpt[0])
-		finalEncoding.MergeWith(pairEnc)
+	if pairEncoding != nil {
+		finalEncoding.MergeWith(pairEncoding, true)
 	}
 
 	return finalEncoding

@@ -312,30 +312,30 @@ func (e *Encoding) Truncate(maxLen int, stride int) (retVal *Encoding, err error
 }
 
 // Merge merges all Encodings together
-func (e *Encoding) Merge(encodings []*Encoding) (retVal *Encoding) {
+func (e *Encoding) Merge(encodings []*Encoding, growingOffsets bool) (retVal *Encoding) {
 	retVal = e
 	for _, encoding := range encodings {
-		retVal = retVal.MergeWith(encoding)
+		retVal = retVal.MergeWith(encoding, growingOffsets)
 	}
 
 	return retVal
 }
 
 // MergeWith merges the current encoding with other (pair) encoding
-func (e *Encoding) MergeWith(pair *Encoding) (retVal *Encoding) {
+func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encoding) {
 	// Merge overflowing
 	overflowings := make([]*Encoding, 0)
 	// 1. All current overflowing with all other overflowing
 	for _, o := range e.Overflowing {
 		currO := o
 		// 1.1. The pair itself
-		currO.MergeWith(pair) // recursively call
+		currO.MergeWith(pair, growingOffsets) // recursively call
 		overflowings = append(overflowings, currO)
 		currO = o // reset
 
 		// 1.2. The pair's overflowing
 		for _, otherO := range pair.Overflowing {
-			currO.MergeWith(otherO)
+			currO.MergeWith(otherO, growingOffsets)
 			overflowings = append(overflowings, currO)
 			currO = o // reset
 		}
@@ -344,7 +344,7 @@ func (e *Encoding) MergeWith(pair *Encoding) (retVal *Encoding) {
 	// 2. Current encoding with all other overflowing
 	for _, otherO := range pair.Overflowing {
 		newE := e
-		newE.MergeWith(otherO)
+		newE.MergeWith(otherO, growingOffsets)
 		overflowings = append(overflowings, newE)
 	}
 
@@ -354,6 +354,12 @@ func (e *Encoding) MergeWith(pair *Encoding) (retVal *Encoding) {
 	e.Tokens = append(e.Tokens, pair.Tokens...)
 	// Offsets
 	var startingOffset int = 0
+	if growingOffsets {
+		if len(e.Offsets) > 0 {
+			last := e.Offsets[len(e.Offsets)-1]
+			startingOffset = last.End
+		}
+	}
 	for _, o := range e.Offsets {
 		if o.End > startingOffset {
 			startingOffset = o.End
