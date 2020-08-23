@@ -335,24 +335,26 @@ func (t *Tokenizer) Normalize(sentence string) (retVal *normalizer.NormalizedStr
 func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (retVal *Encoding, err error) {
 
 	var subseqEncodings []*Encoding
-	for subseqIdx, subseq := range sequence.input {
-		ioPairs := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
 
+	for subseqIdx, subseq := range sequence.input {
+		isPairs := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
 		var encodings []*Encoding
-		for _, ioPair := range ioPairs {
-			if ioPair.Id != -1 { // it's an added token, no need to tokenize. We have an ID
+		for _, isPair := range isPairs {
+			if isPair.Id != -1 { // it's an added token, no need to tokenize. We have an ID
 				encoding := NewEncodingFromTokens([]Token{
-					NewToken(ioPair.Id, ioPair.Substring.Normalized.GetNormalized(), ioPair.Substring.OriginalOffsets),
+					NewToken(isPair.Id, isPair.Substring.Normalized.GetNormalized(), isPair.Substring.OriginalOffsets),
 				}, typeId)
 
 				encoding.SetWord(0, 0)
-				return encoding, nil
+				// return encoding, nil
+				encodings = append(encodings, encoding)
+
 			} else { // let's tokenize
-				preTok, err := t.doPreTokenize(ioPair.Substring.Normalized.GetNormalized())
+				preTok, err := t.doPreTokenize(isPair.Substring.Normalized.GetNormalized())
 				if err != nil {
 					return retVal, err
 				}
-				encoding, err := t.doTokenize(preTok, ioPair.Substring.OriginalOffsets, typeId)
+				encoding, err := t.doTokenize(preTok, isPair.Substring.OriginalOffsets, typeId)
 				if err != nil {
 					return nil, err
 				}
@@ -363,15 +365,15 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 
 		// At this point, the `words` are good for each sub encoding independently,
 		// but we need to make them grow sequentially.
-		var subseqEncoding *Encoding = DefaultEncoding()
-		for _, e := range encodings {
+		var subseqEncoding *Encoding
+		subseqEncoding = encodings[0]
+		for i := 1; i < len(encodings); i++ {
+			e := encodings[i]
 			wordIds := subseqEncoding.GetWords()
 			lastWordId := wordIds[len(wordIds)-1]
-
 			for _, id := range e.GetWords() {
 				e.SetWord(id, id+lastWordId)
 			}
-
 			subseqEncoding = subseqEncoding.MergeWith(e, false)
 		}
 
@@ -495,6 +497,7 @@ func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets 
 	var substrings []SubString
 	var encodings []*Encoding
 
+	// Exclude all empty `normalized` substring
 	for _, sub := range pretokenized.parts {
 		if !sub.Normalized.IsEmpty() {
 			substrings = append(substrings, sub)
@@ -502,7 +505,6 @@ func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets 
 	}
 
 	for wordIdx, substr := range substrings {
-
 		tokens, err := (*t.model).Tokenize(substr.Normalized.GetNormalized())
 		if err != nil {
 			return nil, err
@@ -534,7 +536,9 @@ func (t *Tokenizer) doTokenize(pretokenized PreTokenizedString, originalOffsets 
 	}
 
 	mergedEncoding := DefaultEncoding()
-	return mergedEncoding.Merge(encodings, true), nil
+	retVal = mergedEncoding.Merge(encodings, false)
+
+	return retVal, nil
 }
 
 // PostProcess does post-processing logic, handling the case where there is no PostProcessor set

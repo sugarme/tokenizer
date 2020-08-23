@@ -55,7 +55,6 @@ func (pt *PreTokenizedString) Split(splitFn SplitFn) (err error) {
 
 	var newParts []SubString
 	for i, sub := range pt.parts {
-		fmt.Printf("sub: '%v'\n", sub.Normalized.GetNormalized())
 		originalLen := sub.Normalized.LenOriginal()
 		originalOffsets := sub.OriginalOffsets
 

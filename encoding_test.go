@@ -48,7 +48,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
 		Overflowing:      make([]*tokenizer.Encoding, 0),
-		Words:            []int{0, 1},
+		Words:            []int{0, 0},
 	}
 
 	if !reflect.DeepEqual(want, got) {

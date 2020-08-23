@@ -12,22 +12,51 @@ import (
 )
 
 func main() {
+	// Example 1.
+	splitOnAddedToken()
+
+	// Example 2.
+	// bertTokenize()
+}
+
+func getBert() (retVal tokenizer.Tokenizer) {
 	model, err := wordpiece.NewWordPieceFromFile("../../data/bert/vocab.txt", "[UNK]")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	tk := tokenizer.NewTokenizer(model)
-
 	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
-
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
 
+	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
+	tk.WithPreTokenizer(bertPreTokenizer)
+
+	return tk
+}
+
+func splitOnAddedToken() {
+
+	tk := getBert()
 	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
+
+	sentence := `Yesterday I saw a [MASK] far away`
+	fmt.Printf("Sentence: '%v'\n", sentence)
+
+	input := tokenizer.NewInputSequence(sentence)
+	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("tokens: %v\n", en.GetTokens())
+	fmt.Printf("offsets: %v\n", en.GetOffsets())
+}
+
+func bertTokenize() {
+	tk := getBert()
 
 	// sepId, ok := tk.TokenToId("[SEP]")
 	// if !ok {
@@ -44,8 +73,7 @@ func main() {
 	// postProcess := processor.NewBertProcessing(sep, cls)
 	// tk.WithPostProcessor(postProcess)
 
-	// sentence := `Hello, y'all! How are you 😁 ?`
-	sentence := `Yesterday I saw a [MASK] far away`
+	sentence := `Hello, y'all! How are you 😁 ?`
 	fmt.Printf("Sentence: '%v'\n", sentence)
 
 	input := tokenizer.NewInputSequence(sentence)

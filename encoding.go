@@ -352,6 +352,11 @@ func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encod
 	e.Ids = append(e.Ids, pair.Ids...)
 	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
 	e.Tokens = append(e.Tokens, pair.Tokens...)
+	e.SpecialTokenMask = append(e.SpecialTokenMask, pair.SpecialTokenMask...)
+	e.AttentionMask = append(e.AttentionMask, pair.AttentionMask...)
+	e.Overflowing = overflowings
+	e.Words = append(e.Words, pair.Words...)
+
 	// Offsets
 	var startingOffset int = 0
 	if growingOffsets {
@@ -360,27 +365,13 @@ func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encod
 			startingOffset = last.End
 		}
 	}
-	for _, o := range e.Offsets {
-		if o.End > startingOffset {
-			startingOffset = o.End
-		}
-	}
+
 	for _, o := range pair.Offsets {
 		adjustedO := Offsets{
 			Start: o.Start + startingOffset,
 			End:   o.End + startingOffset,
 		}
 		e.Offsets = append(e.Offsets, adjustedO)
-	}
-	e.SpecialTokenMask = append(e.SpecialTokenMask, pair.SpecialTokenMask...)
-	e.AttentionMask = append(e.AttentionMask, pair.AttentionMask...)
-	e.Overflowing = overflowings
-
-	// 4. Re-indexing word index
-	wOffset := len(e.Words)
-	for _, w := range pair.Words {
-		newW := w + wOffset
-		e.Words = append(e.Words, newW)
 	}
 
 	return e
