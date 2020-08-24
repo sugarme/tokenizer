@@ -1,7 +1,8 @@
 package pretokenizer
 
 import (
-	"unicode"
+	// "fmt"
+	// "unicode"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/normalizer"
@@ -9,7 +10,8 @@ import (
 
 func isBertPunc(x rune) (retVal bool) {
 	// TODO. check whether it covers all?
-	return unicode.IsPunct(x)
+	// return unicode.IsPunct(x)
+	return normalizer.IsBertPunctuation(x)
 }
 
 type shouldSplitFn func(x rune) bool
@@ -85,11 +87,8 @@ func (bt BertPreTokenizer) PreTokenize(pretokenized tokenizer.PreTokenizedString
 
 		var res []*normalizer.NormalizedString
 
-		isWhiteSpace := func(r rune) bool {
-			return unicode.IsSpace(r)
-		}
-		p := normalizer.NewFnPattern(isWhiteSpace)
-		subs := sub.Split(p, normalizer.RemovedBehavior)
+		whitespace := normalizer.NewRegexpPattern(`\s+`)
+		subs := sub.Split(whitespace, normalizer.RemovedBehavior)
 
 		for _, sub := range subs {
 			splits := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)

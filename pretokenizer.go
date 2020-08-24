@@ -59,6 +59,7 @@ func (pt *PreTokenizedString) Split(splitFn SplitFn) (err error) {
 		originalOffsets := sub.OriginalOffsets
 
 		newLen := 0
+
 		for _, normalized := range splitFn(i, sub.Normalized) {
 			len := normalized.LenOriginal()
 			start := originalOffsets.Start + newLen

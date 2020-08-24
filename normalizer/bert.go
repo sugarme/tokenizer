@@ -68,6 +68,7 @@ func isPunctuation(c rune) bool {
 // space-separated words, so they are not treated specially and handled
 // like for all of the other languages.
 var cjk = &unicode.RangeTable{
+
 	R16: []unicode.Range16{
 		{0x4e00, 0x9fff, 1},
 		{0x3400, 0x4dbf, 1},
@@ -84,7 +85,18 @@ var cjk = &unicode.RangeTable{
 
 // isChinese validates that rune c is in the CJK range according to BERT spec
 func isChinese(c rune) bool {
-	return unicode.In(c, cjk, unicode.P)
+	// 0x4E00..=0x9FFF => true,
+	// 0x3400..=0x4DBF => true,
+	// 0x20000..=0x2A6DF => true,
+	// 0x2A700..=0x2B73F => true,
+	// 0x2B740..=0x2B81F => true,
+	// 0x2B920..=0x2CEAF => true,
+	// 0xF900..=0xFAFF => true,
+	// 0x2F800..=0x2FA1F => true,
+
+	return unicode.In(c, cjk)
+
+	// return unicode.Is(unicode.Han, c)
 }
 
 func doCleanText(n *NormalizedString) *NormalizedString {
@@ -188,4 +200,16 @@ func (bn BertNormalizer) Normalize(n *NormalizedString) (*NormalizedString, erro
 	}
 
 	return n, nil
+}
+
+// export some functions
+
+// IsBertPunctuation checks whether an input rune is a BERT punctuation
+func IsBertPunctuation(c rune) bool {
+	return isPunctuation(c)
+}
+
+// IsBertWhitespace checks whether an input rune is a BERT whitespace
+func IsBertWhitespace(c rune) bool {
+	return isWhitespace(c)
 }

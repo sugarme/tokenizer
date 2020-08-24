@@ -337,6 +337,7 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 	var subseqEncodings []*Encoding
 
 	for subseqIdx, subseq := range sequence.input {
+		// isPairs is slice of pair (id, substring)
 		isPairs := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
 		var encodings []*Encoding
 		for _, isPair := range isPairs {
@@ -354,6 +355,7 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int) (re
 				if err != nil {
 					return retVal, err
 				}
+
 				encoding, err := t.doTokenize(preTok, isPair.Substring.OriginalOffsets, typeId)
 				if err != nil {
 					return nil, err

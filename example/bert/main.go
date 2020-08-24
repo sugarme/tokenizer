@@ -9,6 +9,7 @@ import (
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	// "github.com/sugarme/tokenizer/processor"
+	"github.com/sugarme/tokenizer/util"
 )
 
 func main() {
@@ -16,17 +17,21 @@ func main() {
 	splitOnAddedToken()
 
 	// Example 2.
-	// bertTokenize()
+	bertTokenize()
 }
 
 func getBert() (retVal tokenizer.Tokenizer) {
-	model, err := wordpiece.NewWordPieceFromFile("../../data/bert/vocab.txt", "[UNK]")
+
+	util.CdToThis()
+	vocabFile := "../../data/bert/vocab.txt"
+
+	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	tk := tokenizer.NewTokenizer(model)
-	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
+	// fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
@@ -43,7 +48,7 @@ func splitOnAddedToken() {
 	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
 
 	sentence := `Yesterday I saw a [MASK] far away`
-	fmt.Printf("Sentence: '%v'\n", sentence)
+	// fmt.Printf("Sentence: '%v'\n", sentence)
 
 	input := tokenizer.NewInputSequence(sentence)
 	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
@@ -74,7 +79,8 @@ func bertTokenize() {
 	// tk.WithPostProcessor(postProcess)
 
 	sentence := `Hello, y'all! How are you 😁 ?`
-	fmt.Printf("Sentence: '%v'\n", sentence)
+	// sentence := `Hello, y'all! How are you today?`
+	// fmt.Printf("Sentence: '%v'\n", sentence)
 
 	input := tokenizer.NewInputSequence(sentence)
 	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
@@ -82,6 +88,8 @@ func bertTokenize() {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("original: '%v'\n", sentence)
 	fmt.Printf("tokens: %v\n", en.GetTokens())
 	fmt.Printf("offsets: %v\n", en.GetOffsets())
+	fmt.Printf("word Ids: %v\n", en.GetWords())
 }

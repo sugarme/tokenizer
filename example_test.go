@@ -9,26 +9,41 @@ import (
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
+	"github.com/sugarme/tokenizer/util"
 )
 
-func ExampleTokenizer_Encode() {
-	model, err := wordpiece.NewWordPieceFromFile("../../data/bert/vocab.txt", "[UNK]")
+func getBert() (retVal tokenizer.Tokenizer) {
+
+	util.CdToThis()
+	vocabFile := "./data/bert/vocab.txt"
+
+	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
 		log.Fatal(err)
 	}
-	tk := tokenizer.NewTokenizer(model)
-	// fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
+	tk := tokenizer.NewTokenizer(model)
+	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
 
+	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
+	tk.WithPreTokenizer(bertPreTokenizer)
+
+	return tk
+}
+
+func ExampleTokenizer_Encode() {
+
+	tk := getBert()
+
+	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
+	tk.WithPreTokenizer(bertPreTokenizer)
+
 	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
 
 	sentence := `Yesterday I saw a [MASK] far away`
-	// fmt.Printf("Sentence: '%v'\n", sentence)
 
 	input := tokenizer.NewInputSequence(sentence)
 	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
@@ -45,20 +60,8 @@ func ExampleTokenizer_Encode() {
 }
 
 func examplePreTokenizer_Split() {
-	model, err := wordpiece.NewWordPieceFromFile("../../data/bert/vocab.txt", "[UNK]")
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	tk := tokenizer.NewTokenizer(model)
-
-	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
-
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
-
-	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
-	tk.WithNormalizer(bertNormalizer)
+	tk := getBert()
 
 	sepId, ok := tk.TokenToId("[SEP]")
 	if !ok {
