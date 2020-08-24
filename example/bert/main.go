@@ -8,7 +8,7 @@ import (
 	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	// "github.com/sugarme/tokenizer/processor"
+	"github.com/sugarme/tokenizer/processor"
 	"github.com/sugarme/tokenizer/util"
 )
 
@@ -63,20 +63,20 @@ func splitOnAddedToken() {
 func bertTokenize() {
 	tk := getBert()
 
-	// sepId, ok := tk.TokenToId("[SEP]")
-	// if !ok {
-	// log.Fatalf("Cannot find ID for [SEP] token.\n")
-	// }
-	// sep := processor.PostToken{Id: sepId, Value: "[SEP]"}
-	//
-	// clsId, ok := tk.TokenToId("[CLS]")
-	// if !ok {
-	// log.Fatalf("Cannot find ID for [CLS] token.\n")
-	// }
-	// cls := processor.PostToken{Id: clsId, Value: "[CLS]"}
-	//
-	// postProcess := processor.NewBertProcessing(sep, cls)
-	// tk.WithPostProcessor(postProcess)
+	sepId, ok := tk.TokenToId("[SEP]")
+	if !ok {
+		log.Fatalf("Cannot find ID for [SEP] token.\n")
+	}
+	sep := processor.PostToken{Id: sepId, Value: "[SEP]"}
+
+	clsId, ok := tk.TokenToId("[CLS]")
+	if !ok {
+		log.Fatalf("Cannot find ID for [CLS] token.\n")
+	}
+	cls := processor.PostToken{Id: clsId, Value: "[CLS]"}
+
+	postProcess := processor.NewBertProcessing(sep, cls)
+	tk.WithPostProcessor(postProcess)
 
 	sentence := `Hello, y'all! How are you 😁 ?`
 	// sentence := `Hello, y'all! How are you today?`

@@ -53,6 +53,11 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 	tokens = append(tokens, encoding.GetTokens()...)
 	tokens = append(tokens, bp.sep.Value)
 
+	var words []int
+	words = append(words, -1)
+	words = append(words, encoding.GetWords()...)
+	words = append(words, -1)
+
 	var offsets []tokenizer.Offsets
 	offsets = append(offsets, tokenizer.Offsets{Start: 0, End: 0})
 	offsets = append(offsets, encoding.GetOffsets()...)
@@ -66,7 +71,7 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 
 	var attentionMask []int = []int{1, len(ids)}
 
-	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing())
+	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing(), words)
 
 	if pairEncoding != nil {
 		var pairIds []int
@@ -81,6 +86,10 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 		pairTokens = append(pairTokens, pairEncoding.GetTokens()...)
 		pairTokens = append(pairTokens, bp.sep.Value)
 
+		var pairWords []int
+		pairWords = append(pairWords, pairEncoding.GetWords()...)
+		pairWords = append(pairWords, -1)
+
 		var pairOffsets []tokenizer.Offsets
 		pairOffsets = append(pairOffsets, pairEncoding.GetOffsets()...)
 		pairOffsets = append(pairOffsets, tokenizer.Offsets{Start: 0, End: 0})
@@ -94,7 +103,7 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 		pairAttentionMask = append(pairAttentionMask, 1)
 		pairAttentionMask = append(pairAttentionMask, len(pairIds))
 
-		newPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing())
+		newPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing(), pairWords)
 
 		// Merge newPairEncoding with newEncoding
 		newEncoding.MergeWith(newPairEncoding, false)
