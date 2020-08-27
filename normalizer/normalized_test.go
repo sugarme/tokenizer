@@ -16,9 +16,9 @@ import (
 )
 
 func TestNormalized_NFDAddsNewChars(t *testing.T) {
-	gotN := normalizer.NewNormalizedFrom("élégant").NFD()
+	n := normalizer.NewNormalizedFrom("élégant").NFD()
 
-	want1 := [][]int{
+	wantN := [][]int{
 		{0, 2},
 		{0, 2},
 		{0, 2},
@@ -31,10 +31,28 @@ func TestNormalized_NFDAddsNewChars(t *testing.T) {
 		{7, 8},
 		{8, 9},
 	}
-	got1 := gotN.Alignments()
+	gotN := n.Alignments()
 
-	if !reflect.DeepEqual(want1, got1) {
-		t.Errorf("Want: %v\n", want1)
-		t.Errorf("Got: %v\n", got1)
+	wantO := [][]int{
+		{0, 3},
+		{0, 3},
+		{3, 4},
+		{4, 7},
+		{4, 7},
+		{7, 8},
+		{8, 9},
+		{9, 10},
+		{10, 11},
+	}
+	gotO := n.AlignmentsOriginal()
+
+	if !reflect.DeepEqual(wantN, gotN) {
+		t.Errorf("Want normalized: %v\n", wantN)
+		t.Errorf("Got normalized: %v\n", gotN)
+	}
+
+	if !reflect.DeepEqual(wantO, gotO) {
+		t.Errorf("Want original: %v\n", wantO)
+		t.Errorf("Got original: %v\n", gotO)
 	}
 }
