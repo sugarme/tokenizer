@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"reflect"
@@ -8,7 +9,8 @@ import (
 	"unicode"
 
 	"github.com/sugarme/tokenizer/util"
-	"golang.org/x/text/transform"
+	slice "github.com/sugarme/tokenizer/util/slice"
+	// "golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -436,13 +438,16 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	log.Printf("===== TransformRange call (initial offset: %v) ====\n", initialOffset)
 	// Retrieve the original characters that are being replaced. This let us
 	// compute the change in byte sizes along the way.
-	var replacedNormalized []rune
 	nBytes := []byte(n.normalized)[nRange.start:nRange.end]
-	replacedNormalized = []rune(string(nBytes))
-	fmt.Printf("replaceddNoramlized len: %v\n", len(replacedNormalized))
-	fmt.Printf("replacedNormalized: %+v\n", func([]rune) []string {
+	replacedNormalized := util.NewRuneIter(bytes.Runes(nBytes))
+	fmt.Printf("replaceddNoramlized len: %v\n", replacedNormalized.Len())
+	fmt.Printf("replacedNormalized: %+v\n", func(it *util.RuneIter) []string {
 		var chars []string
-		for _, r := range replacedNormalized {
+		for {
+			r, ok := it.Next()
+			if !ok {
+				break
+			}
 			chars = append(chars, string(r))
 		}
 		return chars
@@ -454,21 +459,20 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	endShiftStart := nRange.end
 	initialRemoved := 0
 	if initialOffset > 0 {
-		if len(replacedNormalized) != initialOffset {
-			// We want to panic here, because the NormalizedString is in
-			// a bad state if this happens. We already modified a lot of things
-			log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", initialOffset)
-		}
 		log.Printf("=> Clearning alignment for %v chars\n", initialOffset)
 		removedBytes := 0
 		var removedChars []rune
 		for i := 0; i < initialOffset; i++ {
-			c := replacedNormalized[i]
+			c, ok := replacedNormalized.Next()
+			if !ok {
+				// We want to panic here, because the NormalizedString is in
+				// a bad state if this happens. We already modified a lot of things
+				log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", initialOffset)
+			}
 			removedBytes += len([]byte(string(c)))
 			removedChars = append(removedChars, c)
 		}
 		initialRemoved = removedBytes
-
 		offset := nRange.start
 		oShift := 0
 		// Then we remove all these chars, updating the alignments along the way
@@ -518,9 +522,10 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 
 	log.Printf("Applying transformations...\n")
 	var (
-		normalized          string
-		nextReplacedCharIdx int = 0 // keep track of next `char` in replacedNormalized
+		normalizedRunes []rune
 	)
+
+	replacedNormalized.Reset() // make sure iterating from begining
 	for _, item := range changeMap {
 		var changeType string
 		switch {
@@ -553,8 +558,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		// If we are replacing a character, find it and compute the change in size
 		var replacedChar rune
 		if item.Changes <= 0 {
-			replacedChar = replacedNormalized[nextReplacedCharIdx]
-			nextReplacedCharIdx++
+			replacedChar, _ = replacedNormalized.Next()
 		} else {
 			replacedChar = 0 // nil rune value
 		}
@@ -573,20 +577,21 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			nChanges = -item.Changes
 		}
 
-		// We want to panic here, because the NormalizedString is in
-		// a bad state if this happens. We already modified a lot of things
-		if nChanges > 0 && len(replacedNormalized) != nChanges {
-			log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", nChanges)
-		}
 		var (
 			removedChars       []rune
 			totalBytesToRemove int
 		)
 		for i := 0; i < nChanges; i++ {
-			c := replacedNormalized[i]
+			c, ok := replacedNormalized.Next()
+			if !ok {
+				// We want to panic here, because the NormalizedString is in
+				// a bad state if this happens. We already modified a lot of things
+				log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", nChanges)
+			}
 			removedChars = append(removedChars, c)
 			totalBytesToRemove += len(string(c))
 		}
+		fmt.Printf("removedChars: %+q\n", string(removedChars))
 		log.Printf("Total bytes to remove: %v\n", totalBytesToRemove)
 
 		// If we are removing characters, there are two possible scenarios:
@@ -599,6 +604,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			start := n.alignments[idx][1]
 			end := n.alignments[idx+totalBytesToRemove][1]
 			originalRange := util.MakeRange(start, end)
+			fmt.Printf("start: %v - end: %v; range: (%+v)\n", start, end, originalRange)
 			removingFromOriginal = len(originalRange)
 			removingFromNormalized = totalBytesToRemove - len(originalRange)
 
@@ -704,7 +710,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 
 		// Then we keep only the char for string reconstruction
-		normalized = normalized + item.RuneVal
+		normalizedRunes = append(normalizedRunes, []rune(item.RuneVal)...)
 
 		fmt.Printf("replacedCharSize: %v\n", replacedCharSize)
 		fmt.Printf("totalBytesToRemove: %v\n", totalBytesToRemove)
@@ -745,13 +751,11 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	n.alignments = newAlignments
 
 	// Finally, change the `normalized` string
-	var newNormalizedBytes []byte
-	oldNormalizedBytes := []byte(n.normalized)
-	newNormalizedBytes = append(oldNormalizedBytes[:nRange.start], []byte(normalized)...)
-	newNormalizedBytes = append(newNormalizedBytes, oldNormalizedBytes[:nRange.end]...)
-	n.normalized = string(newNormalizedBytes)
+	newNormalized := n.normalized[:nRange.start] + string(normalizedRunes) + n.normalized[nRange.end:]
+	n.normalized = newNormalized
 
 	log.Printf("New normalized alignments: %+v\nNew original alignments: %+v\n", n.alignments, n.alignmentsOriginal)
+	log.Printf("New normalized string: %q\n", n.normalized)
 
 	return n
 }
@@ -789,39 +793,6 @@ func (n *NormalizedString) Transform(m []ChangeMap, initialOffset int) (retVal *
 	end := len(n.original)
 	wholeRange := NewRange(start, end, OriginalTarget)
 	return n.TransformRange(wholeRange, m, initialOffset)
-
-	/*
-	 *   offset := -initialOffset
-	 *   var (
-	 *     alignments [][]int
-	 *     runeVals   []string
-	 *   )
-	 *
-	 *   for i, item := range m {
-	 *     // Positive offset means there're added `chars`. This offset needed to be
-	 *     // removed from current index to get the previous id.
-	 *     idx := i - offset
-	 *     offset += item.Changes
-	 *     var align []int
-	 *     if item.Changes > 0 {
-	 *       if idx < 1 {
-	 *         align = []int{0, 0}
-	 *       } else { // newly inserted `char`. Hence, use aligment from previous one
-	 *         align = n.alignments[idx-1]
-	 *       }
-	 *     } else {
-	 *       align = n.alignments[idx]
-	 *     }
-	 *
-	 *     alignments = append(alignments, align)
-	 *     runeVals = append(runeVals, item.RuneVal)
-	 *   }
-	 *
-	 *   n.alignments = alignments
-	 *   n.normalized = strings.Join(runeVals, "")
-	 *
-	 *   return n
-	 *  */
 }
 
 func (n *NormalizedString) NFD() (retVal *NormalizedString) {
@@ -846,10 +817,10 @@ func (n *NormalizedString) NFD() (retVal *NormalizedString) {
 	// If more than one rune, first is no change, the rest is 1 changes
 	it.InitString(norm.NFD, s)
 	for !it.Done() {
-		runes := []rune(string(it.Next()))
+		// runes := []rune(string(it.Next()))
+		runes := bytes.Runes(it.Next())
 
 		for i, r := range runes {
-
 			switch i := i; {
 			case i == 0:
 				changeMap = append(changeMap, ChangeMap{
@@ -863,7 +834,6 @@ func (n *NormalizedString) NFD() (retVal *NormalizedString) {
 				})
 			}
 		}
-
 	}
 
 	for i, c := range changeMap {
@@ -874,7 +844,6 @@ func (n *NormalizedString) NFD() (retVal *NormalizedString) {
 }
 
 func (n *NormalizedString) NFC() (retVal *NormalizedString) {
-
 	var (
 		changeMap []ChangeMap
 		it        norm.Iter
@@ -890,18 +859,22 @@ func (n *NormalizedString) NFC() (retVal *NormalizedString) {
 	it.InitString(norm.NFD, s)
 
 	for !it.Done() {
-		runes := []rune(string(it.Next()))
+		// runes := []rune(string(it.Next()))
+		runes := bytes.Runes(it.Next())
 
-		if len(runes) == 1 {
-			changeMap = append(changeMap, ChangeMap{
-				RuneVal: string(runes),
-				Changes: 0,
-			})
-		} else if len(runes) > 1 {
-			changeMap = append(changeMap, ChangeMap{
-				RuneVal: string(runes),
-				Changes: -1,
-			})
+		for i, r := range runes {
+			switch i := i; {
+			case i == 0:
+				changeMap = append(changeMap, ChangeMap{
+					RuneVal: string(r),
+					Changes: 0,
+				})
+			case i > 0:
+				changeMap = append(changeMap, ChangeMap{
+					RuneVal: string(r),
+					Changes: 1,
+				})
+			}
 		}
 	}
 
@@ -981,54 +954,49 @@ func (n *NormalizedString) NFKC() (retVal *NormalizedString) {
 }
 
 // Filter applies filtering on NormalizedString
-func (n *NormalizedString) Filter(fr rune) (retVal *NormalizedString) {
-	s := n.normalized
-	var changeMap []ChangeMap
+func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString) {
 
-	var oRunes []rune
+	var (
+		removed   int = 0
+		runes     []rune
+		changeMap []ChangeMap
+	)
 
-	var it norm.Iter
-	it.InitString(norm.NFC, s)
-
-	for !it.Done() {
-		runes := []rune(string(it.Next()))
-
-		oRunes = append(oRunes, runes...)
-
+	for _, r := range []rune(n.normalized) {
+		runes = append(runes, r)
 	}
 
-	revRunes := make([]rune, 0)
-	for i := len(oRunes) - 1; i >= 0; i-- {
-		revRunes = append(revRunes, oRunes[i])
-	}
+	revRunes := slice.Reverse(runes).([]rune)
 
-	var removed int = 0
 	for _, r := range revRunes {
-		if r == fr {
-			removed += 1
-		} else {
+		if !fn(r) {
 			if removed > 0 {
 				changeMap = append(changeMap, ChangeMap{
 					RuneVal: string(r),
-					Changes: -removed,
+					Changes: -(removed),
 				})
 				removed = 0
-			} else if removed == 0 {
+			} else {
 				changeMap = append(changeMap, ChangeMap{
 					RuneVal: string(r),
 					Changes: 0,
 				})
 			}
+		} else {
+			removed += 1
 		}
 	}
 
-	// Flip back changeMap
-	var unrevMap []ChangeMap
-	for i := len(changeMap) - 1; i >= 0; i-- {
-		unrevMap = append(unrevMap, changeMap[i])
+	revChangeMap := slice.Reverse(changeMap).([]ChangeMap)
+
+	fmt.Printf("Alignments: %+v\n", n.alignments)
+	for _, c := range revChangeMap {
+		fmt.Printf("RuneVal: '%v' - Changes: %v\n", c.RuneVal, c.Changes)
 	}
 
-	return n.Transform(unrevMap, removed)
+	// return n.Transform(revChangeMap, removed)
+	return n.Transform(revChangeMap, 0)
+
 }
 
 // Prepend adds given string to the begining of NormalizedString
@@ -1092,20 +1060,9 @@ func (n *NormalizedString) ForEach(nfn NormFn) (retVal *NormalizedString) {
 
 // RemoveAccents removes all Unicode Mn group (M non-spacing)
 func (n *NormalizedString) RemoveAccents() (retVal *NormalizedString) {
-
-	s := n.normalized
-	b := make([]byte, len(s))
-
-	tf := transform.Chain(transform.RemoveFunc(isMn))
-
-	_, _, err := tf.Transform(b, []byte(s), true)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	n.normalized = string(b)
-
-	return n
+	return n.Filter(func(r rune) bool {
+		return unicode.Is(unicode.Mn, r)
+	})
 }
 
 // Lowercase transforms string to lowercase
