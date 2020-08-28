@@ -441,7 +441,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	nBytes := []byte(n.normalized)[nRange.start:nRange.end]
 	replacedNormalized := util.NewRuneIter(bytes.Runes(nBytes))
 	fmt.Printf("replaceddNoramlized len: %v\n", replacedNormalized.Len())
-	fmt.Printf("replacedNormalized: %+v\n", func(it *util.RuneIter) []string {
+	fmt.Printf("replacedNormalized: %+q\n", func(it *util.RuneIter) []string {
 		var chars []string
 		for {
 			r, ok := it.Next()
@@ -452,6 +452,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 		return chars
 	}(replacedNormalized))
+	replacedNormalized.Reset()
 
 	// Handle the initial offset in the original alignment. All the characters
 	// that were removed from the normalized one should have their width reduced
@@ -459,7 +460,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	endShiftStart := nRange.end
 	initialRemoved := 0
 	if initialOffset > 0 {
-		log.Printf("=> Clearning alignment for %v chars\n", initialOffset)
+		log.Printf("=> Clearing alignment for %v chars\n", initialOffset)
 		removedBytes := 0
 		var removedChars []rune
 		for i := 0; i < initialOffset; i++ {
@@ -467,7 +468,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			if !ok {
 				// We want to panic here, because the NormalizedString is in
 				// a bad state if this happens. We already modified a lot of things
-				log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", initialOffset)
+				log.Fatalf("1. Expected to remove %v characters but couldn't find them ...\n", initialOffset)
 			}
 			removedBytes += len([]byte(string(c)))
 			removedChars = append(removedChars, c)
@@ -586,7 +587,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			if !ok {
 				// We want to panic here, because the NormalizedString is in
 				// a bad state if this happens. We already modified a lot of things
-				log.Fatalf("Expected to remove %v characters but couldn't find them ...\n", nChanges)
+				log.Fatalf("2. Expected to remove %v characters but couldn't find them ...\n", nChanges)
 			}
 			removedChars = append(removedChars, c)
 			totalBytesToRemove += len(string(c))
@@ -969,7 +970,7 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 	revRunes := slice.Reverse(runes).([]rune)
 
 	for _, r := range revRunes {
-		if !fn(r) {
+		if fn(r) {
 			if removed > 0 {
 				changeMap = append(changeMap, ChangeMap{
 					RuneVal: string(r),
@@ -990,12 +991,13 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 	revChangeMap := slice.Reverse(changeMap).([]ChangeMap)
 
 	fmt.Printf("Alignments: %+v\n", n.alignments)
-	for _, c := range revChangeMap {
-		fmt.Printf("RuneVal: '%v' - Changes: %v\n", c.RuneVal, c.Changes)
-	}
+	fmt.Printf("changeMap: %+v\n", revChangeMap)
 
-	// return n.Transform(revChangeMap, removed)
-	return n.Transform(revChangeMap, 0)
+	for _, item := range revChangeMap {
+		fmt.Printf("item: %+v\n", item)
+	}
+	return n.Transform(revChangeMap, removed)
+	// return n.Transform(revChangeMap, 0)
 
 }
 
@@ -1061,7 +1063,7 @@ func (n *NormalizedString) ForEach(nfn NormFn) (retVal *NormalizedString) {
 // RemoveAccents removes all Unicode Mn group (M non-spacing)
 func (n *NormalizedString) RemoveAccents() (retVal *NormalizedString) {
 	return n.Filter(func(r rune) bool {
-		return unicode.Is(unicode.Mn, r)
+		return !unicode.Is(unicode.Mn, r)
 	})
 }
 
