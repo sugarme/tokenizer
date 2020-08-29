@@ -184,6 +184,16 @@ func NewNormalizedFrom(s string) (retVal *NormalizedString) {
 	}
 }
 
+func NewNormalizedString(original, normalized string, alignments, alignmentsOriginal [][]int, originalShift int) *NormalizedString {
+	return &NormalizedString{
+		original:           original,
+		normalized:         normalized,
+		alignments:         alignments,
+		alignmentsOriginal: alignmentsOriginal,
+		originalShift:      originalShift,
+	}
+}
+
 // GetNormalized returns the Normalized struct
 func (n *NormalizedString) GetNormalized() string {
 	return n.normalized
