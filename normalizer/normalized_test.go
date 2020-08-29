@@ -290,3 +290,66 @@ func TestNormalized_AroundBothEdges(t *testing.T) {
 		t.Errorf("Got: %v\n", got2)
 	}
 }
+
+func TestNormalized_LStrip(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("  This is an example  ")
+	n.LStrip()
+
+	got0 := n.GetNormalized()
+	want0 := "This is an example  "
+
+	got1 := n.RangeOriginal(normalizer.NewRange(0, len(n.GetNormalized()), normalizer.NormalizedTarget))
+	want1 := "This is an example  "
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+}
+
+func TestNormalized_RStrip(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("  This is an example  ")
+	n.RStrip()
+
+	got0 := n.GetNormalized()
+	want0 := "  This is an example"
+
+	got1 := n.RangeOriginal(normalizer.NewRange(0, len(n.GetNormalized()), normalizer.NormalizedTarget))
+	want1 := "  This is an example"
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+}
+
+func TestNormalized_Strip(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("  This is an example  ")
+	n.Strip()
+
+	got0 := n.GetNormalized()
+	want0 := "This is an example"
+
+	got1 := n.RangeOriginal(normalizer.NewRange(0, len(n.GetNormalized()), normalizer.NormalizedTarget))
+	want1 := "This is an example"
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+}
