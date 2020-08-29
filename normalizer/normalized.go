@@ -82,6 +82,10 @@ func (r *Range) Len() int {
 
 // Values returns range values (start, end)
 func (r *Range) Values() []int {
+	if r == nil {
+		return nil
+	}
+
 	return []int{r.start, r.end}
 }
 
@@ -95,24 +99,29 @@ func (r *Range) On() IndexOn {
 // maxLen is maximal len of string in `chars` (runes)
 func (r *Range) IntoFullRange(maxLen int) (retVal *Range) {
 	// case: start out of bound (including `None` value)
-	if r.start == -1 || r.start > maxLen {
+	// if r.start == -1 || r.start > maxLen {
+	if r.start == -1 {
 		r.start = 0
 	}
 
-	if r.start > r.end {
-		r.start = r.end - 1
-	}
-
+	/*
+	 *   if r.start > r.end {
+	 *     r.start = r.end - 1
+	 *   }
+	 *  */
 	//  case: end out of bound
 	if r.end > maxLen {
 		r.end = maxLen
 	}
 
-	// case: end is None value
-	if r.end == -1 {
-		// TODO: should we just accept as `None`?
-		r.end = maxLen
-	}
+	/*
+	 *   // case: end is None value
+	 *   if r.end == -1 {
+	 *     // TODO: should we just accept as `None`?
+	 *     r.end = maxLen
+	 *   }
+	 *  */
+
 	return r
 }
 
@@ -236,7 +245,13 @@ func (n *NormalizedString) ConvertOffset(inputRange *Range) (retVal *Range) {
 		return NewRange(0, lenOriginal, indexOn)
 	}
 
-	// Otherwise, just convert them
+	// Otherwise, just convert them.
+	// NOTE. if out of bound, return nil
+	var lowerB, upperB int = 0, len(alignments)
+	if target.start < lowerB || target.start > upperB || target.end < lowerB || target.end > upperB {
+		return nil
+	}
+
 	newAlignments := alignments[target.start:target.end]
 	newRange := expandAlignments(newAlignments)
 	return NewRange(newRange[0], newRange[1], indexOn)

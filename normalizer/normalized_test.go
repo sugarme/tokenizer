@@ -136,4 +136,24 @@ func TestNormalized_RangeConversion(t *testing.T) {
 		t.Errorf("Want original: %v\n", wantO)
 		t.Errorf("Got original: %v\n", gotO)
 	}
+
+	// Make sure we get None only in specific cases
+	fmt.Printf("Len original: %v\n", n.LenOriginal())
+	testRange(t, n, []int{0, 0}, []int{0, 0}, normalizer.OriginalTarget)
+	testRange(t, n, []int{3, 3}, []int{3, 3}, normalizer.OriginalTarget)
+	testRange(t, n, []int{15, n.LenOriginal()}, []int{9, 9}, normalizer.OriginalTarget)
+	testRange(t, n, []int{16, n.LenOriginal() + 1}, []int{16, 16}, normalizer.OriginalTarget)
+	testRange(t, n, []int{17, n.LenOriginal() + 1}, nil, normalizer.OriginalTarget)
+	testRange(t, n, []int{0, 0}, []int{0, 0}, normalizer.NormalizedTarget)
+	testRange(t, n, []int{3, 3}, []int{3, 3}, normalizer.NormalizedTarget)
+	testRange(t, n, []int{9, n.Len() + 1}, []int{9, 9}, normalizer.NormalizedTarget)
+	testRange(t, n, []int{10, n.Len() + 1}, nil, normalizer.NormalizedTarget)
+}
+
+func testRange(t *testing.T, n *normalizer.NormalizedString, input, wantR []int, indexOn normalizer.IndexOn) {
+	gotR := n.ConvertOffset(normalizer.NewRange(input[0], input[1], indexOn)).Values()
+	if !reflect.DeepEqual(wantR, gotR) {
+		t.Errorf("Want range: %v\n", wantR)
+		t.Errorf("Got range: %v\n", gotR)
+	}
 }
