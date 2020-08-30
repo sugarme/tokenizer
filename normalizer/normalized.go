@@ -152,11 +152,29 @@ type NormalizedString struct {
 
 // NewNormalizedFrom creates a Normalized instance from string input
 func NewNormalizedFrom(s string) (retVal *NormalizedString) {
-	var alignments [][]int
+	/*
+	 *   // NOTE. Really need to make a deep copy, otherwise
+	 *   // `aligments` and `alignmentsOriginal` updates each other later on!
+	 *   alignmentsOriginal := make([][]int, len(alignments))
+	 *   copy(alignmentsOriginal, alignments)
+	 *  */
+	return &NormalizedString{
+		original:           s,
+		normalized:         s,
+		alignments:         createAligns(s),
+		alignmentsOriginal: createAligns(s),
+		originalShift:      0,
+	}
+}
 
-	runes := []rune(s)
+// createALigns creates alignments from input string.
+// NOTE:It is used in `NewNormalizedFrom` to create 2 slices
+// (alignments and alignmentsOriginal) without sharing data
+// (data elements are in different memory locations).
+func createAligns(s string) [][]int {
+	var alignments [][]int
 	currIdx := 0
-	for i, r := range runes {
+	for i, r := range []rune(s) {
 		charLen := len(string(r))
 		var align []int
 		if i == 0 {
@@ -170,18 +188,7 @@ func NewNormalizedFrom(s string) (retVal *NormalizedString) {
 		currIdx += charLen
 	}
 
-	// NOTE. Really need to make a deep copy, otherwise
-	// `aligments` and `alignmentsOriginal` updates each other later on!
-	alignmentsOriginal := make([][]int, len(alignments))
-	copy(alignmentsOriginal, alignments)
-
-	return &NormalizedString{
-		original:           s,
-		normalized:         s,
-		alignments:         alignments,
-		alignmentsOriginal: alignmentsOriginal,
-		originalShift:      0,
-	}
+	return alignments
 }
 
 func NewNormalizedString(original, normalized string, alignments, alignmentsOriginal [][]int, originalShift int) *NormalizedString {
@@ -748,7 +755,12 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	if oShift != 0 {
 		log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
 
-		endRange := expandAlignments(n.alignments[endShiftStart:])
+		// endRange := expandAlignments(n.alignments[endShiftStart:])
+		var endShift [][]int
+		for _, item := range n.alignments[endShiftStart:] {
+			endShift = append(endShift, item)
+		}
+		endRange := expandAlignments(endShift)
 
 		log.Printf("End range: %+v\n", endRange)
 
@@ -757,11 +769,13 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			var newAlignments [][]int
 			if len(alignments) > 0 {
 				log.Printf("Alignments before shifting: %+v\n", alignments)
+				fmt.Printf("alignments before: %v\n", n.alignments)
 				for _, offsets := range alignments {
 					offsets[0] = applySign(offsets[0], oShift)
 					offsets[1] = applySign(offsets[1], oShift)
 					newAlignments = append(newAlignments, offsets)
 				}
+				fmt.Printf("alignments after: %v\n", n.alignments)
 				aligns := append(n.alignmentsOriginal[:endRange[0]], newAlignments...)
 				aligns = append(aligns, n.alignmentsOriginal[endRange[1]:]...)
 				n.alignmentsOriginal = aligns
@@ -772,8 +786,12 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 
 	// replace alignments with new ones in range
 	var newAlignments [][]int
-	newAlignments = append(n.alignments[:nRange.start], normalizedAlignments...)
-	newAlignments = append(newAlignments, n.alignments[nRange.end:]...)
+	if len(n.alignments[:nRange.start]) == 0 {
+		newAlignments = append(normalizedAlignments, n.alignments[nRange.end:]...)
+	} else {
+		newAlignments = append(n.alignments[:nRange.start], normalizedAlignments...)
+		newAlignments = append(newAlignments, n.alignments[nRange.end:]...)
+	}
 	n.alignments = newAlignments
 
 	// Finally, change the `normalized` string
@@ -1028,31 +1046,48 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 
 // Prepend adds given string to the begining of NormalizedString
 func (n *NormalizedString) Prepend(s string) (retVal *NormalizedString) {
-	newString := fmt.Sprintf("%s%s", s, n.GetNormalized())
-	var newAlignments [][]int
-	for i := 0; i < len([]rune(s)); i++ {
-		newAlignments = append(newAlignments, []int{0, 0})
+	chars := []rune(n.normalized)
+	var changeMap []ChangeMap
+	if len(chars) == 0 {
+		return n
 	}
-	newAlignments = append(newAlignments, n.alignments...)
-	n.normalized = newString
-	n.alignments = newAlignments
 
-	return n
+	next := chars[0]
+	for i, r := range []rune(s) {
+		var c ChangeMap
+		if i == 0 {
+			c = ChangeMap{string(r), 0}
+		} else {
+			c = ChangeMap{string(r), 1}
+		}
+		changeMap = append(changeMap, c)
+	}
+	changeMap = append(changeMap, ChangeMap{string(next), 1})
+	inputRange := NewRange(0, len([]byte(string(next))), NormalizedTarget)
+
+	return n.TransformRange(inputRange, changeMap, 0)
 }
 
 // Append adds given string to the end of NormalizedString
 func (n *NormalizedString) Append(s string) (retVal *NormalizedString) {
-	newString := fmt.Sprintf("%s%s", n.GetNormalized(), s)
-	var newAlignments [][]int
-	lastAlign := n.alignments[len(n.alignments)-1]
-	for i := 0; i < len([]rune(s)); i++ {
-		newAlignments = append(newAlignments, []int{lastAlign[1], lastAlign[1]})
-	}
-	newAlignments = append(n.alignments, newAlignments...)
-	n.normalized = newString
-	n.alignments = newAlignments
 
-	return n
+	if n.normalized == "" {
+		return n
+	} else {
+		var lastRuneIdx int
+		var lastRune rune
+		for i, r := range n.normalized {
+			lastRuneIdx = i
+			lastRune = r
+		}
+
+		inputRange := NewRange(lastRuneIdx, len(n.normalized), NormalizedTarget)
+		var changeMap []ChangeMap = []ChangeMap{{string(lastRune), 0}}
+		for _, r := range []rune(s) {
+			changeMap = append(changeMap, ChangeMap{string(r), 1})
+		}
+		return n.TransformRange(inputRange, changeMap, 0)
+	}
 }
 
 // NormFn is a convenient function type for applying

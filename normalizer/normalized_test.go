@@ -353,3 +353,61 @@ func TestNormalized_Strip(t *testing.T) {
 		t.Errorf("Got: %v\n", got1)
 	}
 }
+
+func TestNormalized_Prepend(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("there")
+	n.Prepend("Hey ")
+
+	got0 := n.Alignments()
+	want0 := [][]int{{0, 1}, {0, 1}, {0, 1}, {0, 1}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}}
+
+	got1 := n.ConvertOffset(normalizer.NewRange(0, 4, normalizer.NormalizedTarget)).Values()
+	want1 := []int{0, 1}
+
+	got2 := n.GetNormalized()
+	want2 := "Hey there"
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+}
+
+func TestNormalized_Append(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("Hey")
+	n.Append(" there")
+
+	got0 := n.Alignments()
+	want0 := [][]int{{0, 1}, {1, 2}, {2, 3}, {2, 3}, {2, 3}, {2, 3}, {2, 3}, {2, 3}, {2, 3}}
+
+	got1 := n.ConvertOffset(normalizer.NewRange(3, len(" there"), normalizer.NormalizedTarget)).Values()
+	want1 := []int{2, 3}
+
+	got2 := n.GetNormalized()
+	want2 := "Hey there"
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+}
