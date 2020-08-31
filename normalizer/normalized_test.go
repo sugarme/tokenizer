@@ -528,5 +528,36 @@ func TestNormalized_Replace(t *testing.T) {
 		t.Errorf("Want: %v\n", want4)
 		t.Errorf("Got: %v\n", got4)
 	}
+}
 
+func TestNormalized_Split(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("The-final--countdown")
+
+	want1 := []string{"The", "final", "countdown"}
+	testSplit(t, normalizer.RemovedBehavior, n, want1)
+
+	want2 := []string{"The", "-", "final", "-", "-", "countdown"}
+	testSplit(t, normalizer.IsolatediBehavior, n, want2)
+
+	want3 := []string{"The-", "final-", "-", "countdown"}
+	testSplit(t, normalizer.MergedWithPreviousBehavior, n, want3)
+
+	want4 := []string{"The", "-final", "-", "-countdown"}
+	testSplit(t, normalizer.MergedWithNextBehavior, n, want4)
+}
+
+func testSplit(t *testing.T, behavior normalizer.SplitDelimiterBehavior, n *normalizer.NormalizedString, want []string) {
+	pattern := normalizer.NewStringPattern("-")
+
+	splits := n.Split(pattern, behavior)
+
+	var got []string
+	for _, split := range splits {
+		got = append(got, split.GetNormalized())
+	}
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: %v\n", want)
+		t.Errorf("Got: %v\n", got)
+	}
 }

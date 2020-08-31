@@ -1141,8 +1141,8 @@ func (n *NormalizedString) Uppercase() (retVal *NormalizedString) {
 
 // Clear clears the normalized part of the string
 func (n *NormalizedString) Clear() {
-	n.normalized = ""
-	n.alignments = make([][]int, 0)
+	length := n.Len()
+	n.Transform([]ChangeMap{}, length)
 }
 
 // Split the current string in many subparts. Specify what to do with the
@@ -1225,11 +1225,10 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	// Then split according to the computed splits
 	var slices []*NormalizedString
 	for _, split := range splits {
-		slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
-		if split.Match {
-			slice.Clear()
+		if !split.Match {
+			slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
+			slices = append(slices, slice)
 		}
-		slices = append(slices, slice)
 	}
 
 	return slices
@@ -1447,7 +1446,8 @@ func (n *NormalizedString) Replace(pattern Pattern, content string) (retVal *Nor
 	matches := pattern.FindMatches(n.normalized)
 
 	if len(matches) == 0 {
-		return nil
+		// return nil
+		return n
 	}
 
 	for _, m := range matches {
