@@ -767,13 +767,11 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			var newAlignments [][]int
 			if len(alignments) > 0 {
 				log.Printf("Alignments before shifting: %+v\n", alignments)
-				fmt.Printf("alignments before: %v\n", n.alignments)
 				for _, offsets := range alignments {
-					offsets[0] = applySign(offsets[0], oShift)
-					offsets[1] = applySign(offsets[1], oShift)
-					newAlignments = append(newAlignments, offsets)
+					newOffset0 := applySign(offsets[0], oShift)
+					newOffset1 := applySign(offsets[1], oShift)
+					newAlignments = append(newAlignments, []int{newOffset0, newOffset1})
 				}
-				fmt.Printf("alignments after: %v\n", n.alignments)
 				aligns := append(n.alignmentsOriginal[:endRange[0]], newAlignments...)
 				aligns = append(aligns, n.alignmentsOriginal[endRange[1]:]...)
 				n.alignmentsOriginal = aligns
@@ -1468,12 +1466,12 @@ func (n *NormalizedString) Replace(pattern Pattern, content string) (retVal *Nor
 			start := m.Offsets[0]
 			end := m.Offsets[1]
 			r := []int{m.Offsets[0], m.Offsets[1]}
-			r[0] = applySign(r[0], offset)
-			r[1] = applySign(r[1], offset)
+			r0 := applySign(r[0], offset)
+			r1 := applySign(r[1], offset)
 
 			newLen := 0
 			var removedChars int // num of removed chars
-			removedStr := n.normalized[r[0]:r[1]]
+			removedStr := n.normalized[r0:r1]
 			removedChars = len([]rune(removedStr))
 
 			var changeMap []ChangeMap
@@ -1482,7 +1480,7 @@ func (n *NormalizedString) Replace(pattern Pattern, content string) (retVal *Nor
 				changeMap = append(changeMap, ChangeMap{string(r), 1})
 			}
 
-			n = n.TransformRange(NewRange(r[0], r[1], NormalizedTarget), changeMap, removedChars)
+			n = n.TransformRange(NewRange(r0, r1, NormalizedTarget), changeMap, removedChars)
 
 			oldLen := end - start
 			offset += newLen - oldLen
