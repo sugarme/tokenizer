@@ -784,11 +784,24 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 
 	// replace alignments with new ones in range
 	var newAlignments [][]int
-	if len(n.alignments[:nRange.start]) == 0 {
+	fmt.Printf("nRange: %v\n", nRange)
+	fmt.Printf("normalizedAlignments: %+v\n", normalizedAlignments)
+	fmt.Printf("alignments to be replaced: %v\n", n.alignments[nRange.start:nRange.end])
+	fmt.Printf("normalized alignments before action: %v\n", n.alignments)
+	if len(n.alignments[:nRange.start]) == 0 { // at the beginning
 		newAlignments = append(normalizedAlignments, n.alignments[nRange.end:]...)
-	} else {
-		newAlignments = append(n.alignments[:nRange.start], normalizedAlignments...)
-		newAlignments = append(newAlignments, n.alignments[nRange.end:]...)
+	} else { // in the middle
+		var beforeAligns, afterAligns [][]int
+		for i, a := range n.alignments {
+			if i < nRange.start {
+				beforeAligns = append(beforeAligns, a)
+			}
+			if i >= nRange.end {
+				afterAligns = append(afterAligns, a)
+			}
+		}
+		newAlignments = append(beforeAligns, normalizedAlignments...)
+		newAlignments = append(newAlignments, afterAligns...)
 	}
 	n.alignments = newAlignments
 

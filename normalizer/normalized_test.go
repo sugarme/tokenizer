@@ -561,3 +561,136 @@ func testSplit(t *testing.T, behavior normalizer.SplitDelimiterBehavior, n *norm
 		t.Errorf("Got: %v\n", got)
 	}
 }
+
+func TestNormalized_TransformRange_SingleBytes(t *testing.T) {
+
+	n1 := normalizer.NewNormalizedFrom("Hello friend")
+
+	// Removing at the beginning
+	changeMap1 := []normalizer.ChangeMap{
+		{"Y", 0},
+	}
+	got1 := n1.TransformRange(normalizer.NewRange(0, 4, normalizer.OriginalTarget), changeMap1, 3)
+	original := "Hello friend"
+	normalized := "Yo friend"
+	alignments := [][]int{{3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}}
+	alignmentsOriginal := [][]int{{0, 0}, {0, 0}, {0, 0}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}}
+	originalShift := 0
+	want1 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want1, got1)
+
+	// Removing in the middle
+	n2 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap2 := []normalizer.ChangeMap{
+		{"_", 0},
+		{"F", 0},
+		{"R", -2},
+	}
+	got2 := n2.TransformRange(normalizer.NewRange(3, 10, normalizer.OriginalTarget), changeMap2, 2)
+	original = "Hello friend"
+	normalized = "Hel_FRnd"
+	alignments = [][]int{{0, 1}, {1, 2}, {2, 3}, {5, 6}, {6, 7}, {7, 8}, {10, 11}, {11, 12}}
+	alignmentsOriginal = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 3}, {3, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 6}, {6, 6}, {6, 7}, {7, 8}}
+	originalShift = 0
+	want2 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want2, got2)
+
+	// Removing at the end
+	n3 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap3 := []normalizer.ChangeMap{
+		{"_", 0},
+		{"F", -5},
+	}
+	got3 := n3.TransformRange(normalizer.NewRange(5, len([]byte(n3.GetOriginal())), normalizer.OriginalTarget), changeMap3, 0)
+	original = "Hello friend"
+	normalized = "Hello_F"
+	alignments = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}}
+	alignmentsOriginal = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 7}, {7, 7}, {7, 7}, {7, 7}, {7, 7}}
+	originalShift = 0
+	want3 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want3, got3)
+
+	// Adding at the beginning
+	n4 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap4 := []normalizer.ChangeMap{
+		{"H", 1},
+		{"H", 0},
+	}
+	got4 := n4.TransformRange(normalizer.NewRange(0, 1, normalizer.OriginalTarget), changeMap4, 0)
+	original = "Hello friend"
+	normalized = "HHello friend"
+	alignments = [][]int{{0, 0}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}}
+	alignmentsOriginal = [][]int{{1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}, {12, 13}}
+	originalShift = 0
+	want4 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want4, got4)
+
+	// Equivalent to the previous one
+	n5 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap5 := []normalizer.ChangeMap{
+		{"H", 1},
+	}
+	got5 := n5.TransformRange(normalizer.NewRange(0, 0, normalizer.OriginalTarget), changeMap5, 0)
+	original = "Hello friend"
+	normalized = "HHello friend"
+	alignments = [][]int{{0, 0}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}}
+	alignmentsOriginal = [][]int{{1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}, {12, 13}}
+	originalShift = 0
+	want5 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want5, got5)
+
+	// Adding as part of the first character
+	n6 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap6 := []normalizer.ChangeMap{
+		{"H", 0},
+		{"H", 1},
+	}
+	got6 := n6.TransformRange(normalizer.NewRange(0, 1, normalizer.OriginalTarget), changeMap6, 0)
+	original = "Hello friend"
+	normalized = "HHello friend"
+	alignments = [][]int{{0, 1}, {0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}}
+	alignmentsOriginal = [][]int{{0, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}, {12, 13}}
+	originalShift = 0
+	want6 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want6, got6)
+
+	// Adding in the middle
+	n7 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap7 := []normalizer.ChangeMap{
+		{"_", 0},
+		{"m", 1},
+		{"y", 1},
+		{"_", 1},
+	}
+	got7 := n7.TransformRange(normalizer.NewRange(5, 6, normalizer.OriginalTarget), changeMap7, 0)
+	original = "Hello friend"
+	normalized = "Hello_my_friend"
+	alignments = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {5, 6}, {5, 6}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}}
+	alignmentsOriginal = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 9}, {9, 10}, {10, 11}, {11, 12}, {12, 13}, {13, 14}, {14, 15}}
+	originalShift = 0
+	want7 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want7, got7)
+
+	// Adding at the end
+	n8 := normalizer.NewNormalizedFrom("Hello friend")
+	changeMap8 := []normalizer.ChangeMap{
+		{"d", 0},
+		{"_", 1},
+		{"!", 1},
+	}
+	got8 := n8.TransformRange(normalizer.NewRange(11, len([]byte(n8.GetNormalized())), normalizer.OriginalTarget), changeMap8, 0)
+	original = "Hello friend"
+	normalized = "Hello friend_!"
+	alignments = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 12}, {11, 12}, {11, 12}}
+	alignmentsOriginal = [][]int{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}, {10, 11}, {11, 14}}
+	originalShift = 0
+	want8 := normalizer.NewNormalizedString(original, normalized, alignments, alignmentsOriginal, originalShift)
+	test(t, want8, got8)
+}
+
+func test(t *testing.T, want, got interface{}) {
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: %v\n", want)
+		t.Errorf("Got: %v\n", got)
+	}
+}
