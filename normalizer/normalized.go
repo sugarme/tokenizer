@@ -10,6 +10,7 @@ import (
 
 	"github.com/sugarme/tokenizer/util"
 	slice "github.com/sugarme/tokenizer/util/slice"
+
 	// "golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
@@ -175,7 +176,7 @@ func createAligns(s string) [][]int {
 	var alignments [][]int
 	currIdx := 0
 	for i, r := range []rune(s) {
-		charLen := len(string(r))
+		charLen := len([]byte(string(r)))
 		var align []int
 		if i == 0 {
 			align = []int{0, charLen}
@@ -309,20 +310,18 @@ func (n *NormalizedString) RangeOriginal(r *Range) (retVal string) {
 }
 
 // validateRange validates the given range, to make sure it is on char boundaries
+// if range on boundaries, return `nil`, otherwise, just return the input.
 func (n *NormalizedString) validateRange(inputRange *Range) (retVal *Range) {
 	var (
-		r      *Range
-		s      string
-		target IndexOn
+		r *Range
+		s string
 	)
 
 	switch inputRange.indexOn {
 	case OriginalTarget:
-		target = OriginalTarget
 		r = inputRange.IntoFullRange(len(n.original)) // len in bytes
 		s = n.original
 	case NormalizedTarget:
-		target = NormalizedTarget
 		r = inputRange.IntoFullRange(len(n.normalized))
 		s = n.normalized
 	default:
@@ -369,9 +368,8 @@ func (n *NormalizedString) validateRange(inputRange *Range) (retVal *Range) {
 		return nil
 	}
 
-	outRange := NewRange(start, end, target)
-
-	return outRange
+	// all good, just return the inputRange
+	return inputRange
 }
 
 // Slice returns a slice of the current NormalizedString
@@ -418,7 +416,7 @@ func (n *NormalizedString) Slice(inputRange *Range) (retVal *NormalizedString) {
 	}
 	for _, a := range n.alignmentsOriginal[oRange.start:oRange.end] {
 		sAlignmentOriginal := []int{a[0] - oShift, a[1] - oShift}
-		sAlignmentsOriginal = append(sAlignments, sAlignmentOriginal)
+		sAlignmentsOriginal = append(sAlignmentsOriginal, sAlignmentOriginal)
 	}
 	sOriginalShift = n.originalShift + oRange.start
 

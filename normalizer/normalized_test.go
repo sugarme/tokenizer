@@ -411,3 +411,80 @@ func TestNormalized_Append(t *testing.T) {
 		t.Errorf("Got: %v\n", got2)
 	}
 }
+
+func TestNormalized_GetRange(t *testing.T) {
+	s := "Hello my name is John 👋"
+	start := 0
+	end := len(s)
+
+	got0 := normalizer.RangeOf(s, []int{start, end})
+	want0 := s
+
+	got1 := normalizer.RangeOf(s, []int{17, end})
+	want1 := "John 👋"
+
+	if !reflect.DeepEqual(want0, got0) {
+		t.Errorf("Want: %v\n", want0)
+		t.Errorf("Got: %v\n", got0)
+	}
+
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+}
+
+func TestNormalized_Slice(t *testing.T) {
+	n := normalizer.NewNormalizedFrom("𝔾𝕠𝕠𝕕 𝕞𝕠𝕣𝕟𝕚𝕟𝕘")
+	n = n.NFKC()
+
+	oSlice := n.Slice(normalizer.NewRange(0, 4, normalizer.OriginalTarget))
+	got1 := oSlice.GetNormalized()
+	want1 := "G"
+	got2 := oSlice.GetOriginal()
+	want2 := "𝔾"
+	testSlice(t, want1, got1)
+	testSlice(t, want2, got2)
+
+	nSlice := n.Slice(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	got3 := nSlice.GetNormalized()
+	want3 := "Good"
+	got4 := nSlice.GetOriginal()
+	want4 := "𝔾𝕠𝕠𝕕"
+	testSlice(t, want3, got3)
+	testSlice(t, want4, got4)
+
+	// Make sure the sliced NormalizedString is still aligned as expected
+	n1 := normalizer.NewNormalizedFrom("   Good Morning!   ")
+	n1 = n1.Strip()
+
+	// 1. If we keep the whole slice
+	sliceO := n1.Slice(normalizer.NewRange(0, len(n1.GetOriginal()), normalizer.OriginalTarget))
+	got5 := sliceO.RangeOriginal(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	want5 := "Good"
+	testSlice(t, want5, got5)
+
+	sliceN := n1.Slice(normalizer.NewRange(0, len(n1.GetOriginal()), normalizer.NormalizedTarget))
+	got6 := sliceN.RangeOriginal(normalizer.NewRange(0, 4, normalizer.OriginalTarget))
+	want6 := "Good"
+	testSlice(t, want6, got6)
+
+	// 2. If we keep after the modified piece
+	sliceAM := n1.Slice(normalizer.NewRange(4, 15, normalizer.OriginalTarget))
+	got7 := sliceAM.RangeOriginal(normalizer.NewRange(0, 3, normalizer.NormalizedTarget))
+	want7 := "ood"
+	testSlice(t, want7, got7)
+
+	// 3. If we keep only the modified piece
+	sliceM := n1.Slice(normalizer.NewRange(3, 16, normalizer.OriginalTarget))
+	got8 := sliceM.RangeOriginal(normalizer.NewRange(0, 4, normalizer.NormalizedTarget))
+	want8 := "Good"
+	testSlice(t, want8, got8)
+}
+
+func testSlice(t *testing.T, want, got interface{}) {
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: %v\n", want)
+		t.Errorf("Got: %v\n", got)
+	}
+}
