@@ -222,6 +222,11 @@ func (n *NormalizedString) AlignmentsOriginal() (retVal [][]int) {
 	return n.alignmentsOriginal
 }
 
+// OffsetsOriginal returns the original offsets
+func (n *NormalizedString) OffsetsOriginal() []int {
+	return []int{n.originalShift, n.originalShift + n.LenOriginal()}
+}
+
 // ConvertOffsets converts the given offsets range from one referential to the other one:
 // `Original => Normalized` or `Normalized => Original`
 //
@@ -1106,14 +1111,12 @@ type NormFn func(rune) rune
 // Map maps and applies function to each `char` of normalized string
 func (n *NormalizedString) Map(nfn NormFn) (retVal *NormalizedString) {
 	s := n.normalized
-	var runes []rune
+	var changeMap []ChangeMap
 	for _, r := range []rune(s) {
-		runes = append(runes, nfn(r))
+		changeMap = append(changeMap, ChangeMap{string(r), 0})
 	}
 
-	n.normalized = string(runes)
-
-	return n
+	return n.Transform(changeMap, 0)
 }
 
 // ForEach applies function on each `char` of normalized string
@@ -1243,73 +1246,6 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	}
 
 	return slices
-}
-
-// SplitOff truncates string with the range [at, len).
-// remaining string will contain the range [0, at).
-// The provided `at` indexes on `char` not bytes.
-func (n *NormalizedString) SplitOff(at int) (retVal *NormalizedString) {
-	if at < 0 {
-		log.Fatal("Split off point must be a positive interger number.")
-	}
-	s := n.normalized
-	if at > len([]rune(s)) {
-		n = NewNormalizedFrom("")
-	}
-
-	var (
-		it       norm.Iter
-		runeVals []string
-		aligns   [][]int
-	)
-
-	// Split normalized string
-	it.InitString(norm.NFC, s)
-	for !it.Done() {
-		runeVal := string(it.Next())
-		runeVals = append(runeVals, runeVal)
-	}
-
-	// Alignments
-	remainVals := runeVals[0:at]
-	for i := range remainVals {
-		aligns = append(aligns, []int{i, i + 1})
-	}
-	n.normalized = strings.Join(remainVals, "")
-	n.alignments = aligns
-
-	// Split original string
-	originalAt := aligns[len(aligns)][1] // changes of last alignment
-
-	var oRuneVals []string
-	it.InitString(norm.NFC, n.original)
-	for !it.Done() {
-		runeVal := string(it.Next())
-		oRuneVals = append(oRuneVals, runeVal)
-	}
-
-	remainORuneVals := oRuneVals[0:originalAt]
-	n.original = strings.Join(remainORuneVals, "")
-
-	return n
-}
-
-// MergeWith merges an input string with existing one
-func (n *NormalizedString) MergeWith(other *NormalizedString) (retVal *NormalizedString) {
-	len := n.Len()
-	n.original = strings.Join([]string{n.original, other.original}, "")
-	n.normalized = strings.Join([]string{n.normalized, other.normalized}, "")
-
-	var ajustedAligns [][]int
-	for _, a := range other.alignments {
-		new := []int{a[0] + len, a[1] + len}
-
-		ajustedAligns = append(ajustedAligns, new)
-	}
-
-	n.alignments = append(n.alignments, ajustedAligns...)
-
-	return n
 }
 
 // LStrip removes leading spaces
@@ -1488,4 +1424,100 @@ func (n *NormalizedString) Replace(pattern Pattern, content string) (retVal *Nor
 	}
 
 	return n
+}
+
+type byteIdxRune struct {
+	byteIdx int
+	runeIdx int
+	char    rune
+}
+
+// BytesToChar converts a given range from bytes to `char`
+func BytesToChar(s string, byteRange []int) (retVal []int) {
+	var start, end int
+	if reflect.DeepEqual(byteRange, []int{0, 0}) {
+		start = 0
+		end = 0
+	} else {
+		start = -1 // nil value
+		end = -1   // nil value
+	}
+
+	var selectedChars []byteIdxRune
+	var currRuneIdx int = 0
+	for i, char := range []rune(s) {
+		if i >= byteRange[0] && i <= byteRange[1] {
+			selectedChars = append(selectedChars, byteIdxRune{
+				byteIdx: i,
+				runeIdx: currRuneIdx,
+				char:    char,
+			})
+		}
+		currRuneIdx++
+	}
+
+	for _, item := range selectedChars {
+		if item.byteIdx == byteRange[0] {
+			start = item.runeIdx
+		}
+
+		if item.byteIdx == byteRange[1] {
+			end = item.runeIdx
+		}
+
+		if item.byteIdx+len([]byte(string(item.char))) == byteRange[1] {
+			end = item.runeIdx + 1
+		}
+	}
+
+	return []int{start, end}
+}
+
+// CharToBytes converts a given range from `char` to bytes
+func CharToBytes(s string, charRange []int) (retVal []int) {
+	var start, end int
+	if reflect.DeepEqual(charRange, []int{0, 0}) {
+		start = 0
+		end = 0
+	} else {
+		start = -1
+		end = -1
+	}
+
+	var chars []byteIdxRune
+	var currRuneIdx int = 0
+	for i, char := range []rune(s) {
+		chars = append(chars, byteIdxRune{
+			byteIdx: i,
+			runeIdx: currRuneIdx,
+			char:    char,
+		})
+		currRuneIdx++
+	}
+
+	if charRange[0] == charRange[1] {
+		for i := range chars {
+			if i == charRange[0] {
+				start = chars[i+1].byteIdx
+				end = chars[i+1].byteIdx
+			}
+		}
+	} else {
+		var selected []byteIdxRune
+		for _, c := range chars {
+			if c.byteIdx > charRange[0] && c.byteIdx <= charRange[1] {
+				selected = append(selected, c)
+			}
+		}
+
+		for _, c := range selected {
+			if start == -1 {
+				start = c.byteIdx
+			}
+
+			end = c.byteIdx + len([]byte(string(c.char)))
+		}
+	}
+
+	return []int{start, end}
 }
