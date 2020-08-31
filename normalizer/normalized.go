@@ -1440,3 +1440,41 @@ func applySign(origin int, signed int) int {
 		return result
 	}
 }
+
+func (n *NormalizedString) Replace(pattern Pattern, content string) (retVal *NormalizedString) {
+
+	offset := 0
+	matches := pattern.FindMatches(n.normalized)
+
+	if len(matches) == 0 {
+		return nil
+	}
+
+	for _, m := range matches {
+		if m.Match {
+			start := m.Offsets[0]
+			end := m.Offsets[1]
+			r := []int{m.Offsets[0], m.Offsets[1]}
+			r[0] = applySign(r[0], offset)
+			r[1] = applySign(r[1], offset)
+
+			newLen := 0
+			var removedChars int // num of removed chars
+			removedStr := n.normalized[r[0]:r[1]]
+			removedChars = len([]rune(removedStr))
+
+			var changeMap []ChangeMap
+			for _, r := range []rune(content) {
+				newLen += len([]byte(string(r)))
+				changeMap = append(changeMap, ChangeMap{string(r), 1})
+			}
+
+			n = n.TransformRange(NewRange(r[0], r[1], NormalizedTarget), changeMap, removedChars)
+
+			oldLen := end - start
+			offset += newLen - oldLen
+		}
+	}
+
+	return n
+}

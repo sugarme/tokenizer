@@ -488,3 +488,45 @@ func testSlice(t *testing.T, want, got interface{}) {
 		t.Errorf("Got: %v\n", got)
 	}
 }
+
+func TestNormalized_Replace(t *testing.T) {
+	// Simple
+	n1 := normalizer.NewNormalizedFrom(" Hello   friend ")
+	n1 = n1.Replace(normalizer.NewRunePattern(' '), "_")
+	want1 := "_Hello___friend_"
+	got1 := n1.GetNormalized()
+	if !reflect.DeepEqual(want1, got1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	n2 := normalizer.NewNormalizedFrom("aaaab")
+	n2 = n2.Replace(normalizer.NewRunePattern('a'), "b")
+	want2 := "bbbbb"
+	got2 := n2.GetNormalized()
+	if !reflect.DeepEqual(want2, got2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+
+	// overlapping
+	n3 := normalizer.NewNormalizedFrom("aaaab")
+	n3 = n3.Replace(normalizer.NewStringPattern("aaa"), "b")
+	want3 := "bab"
+	got3 := n3.GetNormalized()
+	if !reflect.DeepEqual(want3, got3) {
+		t.Errorf("Want: %v\n", want3)
+		t.Errorf("Got: %v\n", got3)
+	}
+
+	// Regexp
+	n4 := normalizer.NewNormalizedFrom(" Hello   friend ")
+	n4 = n4.Replace(normalizer.NewRegexpPattern(`\s+`), "_")
+	want4 := "_Hello_friend_"
+	got4 := n4.GetNormalized()
+	if !reflect.DeepEqual(want4, got4) {
+		t.Errorf("Want: %v\n", want4)
+		t.Errorf("Got: %v\n", got4)
+	}
+
+}
