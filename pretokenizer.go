@@ -10,6 +10,12 @@ import (
 	"github.com/sugarme/tokenizer/normalizer"
 )
 
+type PreToken struct {
+	Value   string
+	Offsets []int
+	Tokens  []Token // optional
+}
+
 // OffsetType is a enum-like possible type of offsets
 type OffsetType int
 
@@ -90,12 +96,11 @@ func (pt *PreTokenizedString) Normalize(nFn func(*normalizer.NormalizedString) *
 	var nSplits []Split
 
 	for _, split := range pt.splits {
-		if split.tokens != nil {
-			nSplits = append(nSplits, split)
+		if split.tokens == nil {
+			newSplit := split
+			newSplit.normalized = nFn(split.normalized)
+			nSplits = append(nSplits, newSplit)
 		}
-
-		n := nFn(split.normalized)
-		nSplits = append(nSplits, NewSplit(n, nil))
 	}
 
 	pt.splits = nSplits
@@ -104,20 +109,23 @@ func (pt *PreTokenizedString) Normalize(nFn func(*normalizer.NormalizedString) *
 
 // Tokenize tokenizes all the splits that do not have attached `Tokens`, using the provided
 // `tokenize` function
-func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) *normalizer.NormalizedString) *PreTokenizedString {
+func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) ([]Token, error)) (*PreTokenizedString, error) {
 	var nSplits []Split
 
 	for _, split := range pt.splits {
-		if split.tokens != nil {
-			nSplits = append(nSplits, split)
+		if split.tokens == nil {
+			newSplit := split
+			toks, err := tokFn(split.normalized)
+			if err != nil {
+				return nil, err
+			}
+			newSplit.tokens = toks
+			nSplits = append(nSplits, newSplit)
 		}
-
-		n := tokFn(split.normalized)
-		nSplits = append(nSplits, NewSplit(n, nil))
 	}
 
 	pt.splits = nSplits
-	return pt
+	return pt, nil
 }
 
 // IntoEncoding transforms the current `PreTokenizedString` into an `Encoding`.
@@ -127,11 +135,7 @@ func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) 
 // input, that do not need the `PreTokenizedString` to generate word ids.
 //
 // This method will fail if some splits do not have associated `Token`.
-func (pt *PreTokenizedString) IntoEncoding(typeId int, offsetType OffsetType, wordIdxOpt ...int) (*Encoding, error) {
-	var wordIdx int = -1
-	if len(wordIdxOpt) > 0 {
-		wordIdx = wordIdxOpt[0]
-	}
+func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType OffsetType) (*Encoding, error) {
 
 	if len(pt.splits) == 0 {
 		return DefaultEncoding(), nil
