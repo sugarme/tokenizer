@@ -10,33 +10,44 @@ import (
 	"github.com/sugarme/tokenizer/normalizer"
 )
 
-// SubString contains the underlying `NormalizedString` as well as
+// OffsetType is a enum-like possible type of offsets
+type OffsetType int
+
+const (
+	Byte OffsetType = iota
+	Char
+)
+
+// Split contains the underlying `NormalizedString` as well as
 // its offsets in the original string. These offsets are in the
-// `original` referential.
-type SubString struct {
+// `original` referential. It also contains any `Token` associated
+// to the current split
+type Split struct {
 	// Normalized is the underlying `NormalizedString`. Each SubString
 	// is represented by a `NormalizedString`. In the end, there might
 	// be many SubStrings representing various parts of the original
 	// input string.
-	Normalized *normalizer.NormalizedString
+	normalized *normalizer.NormalizedString
 
-	// OriginalOffsets is the Offsets of `NormalizedString` in the `original`
-	// input string. These is useful to find sub-part of the input string
-	// represented by `NormalizedString`
-	OriginalOffsets Offsets
+	// Optional Tokens associated with this split
+	tokens []Token
 }
 
-// NewSubString creates a new SubString with input of a NormalizedString and its
-// offsets on `original` input string
-func NewSubString(normalized *normalizer.NormalizedString, originalOffsets Offsets) (retVal SubString) {
-	return SubString{normalized, originalOffsets}
+// NewSplit creates a new Split from a input NormalizedString
+func NewSplit(normalized *normalizer.NormalizedString, tokens []Token) Split {
+	return Split{normalized, tokens}
 }
 
-// PreTokenizedString contains SubStrings. It helps to keep track of offsets
-// during the whole normalization and pre-tokenization steps.
+// The `PreTokenizedString` is in charge of splitting an underlying string,
+// making sure everything is fine while doing so, and providing ways to normalize
+// and tokenize these splits.
+//
+// Once everything has been normalized and tokenized, the `PreTokenizedString` is able
+// to build an `Encoding` with all the relevant offsets and word ids, relative to the
+// original string.
 type PreTokenizedString struct {
-	parts   []SubString
-	nextIdx int
+	original string
+	splits   []Split
 }
 
 // SplitFn takes a `NormalizedString` and returns an iterator over the
@@ -47,121 +58,218 @@ type PreTokenizedString struct {
 // the same `original` string as the original one given to `SplitFn`. This
 // means that for the offsets tracking to work as expected, `SplitFn` must
 // produce "splits" of the ORIGINAL string.
-type SplitFn func(int, *normalizer.NormalizedString) []*normalizer.NormalizedString
+type SplitFn func(int, *normalizer.NormalizedString) []normalizer.NormalizedString
 
 // Split splits the `PreTokenizedString` by providing a `SplitFn` which is in
 // charge of splitting each substring (`NormalizedString`) into multiple parts.
-func (pt *PreTokenizedString) Split(splitFn SplitFn) (err error) {
+func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 
-	var newParts []SubString
-	for i, sub := range pt.parts {
-		originalLen := sub.Normalized.LenOriginal()
-		originalOffsets := sub.OriginalOffsets
-
-		newLen := 0
-
-		for _, normalized := range splitFn(i, sub.Normalized) {
-			len := normalized.LenOriginal()
-			start := originalOffsets.Start + newLen
-			end := originalOffsets.Start + newLen + len
-			newS := NewSubString(normalized, Offsets{start, end})
-
-			newParts = append(newParts, newS)
-			newLen += len
+	var newSplits []Split
+	for i, originalSplit := range pt.splits {
+		if originalSplit.tokens != nil {
+			newSplits = append(newSplits, originalSplit)
+			continue
 		}
 
-		if originalLen != newLen {
-			return fmt.Errorf("Split pre-tokenized string must represent the entire original string.\nOriginal length %v - new length %v\n", originalLen, newLen)
+		for _, n := range splitFn(i, originalSplit.normalized) {
+			if n.GetNormalized() != "" {
+				split := NewSplit(&n, nil)
+				newSplits = append(newSplits, split)
+			}
 		}
 	}
 
-	pt.parts = newParts
-
-	return nil
+	pt.splits = newSplits
+	return pt
 }
 
-// Next implement iterator interface for `PreTokenizedString`
-func (pt *PreTokenizedString) Next() (retVal SubString, ok bool) {
-	if pt.nextIdx == len(pt.parts) {
-		return retVal, false
+// Normalize normalizes all the splits that do not have attached `Tokens`,
+// using the provided `normalize` function.
+func (pt *PreTokenizedString) Normalize(nFn func(*normalizer.NormalizedString) *normalizer.NormalizedString) *PreTokenizedString {
+
+	var nSplits []Split
+
+	for _, split := range pt.splits {
+		if split.tokens != nil {
+			nSplits = append(nSplits, split)
+		}
+
+		n := nFn(split.normalized)
+		nSplits = append(nSplits, NewSplit(n, nil))
 	}
 
-	retVal = pt.parts[pt.nextIdx]
-	pt.nextIdx += 1
-
-	return retVal, true
+	pt.splits = nSplits
+	return pt
 }
 
-// Returns a list of normalized string and the associated offsets,
-// either in original or normalized referential
-func (pt *PreTokenizedString) GetNormalized(offsetType normalizer.IndexOn) (retVal []PreToken) {
+// Tokenize tokenizes all the splits that do not have attached `Tokens`, using the provided
+// `tokenize` function
+func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) *normalizer.NormalizedString) *PreTokenizedString {
+	var nSplits []Split
+
+	for _, split := range pt.splits {
+		if split.tokens != nil {
+			nSplits = append(nSplits, split)
+		}
+
+		n := tokFn(split.normalized)
+		nSplits = append(nSplits, NewSplit(n, nil))
+	}
+
+	pt.splits = nSplits
+	return pt
+}
+
+// IntoEncoding transforms the current `PreTokenizedString` into an `Encoding`.
+//
+// If a `wordIdx` is provided, any word in the generated `Encoding`
+// will be set to this value. This is generally used with pre-tokenized
+// input, that do not need the `PreTokenizedString` to generate word ids.
+//
+// This method will fail if some splits do not have associated `Token`.
+func (pt *PreTokenizedString) IntoEncoding(typeId int, offsetType OffsetType, wordIdxOpt ...int) (*Encoding, error) {
+	var wordIdx int = -1
+	if len(wordIdxOpt) > 0 {
+		wordIdx = wordIdxOpt[0]
+	}
+
+	if len(pt.splits) == 0 {
+		return DefaultEncoding(), nil
+	}
+
+	for _, s := range pt.splits {
+		if len(s.tokens) > 0 {
+			err := fmt.Errorf("Split has not been tokenized. Call 'PreTokenizeString.Tokenize()' method first.\n")
+			return nil, err
+		}
+	}
+
+	charMap := make(map[int]int, 0) // map[byteIdx]runeIdx
+
+	switch reflect.TypeOf(offsetType).Name() {
+	case "Char":
+		currRuneIdx := 0
+		for byteIdx, r := range pt.original {
+			n := 0
+			for i := 0; i < len([]byte(string(r))); i++ {
+				charMap[byteIdx+n] = currRuneIdx
+				n += 1
+			}
+			currRuneIdx += 1
+		}
+	case "Byte":
+		charMap = make(map[int]int, 0)
+
+	default:
+		err := fmt.Errorf("Invalid offsetType (%v).\n", reflect.TypeOf(offsetType).Name())
+		return nil, err
+	}
+
 	var (
-		offset  int = 0
-		preToks []PreToken
+		enIds     []int
+		enTokens  []string
+		enWords   []int
+		enTypeIds []int
+		enOffsets [][]int
 	)
 
-	for _, sub := range pt.parts {
-		var offsets Offsets
-		switch offsetType {
-		case normalizer.OriginalTarget:
-			offsets = Offsets{
-				Start: sub.OriginalOffsets.Start,
-				End:   sub.OriginalOffsets.Start + sub.Normalized.LenOriginal(),
+	for idx, split := range pt.splits {
+		normalized := split.normalized
+		offsets := normalized.OffsetsOriginal()
+
+		var convertedOffsets []int
+		for _, tok := range split.tokens {
+			o := normalized.ConvertOffset(normalizer.NewRange(tok.Offsets[0], tok.Offsets[1], normalizer.NormalizedTarget))
+			if o == nil {
+				convertedOffsets = []int{offsets[0] + tok.Offsets[0], offsets[0] + tok.Offsets[1]}
 			}
-		case normalizer.NormalizedTarget:
-			length := sub.Normalized.Len()
-			offset += length
-			offsets = Offsets{Start: offset - length, End: offset}
+			convertedOffsets = []int{offsets[0] + o.Start(), offsets[0] + o.End()}
+
+			// Convert to char offset if relevant
+			start, ok := charMap[convertedOffsets[0]]
+			if !ok {
+				start = -1
+			}
+			end, ok := charMap[convertedOffsets[1]]
+			if !ok {
+				end = -1
+			}
+
+			var newConvertedOffsets []int
+			switch {
+			case start != -1 && end != -1:
+				newConvertedOffsets = []int{start, end}
+			case start != -1 && end == -1: // If we reached the end, `end` is not in the map
+				// But the one just before should be
+				last, ok := charMap[convertedOffsets[1]-1]
+				if !ok {
+					log.Printf("Something wrong here. Should find from map.\n")
+					last = start + 1
+				}
+				newConvertedOffsets = []int{start, last}
+
+			default:
+				newConvertedOffsets = nil
+			}
+
+			if wordIdx == -1 {
+				wordIdx = idx
+			}
+
+			enIds = append(enIds, tok.Id)
+			enTokens = append(enTokens, tok.Value)
+			enOffsets = append(enOffsets, newConvertedOffsets)
+			enWords = append(enWords, wordIdx)
+			enTypeIds = append(enTypeIds, typeId)
 		}
-		preToks = append(preToks, PreToken{Value: sub.Normalized.GetNormalized(), Offsets: offsets})
+	}
+
+	en := DefaultEncoding()
+	en.Ids = enIds
+	en.Tokens = enTokens
+	en.Offsets = enOffsets
+	en.Words = enWords
+	en.TypeIds = enTypeIds
+
+	return en, nil
+}
+
+// GetSplits returns a list of splits, each of them being a slice of the normalized
+// string, the associated offsets either in original or normalized
+// referential, as well as the potention tokens
+func (pt *PreTokenizedString) GetSplits(offsetType normalizer.IndexOn) []PreToken {
+	offset := 0
+	var preToks []PreToken
+
+	for _, s := range pt.splits {
+		var offsets []int
+		switch {
+		case offsetType == normalizer.OriginalTarget:
+			offsets = s.normalized.OffsetsOriginal()
+		case offsetType == normalizer.NormalizedTarget:
+			length := s.normalized.Len()
+			offset += length
+			offsets = []int{offset - length, offset}
+		}
+
+		preToks = append(preToks, PreToken{s.normalized.GetNormalized(), offsets, s.tokens})
 	}
 
 	return preToks
 }
 
-// IntoMerged merges back to a NormalizedString
-func (pt *PreTokenizedString) IntoMerged() (retVal *normalizer.NormalizedString) {
-
-	var end int = 0
-	if len(pt.parts) > 0 {
-		end = pt.parts[len(pt.parts)-1].OriginalOffsets.End
-	}
-
-	offsets := Offsets{0, end}
-	var normalized *normalizer.NormalizedString
-	for i, sub := range pt.parts {
-		if i == 0 {
-			normalized = sub.Normalized
-		} else {
-			normalized.MergeWith(sub.Normalized)
-		}
-	}
-
-	if !reflect.DeepEqual(offsets, Offsets{0, normalized.LenOriginal()}) {
-		log.Fatalf("Merging Error: original string length and merged string length are mismatche.\n")
-	}
-
-	return normalized
-}
-
 // NewNormalizedStringFromNS creates a PreTokenizedString from input
 // NormalizedString
-func NewPreTokenizedStringFromNS(n *normalizer.NormalizedString) (retVal PreTokenizedString) {
-	originalOffsets := Offsets{0, n.LenOriginal()}
+func NewPreTokenizedStringFromNS(n *normalizer.NormalizedString) *PreTokenizedString {
 
-	return PreTokenizedString{
-		parts: []SubString{
-			{
-				Normalized:      n,
-				OriginalOffsets: originalOffsets,
-			},
-		},
-		nextIdx: 0,
+	return &PreTokenizedString{
+		original: n.GetOriginal(),
+		splits:   []Split{{normalized: n, tokens: nil}},
 	}
 }
 
 // NewPreTokenizedString create a new PreTokenizedString from input string
-func NewPreTokenizedString(s string) (retVal PreTokenizedString) {
+func NewPreTokenizedString(s string) *PreTokenizedString {
 	n := normalizer.NewNormalizedFrom(s)
 	return NewPreTokenizedStringFromNS(n)
 }

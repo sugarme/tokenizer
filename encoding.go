@@ -17,7 +17,7 @@ type Encoding struct {
 	Ids              []int       // ID produced by the `tokenizer`
 	TypeIds          []int       // Type of the ID
 	Tokens           []string    // Tokens associated with each ID
-	Offsets          []Offsets   // Offsets of the token/ID from the NormalizedString
+	Offsets          [][]int     // Offsets of the token/ID from the NormalizedString
 	SpecialTokenMask []int       // Mask identifying special tokens
 	AttentionMask    []int       // Mask identifying padding tokens for the attention mechanism
 	Overflowing      []*Encoding // A list of overflowing generated when being truncated

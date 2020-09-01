@@ -32,13 +32,14 @@ type Offsets struct {
 
 type PreToken struct {
 	Value   string
-	Offsets Offsets
+	Offsets []int
+	Tokens  []Token // optional
 }
 
 type Token struct {
 	Id      int
 	Value   string
-	Offsets Offsets
+	Offsets []int
 }
 
 // PreTokenizer processes strings before going to the model
