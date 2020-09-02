@@ -64,10 +64,11 @@ type PreTokenizedString struct {
 // the same `original` string as the original one given to `SplitFn`. This
 // means that for the offsets tracking to work as expected, `SplitFn` must
 // produce "splits" of the ORIGINAL string.
-type SplitFn func(int, *normalizer.NormalizedString) []normalizer.NormalizedString
+type SplitFn func(int, *normalizer.NormalizedString) []SplitIdx
 
 // Split splits the `PreTokenizedString` by providing a `SplitFn` which is in
 // charge of splitting each substring (`NormalizedString`) into multiple parts.
+// func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 
 	var newSplits []Split
@@ -77,9 +78,13 @@ func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 			continue
 		}
 
-		for _, n := range splitFn(i, originalSplit.normalized) {
-			if n.GetNormalized() != "" {
-				split := NewSplit(&n, nil)
+		for _, splitIdx := range splitFn(i, originalSplit.normalized) {
+			if splitIdx.Normalized.GetNormalized() != "" {
+				// split := NewSplit(splitIdx.Normalized, splitIdx.Tokens)
+				split := Split{
+					normalized: splitIdx.Normalized,
+					tokens:     splitIdx.Tokens,
+				}
 				newSplits = append(newSplits, split)
 			}
 		}

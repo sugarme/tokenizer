@@ -260,7 +260,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
 			Id:      id,
-			Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+			Offsets: []int{0, charLen},
 		}
 		outputTokens = append(outputTokens, token)
 
@@ -287,7 +287,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 				currStr = &tokenizer.Token{
 					Id:      id,
 					Value:   substr,
-					Offsets: tokenizer.Offsets{Start: start, End: end},
+					Offsets: []int{start, end},
 				}
 				break
 			}
@@ -310,7 +310,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
 			Id:      id,
-			Offsets: tokenizer.Offsets{Start: 0, End: charLen},
+			Offsets: []int{0, charLen},
 		}
 
 		outputTokens = append(outputTokens, token)

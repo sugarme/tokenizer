@@ -227,6 +227,11 @@ func (n *NormalizedString) OffsetsOriginal() []int {
 	return []int{n.originalShift, n.originalShift + n.LenOriginal()}
 }
 
+// Shift returns original shift
+func (n *NormalizedString) Shift() int {
+	return n.originalShift
+}
+
 // ConvertOffsets converts the given offsets range from one referential to the other one:
 // `Original => Normalized` or `Normalized => Original`
 //
@@ -1176,7 +1181,7 @@ func (n *NormalizedString) Clear() {
 //  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
 //  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
 //  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
-func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []*NormalizedString) {
+func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
 	matches := pattern.FindMatches(n.GetNormalized())
 
@@ -1237,11 +1242,11 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	}
 
 	// Then split according to the computed splits
-	var slices []*NormalizedString
+	var slices []NormalizedString
 	for _, split := range splits {
 		if !split.Match {
 			slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
-			slices = append(slices, slice)
+			slices = append(slices, *slice)
 		}
 	}
 

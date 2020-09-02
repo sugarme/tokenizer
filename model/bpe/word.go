@@ -8,8 +8,6 @@ import (
 
 	"github.com/emirpasic/gods/trees/binaryheap"
 	"github.com/emirpasic/gods/utils"
-
-	"github.com/sugarme/tokenizer"
 )
 
 const DefaultCacheCapacity int = 10000
@@ -401,17 +399,13 @@ func (w *Word) GetChars() []int {
 	return res
 }
 
-func (w *Word) GetOffsets() []tokenizer.Offsets {
-	var offsets []tokenizer.Offsets
+func (w *Word) GetOffsets() [][]int {
+	var offsets [][]int
 
 	var pos int = 0
 	for _, s := range w.Symbols {
 		end := pos + s.Len
-		offsets = append(offsets, tokenizer.Offsets{
-			Start: pos,
-			End:   end,
-		})
-
+		offsets = append(offsets, []int{pos, end})
 		pos += s.Len
 	}
 

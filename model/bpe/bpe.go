@@ -414,7 +414,7 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 	offsets := word.GetOffsets()
 	type zword struct { // zip id and offsets
 		Id      int
-		Offsets tokenizer.Offsets
+		Offsets []int
 	}
 	var zWord []zword
 

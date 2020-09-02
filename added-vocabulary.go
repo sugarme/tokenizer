@@ -463,31 +463,31 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 	return finalSplits
 }
 
-type splitIdx struct {
-	normalized *normalizer.NormalizedString
-	tokens     []Token
+type SplitIdx struct {
+	Normalized *normalizer.NormalizedString
+	Tokens     []Token
 }
 
 // splitWithIndices splits the input sentence to extract anything found from the `MatchingSet`, as well as
 // the list of corresponding IDs.
 //
 // NOTE.The list of IDs have the exact same number of elements as the Iterator.
-func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedString, splitRe matchingSet) []splitIdx {
+func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedString, splitRe matchingSet) []SplitIdx {
 
 	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
 
-	var splits []splitIdx
+	var splits []SplitIdx
 
 	for _, p := range ioPairs {
 		slice := sentence.Slice(normalizer.NewRange(p.offsets[0], p.offsets[1], normalizer.NormalizedTarget))
 		if p.id == -1 {
-			splits = append(splits, splitIdx{slice, nil})
+			splits = append(splits, SplitIdx{slice, nil})
+		} else {
+			value := slice.GetNormalized()
+			length := len(value)
+			split := SplitIdx{slice, []Token{NewToken(p.id, value, []int{0, length})}}
+			splits = append(splits, split)
 		}
-
-		value := slice.GetNormalized()
-		length := len(value)
-		split := splitIdx{slice, []Token{NewToken(p.id, value, []int{0, length})}}
-		splits = append(splits, split)
 	}
 
 	return splits
@@ -504,31 +504,24 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 	pretokenized := NewPreTokenizedString(sequence)
 
 	// 1. Extract all non-normalized tokens from the non-normalized string
-	pretok1 := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []normalizer.NormalizedString {
-		splits := av.splitWithIndices(seq, av.splitRe)
-		var res []normalizer.NormalizedString
-		for _, s := range splits {
-			res = append(res, *s.normalized)
-		}
-		return res
+	pretok1 := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []SplitIdx {
+		return av.splitWithIndices(seq, av.splitRe)
 	})
 
 	// 2. Extract the normalized tokens from the normalized pieces of the string
-	pretok2 := pretok1.Split(func(i int, seq *normalizer.NormalizedString) []normalizer.NormalizedString {
-		newSeq, err := (*n).Normalize(seq)
-		if err != nil {
-			log.Fatal(err)
+	pretok2 := pretok1.Split(func(i int, seq *normalizer.NormalizedString) []SplitIdx {
+		newSeq := seq
+		var err error
+		if n != nil {
+			newSeq, err = (*n).Normalize(seq)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
-		splits := av.splitWithIndices(newSeq, av.splitRe)
-		var res []normalizer.NormalizedString
-		for _, s := range splits {
-			res = append(res, *s.normalized)
-		}
-		return res
+		return av.splitWithIndices(newSeq, av.splitNormalizedRe)
 	})
 
 	return pretok2
-
 }
 
 type AddedTokenWithId struct {

@@ -119,7 +119,7 @@ func (bl *ByteLevel) SetTrimOffsets(v bool) {
 func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*normalizer.NormalizedString, *[]tokenizer.PreToken) {
 
 	var res []tokenizer.PreToken
-	var positions []tokenizer.Offsets
+	var positions [][]int
 	normalizedString := normalized.GetNormalized()
 
 	if bl.AddPrefixSpace && !strings.HasPrefix(normalizedString, " ") {
@@ -172,7 +172,7 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*norm
 			start -= 1
 		}
 
-		positions = append(positions, tokenizer.Offsets{Start: start, End: end})
+		positions = append(positions, []int{start, end})
 
 	}
 
@@ -188,12 +188,12 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*norm
 	var n = 0
 
 	for i, pos := range positions {
-		end := pos.End
+		end := pos[1]
 		if i == len(positions) {
-			end = pos.End
+			end = pos[1]
 		}
 
-		tok := normalizedString[pos.Start:end]
+		tok := normalizedString[pos[0]:end]
 
 		tokChars := strings.Split(tok, "")
 
@@ -241,7 +241,7 @@ func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*norm
 		}
 		totalLen += length
 		tok := strings.Join(chars, "")
-		offsets := tokenizer.Offsets{Start: totalLen - length, End: totalLen}
+		offsets := []int{totalLen - length, totalLen}
 		res = append(res, tokenizer.PreToken{
 			Value:   tok,
 			Offsets: offsets,
@@ -301,7 +301,7 @@ func processOffsets(isTrimOffsets bool, encoding *tokenizer.Encoding) *tokenizer
 	}
 
 	var modifs []Modif
-	var newOffsets []tokenizer.Offsets
+	var newOffsets [][]int
 
 	toks := encoding.GetTokens()
 
@@ -336,13 +336,13 @@ func processOffsets(isTrimOffsets bool, encoding *tokenizer.Encoding) *tokenizer
 		offsets := encoding.GetOffsets()[i]
 
 		if m.LeadingSpaces > 0 {
-			minVal := math.Min(float64(offsets.Start+m.LeadingSpaces), float64(offsets.End))
-			offsets.Start = int(minVal)
+			minVal := math.Min(float64(offsets[0]+m.LeadingSpaces), float64(offsets[1]))
+			offsets[0] = int(minVal)
 		}
 
 		if m.TrailingSpace > 0 {
-			maxVal := math.Max(float64(offsets.End-m.TrailingSpace), float64(offsets.Start))
-			offsets.End = int(maxVal)
+			maxVal := math.Max(float64(offsets[1]-m.TrailingSpace), float64(offsets[0]))
+			offsets[1] = int(maxVal)
 		}
 
 		newOffsets = append(newOffsets, offsets)
