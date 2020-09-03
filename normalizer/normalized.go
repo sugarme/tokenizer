@@ -1183,7 +1183,14 @@ func (n *NormalizedString) Clear() {
 //  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
 func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
+	fmt.Printf("input normalized: %v\n", n)
+
 	matches := pattern.FindMatches(n.GetNormalized())
+
+	fmt.Printf("length of matches: %v\n", len(matches))
+	for i, m := range matches {
+		fmt.Printf("%v match: %v\n", i, m)
+	}
 
 	// Process the matches according to the selected behavior: []OfssetsMatch
 	// where `Match` field is `shouldRemove`
@@ -1246,9 +1253,13 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	for _, split := range splits {
 		if !split.Match {
 			slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
-			slices = append(slices, *slice)
+			if slice != nil {
+				slices = append(slices, *slice)
+			}
 		}
 	}
+
+	fmt.Printf("output: %v\n", slices)
 
 	return slices
 }

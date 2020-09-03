@@ -5,7 +5,7 @@ package tokenizer
 import (
 	"fmt"
 	"log"
-	"reflect"
+	// "reflect"
 
 	"github.com/sugarme/tokenizer/normalizer"
 )
@@ -118,15 +118,15 @@ func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) 
 	var nSplits []Split
 
 	for _, split := range pt.splits {
+		newSplit := split
 		if split.tokens == nil {
-			newSplit := split
 			toks, err := tokFn(split.normalized)
 			if err != nil {
 				return nil, err
 			}
 			newSplit.tokens = toks
-			nSplits = append(nSplits, newSplit)
 		}
+		nSplits = append(nSplits, newSplit)
 	}
 
 	pt.splits = nSplits
@@ -147,7 +147,7 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 	}
 
 	for _, s := range pt.splits {
-		if len(s.tokens) > 0 {
+		if len(s.tokens) == 0 {
 			err := fmt.Errorf("Split has not been tokenized. Call 'PreTokenizeString.Tokenize()' method first.\n")
 			return nil, err
 		}
@@ -155,8 +155,8 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 
 	charMap := make(map[int]int, 0) // map[byteIdx]runeIdx
 
-	switch reflect.TypeOf(offsetType).Name() {
-	case "Char":
+	switch {
+	case offsetType == Char:
 		currRuneIdx := 0
 		for byteIdx, r := range pt.original {
 			n := 0
@@ -166,11 +166,11 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 			}
 			currRuneIdx += 1
 		}
-	case "Byte":
+	case offsetType == Byte:
 		charMap = make(map[int]int, 0)
 
 	default:
-		err := fmt.Errorf("Invalid offsetType (%v).\n", reflect.TypeOf(offsetType).Name())
+		err := fmt.Errorf("Invalid offsetType (%v).\n", offsetType)
 		return nil, err
 	}
 
@@ -185,21 +185,22 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 	for idx, split := range pt.splits {
 		normalized := split.normalized
 		offsets := normalized.OffsetsOriginal()
-
+		charMapSplit := charMap
 		var convertedOffsets []int
 		for _, tok := range split.tokens {
 			o := normalized.ConvertOffset(normalizer.NewRange(tok.Offsets[0], tok.Offsets[1], normalizer.NormalizedTarget))
 			if o == nil {
 				convertedOffsets = []int{offsets[0] + tok.Offsets[0], offsets[0] + tok.Offsets[1]}
+			} else {
+				convertedOffsets = []int{offsets[0] + o.Start(), offsets[0] + o.End()}
 			}
-			convertedOffsets = []int{offsets[0] + o.Start(), offsets[0] + o.End()}
 
 			// Convert to char offset if relevant
-			start, ok := charMap[convertedOffsets[0]]
+			start, ok := charMapSplit[convertedOffsets[0]]
 			if !ok {
 				start = -1
 			}
-			end, ok := charMap[convertedOffsets[1]]
+			end, ok := charMapSplit[convertedOffsets[1]]
 			if !ok {
 				end = -1
 			}
@@ -210,7 +211,7 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 				newConvertedOffsets = []int{start, end}
 			case start != -1 && end == -1: // If we reached the end, `end` is not in the map
 				// But the one just before should be
-				last, ok := charMap[convertedOffsets[1]-1]
+				last, ok := charMapSplit[convertedOffsets[1]-1]
 				if !ok {
 					log.Printf("Something wrong here. Should find from map.\n")
 					last = start + 1
@@ -218,17 +219,18 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 				newConvertedOffsets = []int{start, last}
 
 			default:
-				newConvertedOffsets = nil
+				newConvertedOffsets = convertedOffsets
 			}
 
+			var wordIndex int = wordIdx
 			if wordIdx == -1 {
-				wordIdx = idx
+				wordIndex = idx
 			}
 
 			enIds = append(enIds, tok.Id)
 			enTokens = append(enTokens, tok.Value)
 			enOffsets = append(enOffsets, newConvertedOffsets)
-			enWords = append(enWords, wordIdx)
+			enWords = append(enWords, wordIndex)
 			enTypeIds = append(enTypeIds, typeId)
 		}
 	}

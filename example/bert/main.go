@@ -48,6 +48,7 @@ func splitOnAddedToken() {
 	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
 
 	sentence := `Yesterday I saw a [MASK] far away`
+	// sentence := `Hello, y'all! How are you 😁 ?`
 	// Output:
 	// tokens: [yesterday i saw a [MASK] far away]
 	// offsets: [{0 9} {10 11} {12 15} {16 17} {18 24} {25 28} {29 33}]
@@ -65,6 +66,7 @@ func splitOnAddedToken() {
 
 	fmt.Printf("tokens: %v\n", en.GetTokens())
 	fmt.Printf("offsets: %v\n", en.GetOffsets())
+	fmt.Printf("word idx: %v\n", en.GetWords())
 }
 
 func bertTokenize() {

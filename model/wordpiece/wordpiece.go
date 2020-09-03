@@ -248,6 +248,8 @@ func (wp WordPiece) GetVocabSize() (retVal int) {
 
 func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err error) {
 
+	fmt.Printf("input sequence: %v\n", sequence)
+
 	var outputTokens []tokenizer.Token
 
 	chars := []rune(sequence)

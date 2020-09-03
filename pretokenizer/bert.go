@@ -84,15 +84,9 @@ func (bt BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedStrin
 		}
 
 		var splitIdxs []tokenizer.SplitIdx
-		for i, s := range splits {
-			aligns := s.Alignments()
-			start := aligns[0][0]
-			end := aligns[len(aligns)-1][1]
-			shift := s.Shift()
-			offsets := []int{start + shift, end + shift}
-			token := tokenizer.NewToken(i, s.GetNormalized(), offsets)
+		for _, s := range splits {
 			normalized := s
-			splitIdx := tokenizer.SplitIdx{Normalized: &normalized, Tokens: []tokenizer.Token{token}}
+			splitIdx := tokenizer.SplitIdx{Normalized: &normalized, Tokens: nil}
 			splitIdxs = append(splitIdxs, splitIdx)
 		}
 
