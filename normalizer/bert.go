@@ -99,6 +99,11 @@ func isChinese(c rune) bool {
 	// return unicode.Is(unicode.Han, c)
 }
 
+// isChinese validates that rune c is in the CJK range according to BERT spec
+func IsChinese(c rune) bool {
+	return isChinese(c)
+}
+
 func doCleanText(n *NormalizedString) *NormalizedString {
 
 	s := n.normalized

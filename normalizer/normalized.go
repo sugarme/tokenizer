@@ -579,7 +579,9 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		default:
 			changeType = "Undefined"
 		}
-		log.Printf("### %+q with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
+		// log.Printf("### %+q with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
+		log.Printf("### '%v' with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
+		fmt.Printf("'%v' - changes: %v\n", item.RuneVal, item.Changes)
 
 		idx := offset
 		fmt.Printf("idx: %v\n", idx)

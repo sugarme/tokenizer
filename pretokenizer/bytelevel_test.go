@@ -89,16 +89,16 @@ func TestAddPrefixSpace(t *testing.T) {
 		ngot := normalized.GetNormalized()
 
 		pwant := []tokenizer.PreToken{
-			{Value: "ĠHello", Offsets: tokenizer.Offsets{Start: 0, End: 6}},
-			{Value: "Ġmy", Offsets: tokenizer.Offsets{Start: 6, End: 9}},
-			{Value: "Ġfriend", Offsets: tokenizer.Offsets{Start: 9, End: 16}},
-			{Value: ",", Offsets: tokenizer.Offsets{Start: 16, End: 17}},
-			{Value: "Ġhow", Offsets: tokenizer.Offsets{Start: 17, End: 21}},
-			{Value: "Ġis", Offsets: tokenizer.Offsets{Start: 21, End: 24}},
-			{Value: "Ġyour", Offsets: tokenizer.Offsets{Start: 24, End: 29}},
-			{Value: "Ġday", Offsets: tokenizer.Offsets{Start: 29, End: 33}},
-			{Value: "Ġgoing", Offsets: tokenizer.Offsets{Start: 33, End: 39}},
-			{Value: "?", Offsets: tokenizer.Offsets{Start: 39, End: 40}},
+			{Value: "ĠHello", Offsets: []int{0, 6}},
+			{Value: "Ġmy", Offsets: []int{6, 9}},
+			{Value: "Ġfriend", Offsets: []int{9, 16}},
+			{Value: ",", Offsets: []int{16, 17}},
+			{Value: "Ġhow", Offsets: []int{17, 21}},
+			{Value: "Ġis", Offsets: []int{21, 24}},
+			{Value: "Ġyour", Offsets: []int{24, 29}},
+			{Value: "Ġday", Offsets: []int{29, 33}},
+			{Value: "Ġgoing", Offsets: []int{33, 39}},
+			{Value: "?", Offsets: []int{39, 40}},
 		}
 
 		pgot := *res
@@ -165,11 +165,11 @@ func TestHandlingOfNewLines(t *testing.T) {
 	}
 
 	want := []tokenizer.PreToken{
-		{Value: "Hello", Offsets: tokenizer.Offsets{Start: 0, End: 5}},
-		{Value: "Ġthere", Offsets: tokenizer.Offsets{Start: 5, End: 11}},
-		{Value: "Ċ", Offsets: tokenizer.Offsets{Start: 11, End: 12}},
-		{Value: "Hello", Offsets: tokenizer.Offsets{Start: 12, End: 17}},
-		{Value: "Ġthere", Offsets: tokenizer.Offsets{Start: 17, End: 23}},
+		{Value: "Hello", Offsets: []int{0, 5}},
+		{Value: "Ġthere", Offsets: []int{5, 11}},
+		{Value: "Ċ", Offsets: []int{11, 12}},
+		{Value: "Hello", Offsets: []int{12, 17}},
+		{Value: "Ġthere", Offsets: []int{17, 23}},
 	}
 	got := *preTokenized
 
@@ -196,10 +196,10 @@ func TestHandlingOfMultipleSpaces(t *testing.T) {
 	}
 
 	want := []tokenizer.PreToken{
-		{Value: "Hello", Offsets: tokenizer.Offsets{Start: 0, End: 5}},
-		{Value: "Ġthere", Offsets: tokenizer.Offsets{Start: 5, End: 11}},
-		{Value: "ĠĠĠĠĠĠ", Offsets: tokenizer.Offsets{Start: 11, End: 17}},
-		{Value: "Ġdear", Offsets: tokenizer.Offsets{Start: 17, End: 22}},
+		{Value: "Hello", Offsets: []int{0, 5}},
+		{Value: "Ġthere", Offsets: []int{5, 11}},
+		{Value: "ĠĠĠĠĠĠ", Offsets: []int{11, 17}},
+		{Value: "Ġdear", Offsets: []int{17, 22}},
 	}
 	got := *preTokenized
 
@@ -226,9 +226,9 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 	}
 
 	want := []tokenizer.PreToken{
-		{Value: "i", Offsets: tokenizer.Offsets{Start: 0, End: 1}},
-		{Value: "ŸŃ¢", Offsets: tokenizer.Offsets{Start: 1, End: 4}},
-		{Value: "j", Offsets: tokenizer.Offsets{Start: 4, End: 5}},
+		{Value: "i", Offsets: []int{0, 1}},
+		{Value: "ŸŃ¢", Offsets: []int{1, 4}},
+		{Value: "j", Offsets: []int{4, 5}},
 	}
 	got := *preTokenized
 
@@ -247,14 +247,14 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			"HelloĠĠ",
 			"ĠĠĠĠ",
 		},
-		[]tokenizer.Offsets{
-			{Start: 0, End: 11},
-			{Start: 11, End: 18},
-			{Start: 18, End: 25},
-			{Start: 25, End: 29},
+		[][]int{
+			{0, 11},
+			{11, 18},
+			{18, 25},
+			{25, 29},
 		},
 		[]int{}, []int{},
-		[]*tokenizer.Encoding{},
+		[]tokenizer.Encoding{},
 	)
 
 	want := tokenizer.NewEncoding(
@@ -264,20 +264,20 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 			"HelloĠĠ",
 			"ĠĠĠĠ",
 		},
-		[]tokenizer.Offsets{
-			{Start: 4, End: 9},
-			{Start: 13, End: 18},
-			{Start: 18, End: 23},
-			{Start: 29, End: 29},
+		[][]int{
+			{4, 9},
+			{13, 18},
+			{18, 23},
+			{29, 29},
 		},
 		[]int{}, []int{},
-		[]*tokenizer.Encoding{},
+		[]tokenizer.Encoding{},
 	)
 
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetTrimOffsets(true)
 
-	got := bytelevel.Process(start, false)
+	got := bytelevel.Process(start, nil, false)
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -285,9 +285,9 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 	}
 
 	pairWant := want
-	pairWant.MergeWith(want)
+	pairWant.MergeWith(want, true)
 
-	pairGot := bytelevel.Process(start, false, start)
+	pairGot := bytelevel.Process(start, start, false)
 
 	if !reflect.DeepEqual(pairWant, pairGot) {
 		t.Errorf("Want: %v\n", pairWant)
