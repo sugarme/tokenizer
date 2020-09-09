@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/sugarme/tokenizer"
 	bpe "github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
 func main() {
@@ -41,13 +41,15 @@ func main() {
 
 	tk := tokenizer.NewTokenizer(model)
 
-	tk.AddSpecialTokens([]string{
-		"<s>",
-		"<pad>",
-		"</s>",
-		"<unk>",
-		"<mask>",
-	})
+	specialToks := []tokenizer.AddedToken{
+		tokenizer.NewAddedToken("<s>", true),
+		tokenizer.NewAddedToken("<pad>", true),
+		tokenizer.NewAddedToken("</s>", true),
+		tokenizer.NewAddedToken("<unk>", true),
+		tokenizer.NewAddedToken("<mask>", true),
+	}
+
+	tk.AddSpecialTokens(specialToks)
 
 	bytelevel := pretokenizer.NewByteLevel()
 

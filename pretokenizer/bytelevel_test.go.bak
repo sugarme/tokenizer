@@ -10,11 +10,6 @@ import (
 	"github.com/sugarme/tokenizer/pretokenizer"
 )
 
-type charidx struct {
-	s string
-	o []int
-}
-
 func TestBytesChar(t *testing.T) {
 
 	want := "!"
@@ -85,36 +80,37 @@ func TestAddPrefixSpace(t *testing.T) {
 	}
 
 	for _, l := range lines {
-		pretokenized := tokenizer.NewPreTokenizedString(l)
-		pretok, err := bytelevel.PreTokenize(pretokenized)
-		if err != nil {
-			t.Error(err)
+		var normalized *normalizer.NormalizedString
+		n := normalizer.NewNormalizedFrom(l)
+
+		normalized, res := bytelevel.PreTokenize(n)
+
+		nwant := "ĠHelloĠmyĠfriend,ĠhowĠisĠyourĠdayĠgoing?"
+		ngot := normalized.GetNormalized()
+
+		pwant := []tokenizer.PreToken{
+			{Value: "ĠHello", Offsets: []int{0, 6}},
+			{Value: "Ġmy", Offsets: []int{6, 9}},
+			{Value: "Ġfriend", Offsets: []int{9, 16}},
+			{Value: ",", Offsets: []int{16, 17}},
+			{Value: "Ġhow", Offsets: []int{17, 21}},
+			{Value: "Ġis", Offsets: []int{21, 24}},
+			{Value: "Ġyour", Offsets: []int{24, 29}},
+			{Value: "Ġday", Offsets: []int{29, 33}},
+			{Value: "Ġgoing", Offsets: []int{33, 39}},
+			{Value: "?", Offsets: []int{39, 40}},
 		}
 
-		pretokens := pretok.GetSplits(normalizer.NormalizedTarget)
+		pgot := *res
 
-		var want, got []charidx
-
-		for _, pretoken := range pretokens {
-			got = append(got, charidx{pretoken.Value, pretoken.Offsets})
+		if !reflect.DeepEqual(nwant, ngot) {
+			t.Errorf("nWant: %v\n", nwant)
+			t.Errorf("nGot: %v\n", ngot)
 		}
 
-		want = []charidx{
-			{"ĠHello", []int{0, 7}},
-			{"Ġmy", []int{7, 11}},
-			{"Ġfriend", []int{11, 19}},
-			{",", []int{19, 20}},
-			{"Ġhow", []int{20, 25}},
-			{"Ġis", []int{25, 29}},
-			{"Ġyour", []int{29, 35}},
-			{"Ġday", []int{35, 40}},
-			{"Ġgoing", []int{40, 47}},
-			{"?", []int{47, 48}},
-		}
-
-		if !reflect.DeepEqual(want, got) {
-			t.Errorf("Want: %v\n", want)
-			t.Errorf("Got: %v\n", got)
+		if !reflect.DeepEqual(pwant, pgot) {
+			t.Errorf("pWant: %v\n", pwant)
+			t.Errorf("pGot: %v\n", pgot)
 		}
 	}
 
@@ -131,15 +127,13 @@ func TestDecodeWorksOnSeparatedTokens(t *testing.T) {
 	}
 
 	for _, l := range lines {
+		var normalized *normalizer.NormalizedString
+		normalized = normalizer.NewNormalizedFrom(l)
 
-		pretokenized := tokenizer.NewPreTokenizedString(l)
-		pretok, err := bytelevel.PreTokenize(pretokenized)
-		if err != nil {
-			t.Error(err)
-		}
+		_, preTokenized := bytelevel.PreTokenize(normalized)
 
 		var separatedTokens []string
-		for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+		for _, preTok := range *preTokenized {
 			chars := strings.Split(preTok.Value, "")
 			separatedTokens = append(separatedTokens, chars...)
 		}
@@ -159,26 +153,25 @@ func TestHandlingOfNewLines(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	pretokenized := tokenizer.NewPreTokenizedString("Hello there\nHello there")
+	var normalized *normalizer.NormalizedString
+	normalized = normalizer.NewNormalizedFrom("Hello there\nHello there")
 
-	pretok, err := bytelevel.PreTokenize(pretokenized)
-	if err != nil {
-		t.Error(err)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
+
+	var separatedTokens []string
+	for _, preTok := range *preTokenized {
+		chars := strings.Split(preTok.Value, "")
+		separatedTokens = append(separatedTokens, chars...)
 	}
 
-	var got []charidx
-
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
-		got = append(got, charidx{s: preTok.Value, o: preTok.Offsets})
+	want := []tokenizer.PreToken{
+		{Value: "Hello", Offsets: []int{0, 5}},
+		{Value: "Ġthere", Offsets: []int{5, 11}},
+		{Value: "Ċ", Offsets: []int{11, 12}},
+		{Value: "Hello", Offsets: []int{12, 17}},
+		{Value: "Ġthere", Offsets: []int{17, 23}},
 	}
-
-	want := []charidx{
-		{"Hello", []int{0, 5}},
-		{"Ġthere", []int{5, 11}},
-		{"Ċ", []int{11, 12}},
-		{"Hello", []int{12, 17}},
-		{"Ġthere", []int{17, 23}},
-	}
+	got := *preTokenized
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -191,25 +184,24 @@ func TestHandlingOfMultipleSpaces(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	pretokenized := tokenizer.NewPreTokenizedString("Hello there       dear")
+	var normalized *normalizer.NormalizedString
+	normalized = normalizer.NewNormalizedFrom("Hello there       dear")
 
-	pretok, err := bytelevel.PreTokenize(pretokenized)
-	if err != nil {
-		t.Error(err)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
+
+	var separatedTokens []string
+	for _, preTok := range *preTokenized {
+		chars := strings.Split(preTok.Value, "")
+		separatedTokens = append(separatedTokens, chars...)
 	}
 
-	var got []charidx
-
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
-		got = append(got, charidx{s: preTok.Value, o: preTok.Offsets})
+	want := []tokenizer.PreToken{
+		{Value: "Hello", Offsets: []int{0, 5}},
+		{Value: "Ġthere", Offsets: []int{5, 11}},
+		{Value: "ĠĠĠĠĠĠ", Offsets: []int{11, 17}},
+		{Value: "Ġdear", Offsets: []int{17, 22}},
 	}
-
-	want := []charidx{
-		{"Hello", []int{0, 5}},
-		{"Ġthere", []int{5, 11}},
-		{"ĠĠĠĠĠĠ", []int{11, 17}},
-		{"Ġdear", []int{17, 22}},
-	}
+	got := *preTokenized
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("Want: %v\n", want)
@@ -222,60 +214,27 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 	bytelevel := pretokenizer.NewByteLevel()
 	bytelevel.SetAddPrefixSpace(false)
 
-	input := "i⭢j"
-	pretokenized := tokenizer.NewPreTokenizedString(input)
+	var normalized *normalizer.NormalizedString
+	normalized = normalizer.NewNormalizedFrom("i⭢j")
 
-	pretok, err := bytelevel.PreTokenize(pretokenized)
-	if err != nil {
-		t.Error(err)
+	_, preTokenized := bytelevel.PreTokenize(normalized)
+
+	var separatedTokens []string
+	for _, preTok := range *preTokenized {
+		chars := strings.Split(preTok.Value, "")
+		separatedTokens = append(separatedTokens, chars...)
 	}
 
-	var got1 []charidx
-
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
-		got1 = append(got1, charidx{s: preTok.Value, o: preTok.Offsets})
+	want := []tokenizer.PreToken{
+		{Value: "i", Offsets: []int{0, 1}},
+		{Value: "ŸŃ¢", Offsets: []int{1, 4}},
+		{Value: "j", Offsets: []int{4, 5}},
 	}
+	got := *preTokenized
 
-	want1 := []charidx{
-		{"i", []int{0, 1}},
-		{"ŸŃ¢", []int{1, 4}},
-		{"j", []int{4, 5}},
-	}
-
-	if !reflect.DeepEqual(want1, got1) {
-		t.Errorf("Want: %v\n", want1)
-		t.Errorf("Got: %v\n", got1)
-	}
-
-	var got2 []charidx
-
-	for _, preTok := range pretok.GetSplits(normalizer.NormalizedTarget) {
-		got2 = append(got2, charidx{s: preTok.Value, o: preTok.Offsets})
-	}
-
-	want2 := []charidx{
-		{"i", []int{0, 1}},
-		{"ŸŃ¢", []int{1, 7}},
-		{"j", []int{7, 8}},
-	}
-
-	if !reflect.DeepEqual(want2, got2) {
-		t.Errorf("Want: %v\n", want2)
-		t.Errorf("Got: %v\n", got2)
-	}
-
-	var got3 []string
-
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
-		o := preTok.Offsets
-		got3 = append(got3, input[o[0]:o[1]])
-	}
-
-	want3 := []string{"i", "⭢", "j"}
-
-	if !reflect.DeepEqual(want3, got3) {
-		t.Errorf("Want: %v\n", want3)
-		t.Errorf("Got: %v\n", got3)
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("Want: %v\n", want)
+		t.Errorf("Got: %v\n", got)
 	}
 }
 
@@ -318,11 +277,11 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 	pairWant := want
 	pairWant.MergeWith(want, false)
 
-	// startClone := start
-	// pairGot := bytelevel.Process(startClone, start, false)
-	//
-	// if !reflect.DeepEqual(pairWant, pairGot) {
-	// t.Errorf("Want: %v\n", pairWant)
-	// t.Errorf("Got: %v\n", pairGot)
-	// }
+	startClone := start
+	pairGot := bytelevel.Process(startClone, start, false)
+
+	if !reflect.DeepEqual(pairWant, pairGot) {
+		t.Errorf("Want: %v\n", pairWant)
+		t.Errorf("Got: %v\n", pairGot)
+	}
 }

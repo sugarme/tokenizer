@@ -14,10 +14,7 @@ import (
 // including prefix whitespace. Contractions and punctuation
 // will be split as well.
 // Ref.https://regex101.com/r/pf5XJv
-// const splitRegStr = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+`
-// const splitRegStr = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`
-// TODO: this RE does not cover the case with trailing whitespace!!!
-const splitRegStr = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+`
+const splitRegStr = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+`
 
 var splitRE = regexp.MustCompile(splitRegStr)
 
@@ -108,56 +105,152 @@ func (bl *ByteLevel) SetTrimOffsets(v bool) {
 	bl.TrimOffsets = v
 }
 
-// Implement `PreTokenizer` methods for `ByteLevel`:
-// =================================================
+// Implement `PreTokenizer` methods for `ByteLevel`
 
-// PreTokenizer, as a `PreTokenizer`, `ByteLevel` is in charge of transforming all the unicode characters into
-// their byte-level counterpart. It also splits the input according to the configured regex.
-func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {
+// type PreTokResult struct {
+// Content string
+// Offsets tokenizer.Offsets
+// }
 
-	pretok := pretokenized.Split(func(noop int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
-		var newNormalized *normalizer.NormalizedString = normalized
-		if bl.AddPrefixSpace && !strings.HasPrefix(normalized.GetNormalized(), " ") {
-			newNormalized = normalized.Prepend(" ")
+// PreTokenize transforms all the unicode characters into
+// their byte-level counterpart. It also splits the input
+// according to the configured regex.
+func (bl *ByteLevel) PreTokenize(normalized *normalizer.NormalizedString) (*normalizer.NormalizedString, *[]tokenizer.PreToken) {
+
+	var res []tokenizer.PreToken
+	var positions [][]int
+	normalizedString := normalized.GetNormalized()
+
+	if bl.AddPrefixSpace && !strings.HasPrefix(normalizedString, " ") {
+		normalizedString = fmt.Sprintf(" %v", normalizedString)
+		// update normalized with modified string
+		newNormalized := normalizer.NewNormalizedFrom(normalizedString)
+		normalized = newNormalized
+	}
+
+	// positions holds slice of matches' loc
+	// (which is 2 element slice loc[0] start - inclusive
+	// and loc[1] end - exclusive)
+	locs := splitRE.FindAllStringIndex(normalizedString, -1)
+
+	bytes := []byte(normalizedString)
+
+	for _, loc := range locs {
+		start := loc[0]
+		end := loc[1]
+
+		last := string(bytes[loc[1]-1]) // -1 because of end exclusive
+
+		var next string
+		// Exclude last boundary
+		if loc[1] == len(bytes) {
+			// end -= 1
+			next = ""
+		} else {
+			next = string(bytes[loc[1]])
 		}
 
-		splitPattern := normalizer.NewRegexpPattern(splitRegStr)
-		splits := newNormalized.Split(splitPattern, normalizer.IsolatediBehavior)
-
-		var splitIdx []tokenizer.SplitIdx
-
-		for _, s := range splits {
-			split := s // NOTE: to deep copy variable otherwise its updated to the last item as we will pass its pointer.
-			splitIdx = append(splitIdx, tokenizer.SplitIdx{Normalized: &split, Tokens: nil})
+		// if last `char` is a whitespace, followed by a non-whitespace
+		// remove this whitespace
+		if last == " " && next != " " {
+			end -= 1
 		}
 
-		return splitIdx
-	})
+		first := string(bytes[loc[0]])
+		var prev string
+		// Exclude the first `char` of string
+		if loc[0] > 0 {
+			prev = string(bytes[start-1])
+		} else {
+			prev = ""
+		}
 
-	finalPretok := pretok.Normalize(func(normalized *normalizer.NormalizedString) *normalizer.NormalizedString {
-		s := normalized.GetNormalized()
-		var changeMap []normalizer.ChangeMap
-		for _, r := range s {
-			bytes := []byte(string(r))
-			for i, b := range bytes {
-				change := 0
-				if i > 0 {
+		// If first `char` is not a whitespace but the previous one
+		// was, add that whitespace
+		if first != " " && prev == " " {
+			start -= 1
+		}
+
+		positions = append(positions, []int{start, end})
+
+	}
+
+	// setup goroutine to process string concurrently based on `positions`
+	type Change struct {
+		Char    string
+		Changes uint8
+	}
+
+	// TODO: implement concurrently split
+	var changedToks [][]Change
+	var changeMap []normalizer.ChangeMap
+	var n = 0
+
+	for i, pos := range positions {
+		end := pos[1]
+		if i == len(positions) {
+			end = pos[1]
+		}
+
+		tok := normalizedString[pos[0]:end]
+
+		tokChars := strings.Split(tok, "")
+
+		var changedTok []Change
+
+		for i := 0; i < len(tokChars); i++ {
+			size := len(tokChars[i]) // number of bytes for current `char`
+			end := n + size
+
+			tokBytes := []byte(normalizedString[n:end])
+
+			n += size
+
+			for idx, b := range tokBytes {
+				var change uint8 = 0
+				if idx > 0 {
 					change = 1
 				}
 
-				char := BytesChar[b]
-				changeMap = append(changeMap, normalizer.ChangeMap{RuneVal: char, Changes: change})
+				changedTok = append(changedTok, Change{Char: BytesChar[b], Changes: change})
+				var cm normalizer.ChangeMap = normalizer.ChangeMap{
+					RuneVal: BytesChar[b],
+					Changes: int(change),
+				}
+
+				changeMap = append(changeMap, cm)
 			}
+
+		} // end loop for one token ('split word')
+
+		changedToks = append(changedToks, changedTok)
+	}
+
+	// Update normalizedString
+	normalized.Transform(changeMap, 0)
+
+	// Collect splits and their offsets
+	var totalLen = 0
+	for _, split := range changedToks {
+		var length = 0
+		var chars []string
+		for _, c := range split {
+			chars = append(chars, c.Char)
+			length += 1
 		}
+		totalLen += length
+		tok := strings.Join(chars, "")
+		offsets := []int{totalLen - length, totalLen}
+		res = append(res, tokenizer.PreToken{
+			Value:   tok,
+			Offsets: offsets,
+		})
+	}
 
-		return normalized.Transform(changeMap, 0)
-	})
-
-	return finalPretok, nil
+	return normalized, &res
 }
 
-// Implement Decoder for `ByteLevel`:
-// ==================================
+// Implement Decoder for `ByteLevel`
 
 // Decode converts any byte-level characters to their unicode couterpart
 // before merging everything back into a single string
