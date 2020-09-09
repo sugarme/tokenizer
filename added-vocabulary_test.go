@@ -182,9 +182,9 @@ func TestOptionUseCases(t *testing.T) {
 	n := normalizer.Lowercase()
 
 	addedToks := []tokenizer.AddedToken{
-		tokenizer.NewAddedToken("my", false).LStrip(true).RStrip(true),
+		tokenizer.NewAddedToken("my", false).SetLStrip(true).SetRStrip(true),
 		tokenizer.NewAddedToken("name", false),
-		tokenizer.NewAddedToken("ony", false).SingleWord(true),
+		tokenizer.NewAddedToken("ony", false).SetSingleWord(true),
 	}
 
 	addedSpecialToks := []tokenizer.AddedToken{

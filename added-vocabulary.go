@@ -20,25 +20,25 @@ import (
 // - Whether to include any whitespace on its left or right
 type AddedToken struct {
 	// Content is the content of added token
-	content string
+	Content string
 	// whether this token is single word or break words
-	singleWord bool
+	SingleWord bool
 	// Whether this token should strip whitespace on its left
-	lstrip bool
+	LStrip bool
 	// Whether this token should strip whitespace on its right
-	rstrip bool
+	RStrip bool
 	// Whether this token should be normalized
-	normalized bool
+	Normalized bool
 }
 
 // DefaultAddedToken initiates a default AddedToken
 func DefaultAddedToken() (retVal AddedToken) {
 	return AddedToken{
-		content:    "",
-		singleWord: false,
-		lstrip:     false,
-		rstrip:     false,
-		normalized: true,
+		Content:    "",
+		SingleWord: false,
+		LStrip:     false,
+		RStrip:     false,
+		Normalized: true,
 	}
 }
 
@@ -48,7 +48,7 @@ type ATOption func(at *AddedToken)
 // single words, and never part of a word.
 func WithSingleWord(singleWord bool) ATOption {
 	return func(at *AddedToken) {
-		at.singleWord = singleWord
+		at.SingleWord = singleWord
 	}
 }
 
@@ -56,7 +56,7 @@ func WithSingleWord(singleWord bool) ATOption {
 // on its left in order to strip them out.
 func WithLStrip(lstrip bool) ATOption {
 	return func(at *AddedToken) {
-		at.lstrip = lstrip
+		at.LStrip = lstrip
 	}
 }
 
@@ -64,7 +64,7 @@ func WithLStrip(lstrip bool) ATOption {
 // on its right in order to strip them out.
 func WithRStrip(rstrip bool) ATOption {
 	return func(at *AddedToken) {
-		at.rstrip = rstrip
+		at.RStrip = rstrip
 	}
 }
 
@@ -72,7 +72,7 @@ func WithRStrip(rstrip bool) ATOption {
 // version in the input text.
 func WithNormalized(normalized bool) ATOption {
 	return func(at *AddedToken) {
-		at.normalized = normalized
+		at.Normalized = normalized
 	}
 }
 
@@ -81,8 +81,8 @@ func WithNormalized(normalized bool) ATOption {
 // NOTE. Special token ar not normalized by default.
 func NewAddedToken(s string, special bool, opts ...ATOption) (retVal AddedToken) {
 	addedTok := DefaultAddedToken()
-	addedTok.content = s
-	addedTok.normalized = !special
+	addedTok.Content = s
+	addedTok.Normalized = !special
 
 	for _, opt := range opts {
 		opt(&addedTok)
@@ -93,29 +93,29 @@ func NewAddedToken(s string, special bool, opts ...ATOption) (retVal AddedToken)
 
 // Specify whether this token should only match on whole single words, and never
 // part of a word.
-func (at AddedToken) SingleWord(singleWord bool) (retVal AddedToken) {
-	at.singleWord = singleWord
+func (at AddedToken) SetSingleWord(singleWord bool) (retVal AddedToken) {
+	at.SingleWord = singleWord
 	return at
 }
 
 // Specify whether this token should include all the whitespaces on its left, in
 // order to strip them out.
-func (at AddedToken) LStrip(lstrip bool) (retVal AddedToken) {
-	at.lstrip = lstrip
+func (at AddedToken) SetLStrip(lstrip bool) (retVal AddedToken) {
+	at.LStrip = lstrip
 	return at
 }
 
 // Specify whether this token should include all the whitespaces on its right, in
 // order to strip them out.
-func (at AddedToken) RStrip(rstrip bool) (retVal AddedToken) {
-	at.rstrip = rstrip
+func (at AddedToken) SetRStrip(rstrip bool) (retVal AddedToken) {
+	at.RStrip = rstrip
 	return at
 }
 
 // Specify whether this token should be normalized and match against its normalized
 // version in the input text.
-func (at AddedToken) Normalized(normalized bool) (retVal AddedToken) {
-	at.normalized = normalized
+func (at AddedToken) SetNormalized(normalized bool) (retVal AddedToken) {
+	at.Normalized = normalized
 	return at
 }
 
@@ -125,9 +125,9 @@ func (at AddedToken) Normalized(normalized bool) (retVal AddedToken) {
 func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 	var reStr string // regular expression pattern
 
-	if at.singleWord {
+	if at.SingleWord {
 		var firstB, lastB string
-		runes := []rune(at.content)
+		runes := []rune(at.Content)
 		firstChar := runes[0]
 		lastChar := runes[len(runes)-1]
 		if isWordCharacter(firstChar) {
@@ -142,7 +142,7 @@ func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 		}
 
 		// normalize the content
-		content := normalizer.NewNormalizedFrom(at.content)
+		content := normalizer.NewNormalizedFrom(at.Content)
 		var normalized string
 		if n != nil {
 			normalizedString, err := (*n).Normalize(content)
@@ -151,20 +151,20 @@ func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 			}
 			normalized = normalizedString.GetNormalized()
 		} else { // don't have a normalizer, just use content as is
-			normalized = at.content
+			normalized = at.Content
 		}
 
 		reStr = fmt.Sprintf("%v%v%v", firstB, regexp.QuoteMeta(normalized), lastB)
 
 	} else {
-		reStr = regexp.QuoteMeta(at.content)
+		reStr = regexp.QuoteMeta(at.Content)
 	}
 
-	if at.lstrip && at.rstrip {
+	if at.LStrip && at.RStrip {
 		reStr = fmt.Sprintf("(\\s)?%v(\\s)?", reStr)
-	} else if at.lstrip {
+	} else if at.LStrip {
 		reStr = fmt.Sprintf("(\\s)?%v", reStr)
-	} else if at.rstrip {
+	} else if at.RStrip {
 		reStr = fmt.Sprintf("%v(\\s)?", reStr)
 	}
 
@@ -271,10 +271,10 @@ func (av *AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
 func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
 
 	for _, tok := range tokens {
-		_, isExist := av.specialTokensSet[tok.content]
-		if tok.content != "" && !isExist {
+		_, isExist := av.specialTokensSet[tok.Content]
+		if tok.Content != "" && !isExist {
 			av.specialTokens = append(av.specialTokens, tok)
-			av.specialTokensSet[tok.content] = true
+			av.specialTokensSet[tok.Content] = true
 		}
 	}
 
@@ -288,26 +288,26 @@ func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalize
 
 	ignored := 0
 	for _, token := range tokens {
-		if token.content == "" {
+		if token.Content == "" {
 			ignored++
 			continue
 		}
 
 		var id int
-		if i, ok := av.TokenToId(token.content, model); ok {
+		if i, ok := av.TokenToId(token.Content, model); ok {
 			ignored++
 			id = i
 		} else {
 			id = model.GetVocabSize() + len(av.addedTokenMap)
-			av.addedTokenMap[token.content] = id
+			av.addedTokenMap[token.Content] = id
 
-			if _, ok := av.specialTokensSet[token.content]; !ok {
+			if _, ok := av.specialTokensSet[token.Content]; !ok {
 				av.addedTokens = append(av.addedTokens, token)
 			}
 		}
 
 		// Update the current revert operation
-		av.addedTokenMapR[id] = token.content
+		av.addedTokenMapR[id] = token.Content
 	}
 
 	av.refreshAddedTokens(model, normalizer)
@@ -330,13 +330,13 @@ func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalize
 	var normPatterns, nnormPatterns []string
 	tokens := append(av.specialTokens, av.addedTokens...)
 	for _, token := range tokens {
-		id, ok := av.TokenToId(token.content, model)
+		id, ok := av.TokenToId(token.Content, model)
 		if !ok {
 			log.Fatalf("Missing additional token.\n")
 		}
 
 		pattern := token.GetPattern(normalizer)
-		if token.normalized {
+		if token.Normalized {
 			normIds = append(normIds, id)
 			normPatterns = append(normPatterns, pattern)
 		} else {

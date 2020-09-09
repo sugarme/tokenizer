@@ -36,7 +36,7 @@ type TConfig struct {
 	MinFrequency            int
 	VocabSize               int
 	ShowProgress            bool
-	SpecialTokens           []tokenizer.AddedToken
+	SpecialTokens           []string
 	LimitAlphabet           *int
 	InitialAlphabet         CharSet
 	ContinuingSubwordPrefix *string
@@ -81,7 +81,7 @@ func (btb *BpeTrainerBuilder) ShowProgress(show bool) {
 }
 
 // SpecialToken set special tokens
-func (btb *BpeTrainerBuilder) SpecialTokens(tokens []tokenizer.AddedToken) {
+func (btb *BpeTrainerBuilder) SpecialTokens(tokens []string) {
 	btb.Config.SpecialTokens = tokens
 }
 
@@ -137,7 +137,7 @@ type BpeTrainer struct {
 	// Whether to show progress while training
 	ShowProgress bool
 	// A list of special tokens that the model should know of
-	SpecialTokens []tokenizer.AddedToken
+	SpecialTokens []string
 	// Whether to limit the number of initial tokens that can be kept before
 	// computing merges
 	LimitAlphabet *int // TODO: replace with int and `None` value = -1
@@ -187,9 +187,9 @@ func (bt *BpeTrainer) updateProgress(p interface{}, len int, msg string) {
 // addSpecialTokens adds the provided special tokens to the initial vocabulary
 func (bt *BpeTrainer) addSpecialTokens(w2id map[string]int, id2w []string) {
 	for _, tok := range bt.SpecialTokens {
-		if _, ok := w2id[tok.Content]; !ok {
-			id2w = append(id2w, tok.Content)
-			w2id[tok.Content] = len(id2w) - 1
+		if _, ok := w2id[tok]; !ok {
+			id2w = append(id2w, tok)
+			w2id[tok] = len(id2w) - 1
 		}
 	}
 }
@@ -575,7 +575,7 @@ func (bt *BpeTrainer) WithProgressBar() bool {
 // Train trains bpe model on input wordCounts and returns
 // 1. BPE model; 2. merges
 // func (bt *BpeTrainer) Train(wordCounts map[string]int) (BPE, []string) {
-func (bt *BpeTrainer) Train(wordCounts map[string]int) (tokenizer.Model, []tokenizer.AddedToken) {
+func (bt *BpeTrainer) Train(wordCounts map[string]int) (tokenizer.Model, []string) {
 
 	// fmt.Printf("Word Counts: %v\n", wordCounts)
 
@@ -594,8 +594,7 @@ func (bt *BpeTrainer) ProcessTokens(words map[string]int, tokens []string) {
 }
 
 // Train a BPE model
-// func (bt *BpeTrainer) train(wordCounts map[string]int) (BPE, []string) {
-func (bt *BpeTrainer) train(wordCounts map[string]int) (BPE, []tokenizer.AddedToken) {
+func (bt *BpeTrainer) train(wordCounts map[string]int) (BPE, []string) {
 	// return bt.Train(wordCounts)
 	var (
 		wordToId map[string]int = make(map[string]int)

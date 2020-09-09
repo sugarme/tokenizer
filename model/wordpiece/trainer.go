@@ -42,7 +42,7 @@ func (wptb WordPieceTrainerBuilder) ShowProgress(show bool) (retVal WordPieceTra
 }
 
 // SpecialTokens Set the special tokens
-func (wptb WordPieceTrainerBuilder) SpecialTokens(tokens []string) (retVal WordPieceTrainerBuilder) {
+func (wptb WordPieceTrainerBuilder) SpecialTokens(tokens []tokenizer.AddedToken) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.SpecialTokens(tokens)
 	return wptb

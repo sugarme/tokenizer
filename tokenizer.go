@@ -185,8 +185,8 @@ type Tokenizer struct {
 }
 
 // Implementing methods for Tokenizer
-func NewTokenizer(model Model) Tokenizer {
-	return Tokenizer{
+func NewTokenizer(model Model) *Tokenizer {
+	return &Tokenizer{
 		normalizer:      nil,
 		preTokenizer:    nil,
 		model:           &model,
@@ -234,8 +234,8 @@ func (t *Tokenizer) WithModel(model *Model) {
 	t.model = model
 }
 
-func (t *Tokenizer) GetModel() *Model {
-	return t.model
+func (t *Tokenizer) GetModel() Model {
+	return *t.model
 }
 
 func (t *Tokenizer) WithTruncation(trunc *TruncationParams) {
@@ -781,7 +781,7 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 		input := NewSingleEncodeInput(NewInputSequence(line))
 		encoding, err := t.Encode(input, false)
 		if err != nil {
-			log.Fatalf("call 'Encode' method error: $v\n", err)
+			log.Fatalf("call 'Encode' method error: %v\n", err)
 		}
 
 		/*
