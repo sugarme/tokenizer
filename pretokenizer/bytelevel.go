@@ -1,7 +1,7 @@
 package pretokenizer
 
 import (
-	"fmt"
+	// "fmt"
 	"regexp"
 	"strings"
 
@@ -230,10 +230,9 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 	for _, tok := range toks {
 		var leadingSpaces int = 0
 		chars := strings.Split(tok, "")
-		fmt.Printf("chars: %v\n", chars)
 		for _, c := range chars {
-			if c != "Ġ" {
-				// if c != BytesChar[' '] && c != " " {
+			// if c != "Ġ" {
+			if c != BytesChar[' '] && c != " " {
 				break
 			}
 			leadingSpaces += 1
@@ -241,8 +240,8 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 
 		var trailingSpaces int = 0
 		for i := len(chars) - 1; i >= 0; i-- {
-			if chars[i] != "Ġ" {
-				// if chars[i] != BytesChar[' '] && chars[i] != " " {
+			// if chars[i] != "Ġ" {
+			if chars[i] != BytesChar[' '] && chars[i] != " " {
 				break
 			}
 			trailingSpaces += 1
@@ -260,6 +259,7 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 		var offset0, offset1 int
 		offsets := encoding.GetOffsets()[i]
 		ld := m.LeadingSpaces
+		offset0 = offsets[0]
 		if m.LeadingSpaces > 0 {
 			if i == 0 && addPrefixSpace && m.LeadingSpaces == 1 {
 				// If we are processing the first pair of offsets, with `addPrefixSpace`,
@@ -277,6 +277,7 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 
 		tl := m.TrailingSpace
 
+		offset1 = offsets[1]
 		if tl > 0 && offsets[1] >= tl {
 			offset1 = offsets[1] - tl
 			if offset1 < offset0 {
@@ -285,7 +286,6 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 		}
 
 		newOffsets = append(newOffsets, []int{offset0, offset1})
-
 	}
 
 	encoding.Offsets = newOffsets
