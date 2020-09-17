@@ -3,7 +3,6 @@ package bpe
 import (
 	"errors"
 	"math/rand"
-	"reflect"
 	"time"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
@@ -84,7 +83,7 @@ func (ss *Symbols) Insert(s Symbol, i int) error {
 // Remove removes a symbol from the slice at `i` index point
 func (ss *Symbols) Remove(i int) error {
 	var err error
-	if i < 0 || i > len(*ss) {
+	if i < 0 || i > len(*ss)-1 {
 		err = errors.New("`i` index is out of bound.")
 		return err
 	}
@@ -109,41 +108,48 @@ func NewWord() *Word {
 	}
 }
 
-func (w *Word) Add(c int) {
-	var (
-		prev, next int
-		last       Symbol
-	)
+func (w *Word) Add(c int, byteLen int) {
 
-	if reflect.ValueOf(w.Symbols).IsNil() {
-		prev = -1
-		next = -1
+	var symbols []Symbol
+
+	symLen := len(w.Symbols)
+
+	if symLen == 0 {
+		newSym := Symbol{
+			C:    c,
+			Prev: -1,
+			Next: -1,
+			Len:  byteLen,
+		}
+		symbols = append(symbols, newSym)
 	} else {
-		len := len(w.Symbols)
-		if len == 0 {
-			last = Symbol{}
-		} else {
-			last = w.Symbols[len-1]
-			if !reflect.ValueOf(last.Next).IsValid() {
-				prev = -1
-				next = -1
+		for i, s := range w.Symbols {
+			// first
+			if i == 0 {
+				sym := &w.Symbols[i]
+				sym.Next = 1
+				sym.Prev = -1
+				symbols = append(symbols, *sym)
+			} else if i == symLen-1 { // last
+				sym := &w.Symbols[i]
+				sym.Next = symLen
+				sym.Prev = symLen - 2
+				symbols = append(symbols, *sym)
 			} else {
-				// update `next` on previous one
-				w.Symbols[len-1].Next = len
-				prev = len - 1
-				next = -1
+				symbols = append(symbols, s)
 			}
 		}
+
+		newSym := Symbol{
+			C:    c,
+			Prev: symLen - 1,
+			Next: -1,
+			Len:  byteLen,
+		}
+		symbols = append(symbols, newSym)
 	}
 
-	var sLen int = 1 // NOTE: assign 1 to a variable so that we can take address of it.
-
-	w.Symbols = append(w.Symbols, Symbol{
-		C:    c,
-		Prev: prev,
-		Next: next,
-		Len:  sLen,
-	})
+	w.Symbols = symbols
 }
 
 type Pair struct {
@@ -254,6 +260,8 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 		dropout = dropoutOpt[0]
 	}
 
+	// countComaparator return the `smaller` rank value
+	// if both ranks are equal, then return one with smaller timestamp
 	countComparator := func(a, b interface{}) int {
 		c1 := a.(Merge).Rank
 		c2 := b.(Merge).Rank
@@ -262,10 +270,10 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 			aTime := a.(Merge).Time
 			bTime := b.(Merge).Time
 
-			return utils.TimeComparator(bTime, aTime)
+			return utils.TimeComparator(aTime, bTime)
 		}
 
-		return utils.UInt32Comparator(c2, c1)
+		return utils.IntComparator(c1, c2)
 	}
 
 	var queue = binaryheap.NewWith(countComparator)
@@ -283,15 +291,19 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 			C1: slice[0].C,
 			C2: slice[1].C,
 		}
-		m, _ := merges[pair] // m is PairVal type with pair's rank and newId values
 
-		var merge Merge = Merge{
-			Pos:   i,
-			Rank:  m.Rank,
-			NewId: m.NewId,
+		// NOTE: if found, push to the queue. If not, continue
+		m, ok := merges[pair] // m is PairVal type with pair's rank and newId values
+		if ok {
+			// log.Fatalf("Cannot find a 'merge' for the pair: %+v\n", pair)
+			var merge Merge = Merge{
+				Pos:   i,
+				Rank:  m.Rank,
+				NewId: m.NewId,
+			}
+
+			queue.Push(merge)
 		}
-
-		queue.Push(merge)
 	}
 
 	var skip []Merge
@@ -383,12 +395,19 @@ func (w *Word) MergeAll(merges map[Pair]PairVal, dropoutOpt ...float32) {
 		}
 	} // End of `for` loop
 
-	// Filter out the removed symbols
-	for i, s := range w.Symbols {
-		if s.Len == 0 {
-			w.Symbols.Remove(i)
+	// Filter out the `marked to remove` symbols
+	w.removeSymbols()
+}
+
+// removeSymbols removes all symbols with lenth == 0
+func (w *Word) removeSymbols() {
+	var filtered []Symbol
+	for _, s := range w.Symbols {
+		if s.Len != 0 {
+			filtered = append(filtered, s)
 		}
 	}
+	w.Symbols = filtered
 }
 
 func (w *Word) GetChars() []int {

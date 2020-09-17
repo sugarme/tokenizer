@@ -301,6 +301,10 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 			return nil, err
 		}
 
+		// for i, s := range pretokenized.splits {
+		// fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
+		// }
+
 		wordIdx := -1
 		if isPreTokenized {
 			wordIdx = subseqIdx
@@ -467,6 +471,10 @@ func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wor
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for i, s := range pretok.splits {
+		fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
 	}
 
 	return pretok.IntoEncoding(typeId, wordIdx, offsetType)

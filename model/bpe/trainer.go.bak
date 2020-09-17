@@ -342,9 +342,9 @@ func (bt *BpeTrainer) tokenizeWords(wc map[string]int, w2id map[string]int, id2w
 				if _, ok := w2id[s]; !ok {
 					id2w = append(id2w, s)
 					w2id[s] = len(id2w) - 1
-					currentWord.Add(w2id[s], len(s))
+					currentWord.Add(w2id[s])
 				} else {
-					currentWord.Add(w2id[s], len(s))
+					currentWord.Add(w2id[s])
 				}
 			}
 

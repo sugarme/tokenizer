@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/model/wordpiece"
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/model/bpe"
+	// "github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
 	"github.com/sugarme/tokenizer/util"
@@ -20,24 +20,31 @@ func main() {
 	bertTokenize()
 }
 
-func getBert() (retVal *tokenizer.Tokenizer) {
+func getByteLevelBPE() (retVal *tokenizer.Tokenizer) {
 
 	util.CdToThis()
 	vocabFile := "../../data/bert-base-uncased-vocab.txt"
+	mergeFile := "../../data/gpt2-merges.txt"
 
-	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
+	model, err := bpe.NewBpeFromFiles(vocabFile, mergeFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	tk := tokenizer.NewTokenizer(model)
-	// fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
+	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
-	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
-	tk.WithNormalizer(bertNormalizer)
+	return tk
+}
 
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
+func getByteLevel(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
+
+	tk := getByteLevelBPE()
+	pretok := pretokenizer.NewByteLevel()
+	pretok.SetAddPrefixSpace(addPrefixSpace)
+	tk.WithPreTokenizer(pretok)
+
+	// TODO: adde bytelevel (post)processor
 
 	return tk
 }

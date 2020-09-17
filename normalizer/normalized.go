@@ -454,8 +454,8 @@ type ChangeMap struct {
 // of removed chars at the very beginning.
 func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeMap, initialOffset int) (retVal *NormalizedString) {
 
-	fmt.Printf("normalized: %+v\n", n)
-	fmt.Printf("inputRange: %v\n", inputRange)
+	// fmt.Printf("normalized: %+v\n", n)
+	// fmt.Printf("inputRange: %v\n", inputRange)
 
 	// I. Update `original` alignments based on `initialOffset`.
 	// If `initialOffset` > 0, there are some chars being replaced.
@@ -470,28 +470,30 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		nRange = n.ConvertOffset(inputRange)
 	}
 
-	fmt.Printf("nRange: %v\n", nRange)
+	// fmt.Printf("nRange: %v\n", nRange)
 
 	// I.2. Get removed chars to a slice (`removedChars`); number of removed
 	// bytes (`initialRemoved`); and update original alignments (`n.alignmensOriginal`)
 
-	log.Printf("===== TransformRange call (initial offset: %v) ====\n", initialOffset)
+	// log.Printf("===== TransformRange call (initial offset: %v) ====\n", initialOffset)
 	// Retrieve the original characters that are being replaced. This let us
 	// compute the change in byte sizes along the way.
 	nBytes := []byte(n.normalized)[nRange.start:nRange.end]
 	replacedNormalized := util.NewRuneIter(bytes.Runes(nBytes))
-	fmt.Printf("replaceddNoramlized len: %v\n", replacedNormalized.Len())
-	fmt.Printf("replacedNormalized: %+q\n", func(it *util.RuneIter) []string {
-		var chars []string
-		for {
-			r, ok := it.Next()
-			if !ok {
-				break
-			}
-			chars = append(chars, string(r))
-		}
-		return chars
-	}(replacedNormalized))
+	/*
+	 *   fmt.Printf("replaceddNoramlized len: %v\n", replacedNormalized.Len())
+	 *   fmt.Printf("replacedNormalized: %+q\n", func(it *util.RuneIter) []string {
+	 *     var chars []string
+	 *     for {
+	 *       r, ok := it.Next()
+	 *       if !ok {
+	 *         break
+	 *       }
+	 *       chars = append(chars, string(r))
+	 *     }
+	 *     return chars
+	 *   }(replacedNormalized))
+	 *  */
 	replacedNormalized.Reset()
 
 	// Handle the initial offset in the original alignment. All the characters
@@ -522,7 +524,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			offset += len(string(c))
 			oShift += len(string(c))
 			alignments := n.alignmentsOriginal[removedORange[0]:removedORange[1]]
-			log.Printf("Clearing alignments for char: %q - alignments: %+v\n", c, alignments)
+			// log.Printf("Clearing alignments for char: %q - alignments: %+v\n", c, alignments)
 			// 1. Get new alignments
 			var newAlignments [][]int
 			for _, offsets := range alignments {
@@ -545,7 +547,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			aligns = append(aligns, n.alignmentsOriginal[removedORange[1]:]...)
 			n.alignmentsOriginal = aligns
 
-			log.Printf("Cleared: %+v\n", alignments)
+			// log.Printf("Cleared: %+v\n", alignments)
 		}
 	} // end `If` block
 
@@ -561,30 +563,31 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	offset := initialRemoved + nRange.start
 	var normalizedAlignments [][]int
 
-	log.Printf("Applying transformations...\n")
+	// log.Printf("Applying transformations...\n")
 	var (
 		normalizedRunes []rune
 	)
 
 	replacedNormalized.Reset() // make sure iterating from begining
 	for _, item := range changeMap {
-		var changeType string
-		switch {
-		case item.Changes == 0:
-			changeType = "Replacing"
-		case item.Changes > 0:
-			changeType = "Adding"
-		case item.Changes < 0:
-			changeType = fmt.Sprintf("Replacing + Removing %v following chars", item.Changes)
-		default:
-			changeType = "Undefined"
-		}
-		// log.Printf("### %+q with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
-		log.Printf("### '%v' with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
-		fmt.Printf("'%v' - changes: %v\n", item.RuneVal, item.Changes)
-
+		/*
+		 *     var changeType string
+		 *     switch {
+		 *     case item.Changes == 0:
+		 *       changeType = "Replacing"
+		 *     case item.Changes > 0:
+		 *       changeType = "Adding"
+		 *     case item.Changes < 0:
+		 *       changeType = fmt.Sprintf("Replacing + Removing %v following chars", item.Changes)
+		 *     default:
+		 *       changeType = "Undefined"
+		 *     }
+		 *     // log.Printf("### %+q with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
+		 *     // log.Printf("### '%v' with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
+		 *     fmt.Printf("'%v' - changes: %v\n", item.RuneVal, item.Changes)
+		 *  */
 		idx := offset
-		fmt.Printf("idx: %v\n", idx)
+		// fmt.Printf("idx: %v\n", idx)
 		var align []int
 		if item.Changes > 0 {
 			if idx < 1 {
@@ -611,7 +614,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 		replacedCharSizeChange := len(item.RuneVal) - replacedCharSize
 		if replacedChar > 0 {
-			log.Printf("Replacing char: '%v' - with a change in size: %v", string(replacedChar), replacedCharSizeChange)
+			// log.Printf("Replacing char: '%v' - with a change in size: %v", string(replacedChar), replacedCharSizeChange)
 		}
 
 		// If we are removing some characters, find them too
@@ -629,13 +632,13 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			if !ok {
 				// We want to panic here, because the NormalizedString is in
 				// a bad state if this happens. We already modified a lot of things
-				log.Fatalf("2. Expected to remove %v characters but couldn't find them ...\n", nChanges)
+				// log.Fatalf("2. Expected to remove %v characters but couldn't find them ...\n", nChanges)
 			}
 			removedChars = append(removedChars, c)
 			totalBytesToRemove += len(string(c))
 		}
-		fmt.Printf("removedChars: %+q\n", string(removedChars))
-		log.Printf("Total bytes to remove: %v\n", totalBytesToRemove)
+		// fmt.Printf("removedChars: %+q\n", string(removedChars))
+		// log.Printf("Total bytes to remove: %v\n", totalBytesToRemove)
 
 		// If we are removing characters, there are two possible scenarios:
 		//   1. We remove characters that are part of the original string (most likely)
@@ -647,21 +650,21 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			start := n.alignments[idx][1]
 			end := n.alignments[idx+totalBytesToRemove][1]
 			originalRange := util.MakeRange(start, end)
-			fmt.Printf("start: %v - end: %v; range: (%+v)\n", start, end, originalRange)
+			// fmt.Printf("start: %v - end: %v; range: (%+v)\n", start, end, originalRange)
 			removingFromOriginal = len(originalRange)
 			removingFromNormalized = totalBytesToRemove - len(originalRange)
 
-			log.Printf("Bytes to remove from original alignments: %v\n", removingFromOriginal)
-			log.Printf("Bytes to remove from normalized alignments: %v\n", removingFromNormalized)
+			// log.Printf("Bytes to remove from original alignments: %v\n", removingFromOriginal)
+			// log.Printf("Bytes to remove from normalized alignments: %v\n", removingFromNormalized)
 		}
 
 		// Update the original alignments for the **current** `char`
-		fmt.Printf("align: %v\n", align)
-		fmt.Printf("current alignmentsOriginal: %+v\n", n.alignmentsOriginal)
+		// fmt.Printf("align: %v\n", align)
+		// fmt.Printf("current alignmentsOriginal: %+v\n", n.alignmentsOriginal)
 		alignments := n.alignmentsOriginal[align[0]:align[1]]
-		fmt.Printf("alignments: %+v\n", alignments)
+		// fmt.Printf("alignments: %+v\n", alignments)
 		if len(alignments) > 0 {
-			log.Printf("Updating original alignments: %+v\n", alignments)
+			// log.Printf("Updating original alignments: %+v\n", alignments)
 
 			// Let's compute the actual change in size for the original alignment.
 			// This value may be different than `replacedCharSizeChange` because the
@@ -669,8 +672,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			originalRange := expandAlignments(alignments)
 
 			replacedCharSizeChangeOriginal := len(item.RuneVal) - (originalRange[1] - originalRange[0])
-			log.Printf("Change in size for the current char: %v\n", replacedCharSizeChange)
-			log.Printf("Change in size in the original alignment for the current char: %v\n", replacedCharSizeChangeOriginal)
+			// log.Printf("Change in size for the current char: %v\n", replacedCharSizeChange)
+			// log.Printf("Change in size in the original alignment for the current char: %v\n", replacedCharSizeChangeOriginal)
 
 			var newAlignments [][]int
 			for _, offsets := range alignments {
@@ -705,7 +708,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			}
 
 			// Now, update original alignments for current `char` with new alignments
-			fmt.Printf("newAlignments: %+v\n", newAlignments)
+			// fmt.Printf("newAlignments: %+v\n", newAlignments)
 			var aligns [][]int
 			if align[0] == 0 {
 				aligns = append(newAlignments, n.alignmentsOriginal[align[1]:]...)
@@ -714,8 +717,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 				aligns = append(aligns, n.alignmentsOriginal[align[1]:]...)
 			}
 			n.alignmentsOriginal = aligns
-			log.Printf("Updated to: %+v\n", newAlignments)
-			fmt.Printf("current n.alignmentsOriginal: %+v\n", n.alignmentsOriginal)
+			// log.Printf("Updated to: %+v\n", newAlignments)
+			// fmt.Printf("current n.alignmentsOriginal: %+v\n", n.alignmentsOriginal)
 		}
 
 		// If some were removed, we need to zero them out in the original alignments
@@ -727,7 +730,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			alignments := n.alignmentsOriginal[start:end]
 			var newAlignments [][]int
 			if len(alignments) > 0 {
-				log.Printf("Removing original alignments: %v\n", alignments)
+				// log.Printf("Removing original alignments: %v\n", alignments)
 				for _, offsets := range alignments {
 					offsets[0] = newIdx
 					offsets[1] = newIdx
@@ -746,7 +749,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		// For the original only the real modifications count
 		oShift += replacedCharSizeChange
 		oShift -= totalBytesToRemove
-		log.Printf("New normalized alignment: %vx %v\n", len(item.RuneVal), align)
+		// log.Printf("New normalized alignment: %vx %v\n", len(item.RuneVal), align)
 
 		for i := 0; i < len(item.RuneVal); i++ {
 			normalizedAlignments = append(normalizedAlignments, align)
@@ -755,15 +758,15 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		// Then we keep only the char for string reconstruction
 		normalizedRunes = append(normalizedRunes, []rune(item.RuneVal)...)
 
-		fmt.Printf("replacedCharSize: %v\n", replacedCharSize)
-		fmt.Printf("totalBytesToRemove: %v\n", totalBytesToRemove)
-		fmt.Printf("next offset: %v\n", offset)
+		// fmt.Printf("replacedCharSize: %v\n", replacedCharSize)
+		// fmt.Printf("totalBytesToRemove: %v\n", totalBytesToRemove)
+		// fmt.Printf("next offset: %v\n", offset)
 
 	} // End of `For` block
 
 	// Apply the changes to the remaining original alignments
 	if oShift != 0 {
-		log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
+		// log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
 
 		// endRange := expandAlignments(n.alignments[endShiftStart:])
 		var endShift [][]int
@@ -772,13 +775,13 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 		endRange := expandAlignments(endShift)
 
-		log.Printf("End range: %+v\n", endRange)
+		// log.Printf("End range: %+v\n", endRange)
 
 		if endRange != nil {
 			alignments := n.alignmentsOriginal[endRange[0]:endRange[1]]
 			var newAlignments [][]int
 			if len(alignments) > 0 {
-				log.Printf("Alignments before shifting: %+v\n", alignments)
+				// log.Printf("Alignments before shifting: %+v\n", alignments)
 				for _, offsets := range alignments {
 					newOffset0 := applySign(offsets[0], oShift)
 					newOffset1 := applySign(offsets[1], oShift)
@@ -787,17 +790,17 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 				aligns := append(n.alignmentsOriginal[:endRange[0]], newAlignments...)
 				aligns = append(aligns, n.alignmentsOriginal[endRange[1]:]...)
 				n.alignmentsOriginal = aligns
-				log.Printf("After: %+v\n", newAlignments)
+				// log.Printf("After: %+v\n", newAlignments)
 			}
 		}
 	}
 
 	// replace alignments with new ones in range
 	var newAlignments [][]int
-	fmt.Printf("nRange: %v\n", nRange)
-	fmt.Printf("normalizedAlignments: %+v\n", normalizedAlignments)
-	fmt.Printf("alignments to be replaced: %v\n", n.alignments[nRange.start:nRange.end])
-	fmt.Printf("normalized alignments before action: %v\n", n.alignments)
+	// fmt.Printf("nRange: %v\n", nRange)
+	// fmt.Printf("normalizedAlignments: %+v\n", normalizedAlignments)
+	// fmt.Printf("alignments to be replaced: %v\n", n.alignments[nRange.start:nRange.end])
+	// fmt.Printf("normalized alignments before action: %v\n", n.alignments)
 	if len(n.alignments[:nRange.start]) == 0 { // at the beginning
 		newAlignments = append(normalizedAlignments, n.alignments[nRange.end:]...)
 	} else { // in the middle
@@ -819,8 +822,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	newNormalized := n.normalized[:nRange.start] + string(normalizedRunes) + n.normalized[nRange.end:]
 	n.normalized = newNormalized
 
-	log.Printf("New normalized alignments: %+v\nNew original alignments: %+v\n", n.alignments, n.alignmentsOriginal)
-	log.Printf("New normalized string: %q\n", n.normalized)
+	// log.Printf("New normalized alignments: %+v\nNew original alignments: %+v\n", n.alignments, n.alignmentsOriginal)
+	// log.Printf("New normalized string: %q\n", n.normalized)
 
 	return n
 }
@@ -1185,14 +1188,14 @@ func (n *NormalizedString) Clear() {
 //  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
 func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
-	fmt.Printf("input normalized: %v\n", n)
+	// fmt.Printf("input normalized: %v\n", n)
 
 	matches := pattern.FindMatches(n.GetNormalized())
 
-	fmt.Printf("length of matches: %v\n", len(matches))
-	for i, m := range matches {
-		fmt.Printf("%v match: %v\n", i, m)
-	}
+	// fmt.Printf("length of matches: %v\n", len(matches))
+	// for i, m := range matches {
+	// fmt.Printf("%v match: %v\n", i, m)
+	// }
 
 	// Process the matches according to the selected behavior: []OfssetsMatch
 	// where `Match` field is `shouldRemove`
@@ -1261,7 +1264,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		}
 	}
 
-	fmt.Printf("output: %v\n", slices)
+	// fmt.Printf("output: %v\n", slices)
 
 	return slices
 }

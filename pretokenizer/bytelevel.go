@@ -125,7 +125,6 @@ func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*t
 		splits := newNormalized.Split(splitPattern, normalizer.IsolatediBehavior)
 
 		var splitIdx []tokenizer.SplitIdx
-
 		for _, s := range splits {
 			split := s // NOTE: to deep copy variable otherwise its updated to the last item as we will pass its pointer.
 			splitIdx = append(splitIdx, tokenizer.SplitIdx{Normalized: &split, Tokens: nil})

@@ -318,11 +318,12 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 	pairWant := want
 	pairWant.MergeWith(want, false)
 
-	// startClone := start
-	// pairGot := bytelevel.Process(startClone, start, false)
-	//
-	// if !reflect.DeepEqual(pairWant, pairGot) {
-	// t.Errorf("Want: %v\n", pairWant)
-	// t.Errorf("Got: %v\n", pairGot)
-	// }
+	start1 := tokenizer.NewEncoding(nil, nil, tokens, offsets, nil, nil, nil)
+	startClone := tokenizer.NewEncoding(nil, nil, tokens, offsets, nil, nil, nil)
+	pairGot := bytelevel.Process(startClone, start1, false)
+
+	if !reflect.DeepEqual(pairWant, pairGot) {
+		t.Errorf("Want: %v\n", pairWant)
+		t.Errorf("Got: %v\n", pairGot)
+	}
 }
