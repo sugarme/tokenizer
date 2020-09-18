@@ -191,3 +191,73 @@ func TestByteLevelDoubleSequence(t *testing.T) {
 	}
 
 }
+
+func TestByteLevelPreTokenizedSequence(t *testing.T) {
+	input := []string{"My", "name", "is", "Anthonino"}
+	inputSeq := tokenizer.NewInputSequence(input)
+
+	// Without trimming offsets
+	tk := getByteLevel(true, false)
+	output, err := tk.Encode(tokenizer.NewSingleEncodeInput(inputSeq), false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("output: %+v\n", output)
+
+	got1 := output.GetOffsets()
+	want1 := [][]int{{0, 2}, {0, 4}, {0, 2}, {0, 4}, {4, 6}, {6, 9}}
+	if !reflect.DeepEqual(got1, want1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	got2 := output.GetWords()
+	want2 := []int{0, 1, 2, 3, 3, 3}
+	if !reflect.DeepEqual(got2, want2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+
+	got3 := output.GetTokens()
+	want3 := []string{"ĠMy", "Ġname", "Ġis", "ĠAnth", "on", "ino"}
+	if !reflect.DeepEqual(got3, want3) {
+		t.Errorf("Want: %v\n", want3)
+		t.Errorf("Got: %v\n", got3)
+	}
+}
+
+func TestByteLevelPreTokenizedSequenceWithTrimming(t *testing.T) {
+	input := []string{"My", "name", "is", "Anthonino"}
+	inputSeq := tokenizer.NewInputSequence(input)
+
+	// When trimming offsets
+	tk := getByteLevel(true, true)
+	output, err := tk.Encode(tokenizer.NewSingleEncodeInput(inputSeq), false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("output: %+v\n", output)
+
+	got1 := output.GetOffsets()
+	want1 := [][]int{{0, 2}, {1, 4}, {1, 2}, {1, 4}, {4, 6}, {6, 9}}
+	if !reflect.DeepEqual(got1, want1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	got2 := output.GetWords()
+	want2 := []int{0, 1, 2, 3, 3, 3}
+	if !reflect.DeepEqual(got2, want2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+
+	got3 := output.GetTokens()
+	want3 := []string{"ĠMy", "Ġname", "Ġis", "ĠAnth", "on", "ino"}
+	if !reflect.DeepEqual(got3, want3) {
+		t.Errorf("Want: %v\n", want3)
+		t.Errorf("Got: %v\n", got3)
+	}
+}

@@ -32,7 +32,7 @@ func main() {
 		 * "example/tokenizer/bpe/train/input/epo_wikipedia_2016_300K-sentences.txt", */
 	}
 
-	model, err := bpe.NewBPE()
+	model, err := bpe.DefaultBPE()
 	if err != nil {
 		log.Fatal(err)
 	}

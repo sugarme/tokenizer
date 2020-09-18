@@ -219,6 +219,10 @@ func newBPE() (*BPE, error) {
 	return b.Build()
 }
 
+func DefaultBPE() (*BPE, error) {
+	return newBPE()
+}
+
 // NewBpeFromFiles create BPE model from vocab and merges files
 func NewBpeFromFiles(vocab, merges string) (*BPE, error) {
 	b := NewBpeBuilder()

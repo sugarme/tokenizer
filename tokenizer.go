@@ -127,7 +127,7 @@ type InputSequence struct {
 // A valid input can be a string type (RawInput) or slice of string (PretokenizedInput)
 func NewInputSequence(input interface{}) (retVal InputSequence) {
 
-	switch reflect.TypeOf(input).Name() {
+	switch reflect.TypeOf(input).Kind().String() {
 	case "string":
 		return InputSequence{
 			input:     []string{input.(string)},
@@ -135,14 +135,14 @@ func NewInputSequence(input interface{}) (retVal InputSequence) {
 		}
 	case "slice":
 		if reflect.TypeOf(input).Elem().Name() != "string" {
-			log.Fatalf("Invalid input type: %v. Expect type of 'string' or '[]string'\n", reflect.TypeOf(input).Name())
+			log.Fatalf("Invalid input type: Expected type of 'string' or '[]string', got %v\n", reflect.TypeOf(input).Kind().String())
 		}
 		return InputSequence{
 			input:     input.([]string),
 			inputType: PretokenizedInput,
 		}
 	default:
-		log.Fatalf("Invalid input type: %v. Expect type of 'string' or '[]string'\n", reflect.TypeOf(input).Name())
+		log.Fatalf("Invalid input type: Expected type of 'string' or '[]string'. Got %v\n", reflect.TypeOf(input).Kind().String())
 	}
 
 	return
