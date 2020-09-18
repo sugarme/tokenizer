@@ -175,11 +175,13 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 	}
 
 	var (
-		enIds     []int
-		enTokens  []string
-		enWords   []int
-		enTypeIds []int
-		enOffsets [][]int
+		enIds               []int
+		enTokens            []string
+		enWords             []int
+		enTypeIds           []int
+		enOffsets           [][]int
+		enSpecialTokensMask []int
+		enAttentionMask     []int
 	)
 
 	for idx, split := range pt.splits {
@@ -232,6 +234,8 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 			enOffsets = append(enOffsets, newConvertedOffsets)
 			enWords = append(enWords, wordIndex)
 			enTypeIds = append(enTypeIds, typeId)
+			enSpecialTokensMask = append(enSpecialTokensMask, 0)
+			enAttentionMask = append(enAttentionMask, 1)
 		}
 	}
 
@@ -241,6 +245,8 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 	en.Offsets = enOffsets
 	en.Words = enWords
 	en.TypeIds = enTypeIds
+	en.SpecialTokenMask = enSpecialTokensMask
+	en.AttentionMask = enAttentionMask
 
 	return en, nil
 }

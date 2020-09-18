@@ -313,7 +313,6 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 		subseqEncoding, err := t.doTokenize(pretokenized, typeId, wordIdx, offsetType)
 
 		return subseqEncoding, err
-
 	}
 
 	var encodings []Encoding

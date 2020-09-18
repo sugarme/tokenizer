@@ -61,8 +61,8 @@ func NewEncodingWithCapacity(l int) (retVal *Encoding) {
 // Default creates an encoding with default values
 func DefaultEncoding() *Encoding {
 	return &Encoding{
-		Ids:              []int{0},
-		TypeIds:          []int{0},
+		Ids:              []int{},
+		TypeIds:          []int{},
 		Tokens:           []string{},
 		Offsets:          [][]int{},
 		SpecialTokenMask: []int{},
