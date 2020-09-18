@@ -116,3 +116,78 @@ func TestByteLevelUnicode(t *testing.T) {
 	checkOffsets(t, input, output, 2, "⭢")
 	checkOffsets(t, input, output, 3, "⭢")
 }
+
+func TestByteLevelDoubleSequence(t *testing.T) {
+
+	input1 := "My name is Anthony"
+	inputSeq1 := tokenizer.NewInputSequence(input1)
+	input2 := "What is my name?"
+	inputSeq2 := tokenizer.NewInputSequence(input2)
+
+	// Without trimming offsets
+	tk := getByteLevel(true, false)
+	output, err := tk.Encode(tokenizer.NewDualEncodeInput(inputSeq1, inputSeq2), false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("output: %+v\n", output)
+
+	got1 := output.GetOffsets()
+	want1 := [][]int{
+		{0, 2},
+		{2, 7},
+		{7, 10},
+		{10, 18},
+		{0, 4},
+		{4, 7},
+		{7, 10},
+		{10, 15},
+		{15, 16},
+	}
+
+	if !reflect.DeepEqual(got1, want1) {
+		t.Errorf("Want: %v\n", want1)
+		t.Errorf("Got: %v\n", got1)
+	}
+
+	// word Ids
+	got2 := output.GetWords()
+	want2 := []int{0, 1, 2, 3, 0, 1, 2, 3, 4}
+	if !reflect.DeepEqual(got2, want2) {
+		t.Errorf("Want: %v\n", want2)
+		t.Errorf("Got: %v\n", got2)
+	}
+
+	// type Ids
+	got3 := output.GetTypeIds()
+	want3 := []int{0, 0, 0, 0, 1, 1, 1, 1, 1}
+	if !reflect.DeepEqual(got3, want3) {
+		t.Errorf("Want: %v\n", want3)
+		t.Errorf("Got: %v\n", got3)
+	}
+
+	// When trimming offsets
+	tk2 := getByteLevel(true, true)
+	output2, err := tk2.Encode(tokenizer.NewDualEncodeInput(inputSeq1, inputSeq2), false)
+	if err != nil {
+		t.Error(err)
+	}
+	got4 := output2.GetOffsets()
+	want4 := [][]int{
+		{0, 2},
+		{3, 7},
+		{8, 10},
+		{11, 18},
+		{0, 4},
+		{5, 7},
+		{8, 10},
+		{11, 15},
+		{15, 16},
+	}
+	if !reflect.DeepEqual(got4, want4) {
+		t.Errorf("Want: %v\n", want4)
+		t.Errorf("Got: %v\n", got4)
+	}
+
+}
