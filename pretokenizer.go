@@ -229,6 +229,9 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 				wordIndex = idx
 			}
 
+			fmt.Printf("tok: ....%v - value: '%v'\n", tok, tok.Value)
+			// NOTE: we get token value from offsets on normalized.
+
 			enIds = append(enIds, tok.Id)
 			enTokens = append(enTokens, tok.Value)
 			enOffsets = append(enOffsets, newConvertedOffsets)

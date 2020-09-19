@@ -294,6 +294,7 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
 func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, offsetType OffsetType) (*Encoding, error) {
 
 	encode := func(isPreTokenized bool, subseqIdx int, subseq string) (*Encoding, error) {
+
 		normalized := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
 
 		pretokenized, err := t.doPreTokenize(normalized)
@@ -301,9 +302,10 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 			return nil, err
 		}
 
-		// for i, s := range pretokenized.splits {
-		// fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
-		// }
+		fmt.Printf("============doPreTokenize result:=================================== \n")
+		for i, s := range pretokenized.splits {
+			fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
+		}
 
 		wordIdx := -1
 		if isPreTokenized {
@@ -311,6 +313,9 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 		}
 
 		subseqEncoding, err := t.doTokenize(pretokenized, typeId, wordIdx, offsetType)
+
+		fmt.Printf("==========doTokenizer result: =====================\n")
+		fmt.Printf("encoding: %+v\n", subseqEncoding)
 
 		return subseqEncoding, err
 	}
@@ -472,6 +477,7 @@ func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wor
 		return nil, err
 	}
 
+	fmt.Printf("==========pretokenized splits: =============================== \n")
 	for i, s := range pretok.splits {
 		fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
 	}
@@ -785,10 +791,27 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 		// NOTE: io.scanner returns line w/o `\n`. We add it back manually.
 		// line = fmt.Sprintf("%v\n", line)
 
-		input := NewSingleEncodeInput(NewInputSequence(line))
-		encoding, err := t.Encode(input, false)
+		/* input := NewSingleEncodeInput(NewInputSequence(line))
+		 * encoding, err := t.Encode(input, false)
+		 * if err != nil {
+		 *   log.Fatalf("call 'Encode' method error: %v\n", err)
+		 * } */
+
+		normalized, err := t.doNormalize(line)
 		if err != nil {
-			log.Fatalf("call 'Encode' method error: %v\n", err)
+			log.Fatalf("call 'doNormalize' method error: %v\n", err)
+		}
+
+		pretok := NewPreTokenizedStringFromNS(normalized)
+		pretokenized, err := t.doPreTokenize(pretok)
+		if err != nil {
+			log.Fatalf("call 'doPreTokenize' method error: %v\n", err)
+		}
+
+		pretoks := pretokenized.GetSplits(normalizer.OriginalTarget)
+		var tokens []string
+		for _, pretok := range pretoks {
+			tokens = append(tokens, pretok.Value)
 		}
 
 		/*
@@ -807,7 +830,7 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 
 		// process tokens
 		// trainer.ProcessTokens(lwords, tokens)
-		trainer.ProcessTokens(lwords, encoding.Tokens)
+		trainer.ProcessTokens(lwords, tokens)
 		// send to channel for further process
 		channel <- lwords
 

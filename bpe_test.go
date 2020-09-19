@@ -41,7 +41,6 @@ func getByteLevel(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
 	pretok.SetTrimOffsets(trimOffsets)
 	tk.WithPreTokenizer(pretok)
 
-	// TODO: adde bytelevel (post)processor
 	pprocessor := processor.NewByteLevelProcessing(pretok)
 	tk.WithPostProcessor(pprocessor)
 

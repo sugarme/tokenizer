@@ -617,8 +617,8 @@ func (bt *BpeTrainer) train(wordCounts map[string]int) (BPE, []tokenizer.AddedTo
 	// in the following steps
 	fmt.Printf("2. Creating maps of 'chars'...\n")
 	wordToId, idToWord = bt.computeAlphabet(wordCounts)
-	// fmt.Printf("Before id2Word: length %v - values:  %v\n", len(idToWord), idToWord)
-	// fmt.Printf("Before word2Id: length %v - %v\n", len(wordToId), wordToId)
+	fmt.Printf("Before id2Word: length %v - values:  %v\n", len(idToWord), idToWord)
+	fmt.Printf("Before word2Id: length %v - %v\n", len(wordToId), wordToId)
 
 	// 3. Tokenize words (add prefix, suffix to the map if relevant)
 	// NOTE: `char` maps (wordToId, idToWord) will be updated if added prefix and/or suffix

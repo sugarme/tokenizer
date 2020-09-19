@@ -238,7 +238,7 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 	want1 := []charidx{
 		{"i", []int{0, 1}},
-		{"ŸŃ¢", []int{1, 4}},
+		{"âŃ¢", []int{1, 4}},
 		{"j", []int{4, 5}},
 	}
 
@@ -255,7 +255,7 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 	want2 := []charidx{
 		{"i", []int{0, 1}},
-		{"ŸŃ¢", []int{1, 7}},
+		{"âŃ¢", []int{1, 7}},
 		{"j", []int{7, 8}},
 	}
 

@@ -470,6 +470,11 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		nRange = n.ConvertOffset(inputRange)
 	}
 
+	// NOTE: temp fix out of range occured at bpe training example
+	if nRange.end > len(n.alignments) {
+		nRange.end = len(n.alignments)
+	}
+
 	// fmt.Printf("nRange: %v\n", nRange)
 
 	// I.2. Get removed chars to a slice (`removedChars`); number of removed
@@ -768,7 +773,6 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	if oShift != 0 {
 		// log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
 
-		// endRange := expandAlignments(n.alignments[endShiftStart:])
 		var endShift [][]int
 		for _, item := range n.alignments[endShiftStart:] {
 			endShift = append(endShift, item)
