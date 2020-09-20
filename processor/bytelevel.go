@@ -19,12 +19,9 @@ func NewByteLevelProcessing(pretok *pretokenizer.ByteLevel) (retVal *ByteLevelPr
 // =====================================================
 
 func (blp *ByteLevelProcessing) AddedTokens(isPair bool) (retVal int) {
-
 	return blp.pretok.AddedToken(isPair)
 }
 
 func (blp *ByteLevelProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) (retVal *tokenizer.Encoding) {
-
 	return blp.pretok.Process(encoding, pairEncoding, addSpecialTokens)
-
 }

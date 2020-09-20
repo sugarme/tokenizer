@@ -356,3 +356,7 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 
 	return encoding
 }
+
+func ProcessOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenizer.Encoding {
+	return processOffsets(encoding, addPrefixSpace)
+}
