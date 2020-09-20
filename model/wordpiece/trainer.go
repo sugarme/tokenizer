@@ -5,14 +5,14 @@ import (
 	"github.com/sugarme/tokenizer/model/bpe"
 )
 
-// A `WordPieceTrainerBuilder` can be used to create a `WordPieceTrainer` with a custom
+// WordPieceTrainerBuilder can be used to create a `WordPieceTrainer` with a custom
 // configuration.
 type WordPieceTrainerBuilder struct {
 	bpeTrainerBuilder bpe.BpeTrainerBuilder
 }
 
+// NewWordPieceTrainerBuilder create a new WordPieceTrainerBuilder
 func NewWordPieceTrainerBuilder() (retVal WordPieceTrainerBuilder) {
-
 	bpeTrainerBuilder := *bpe.NewBPETrainerBuilder()
 	bpeTrainerBuilder.ContinuingSubwordPrefix("##")
 
@@ -21,13 +21,14 @@ func NewWordPieceTrainerBuilder() (retVal WordPieceTrainerBuilder) {
 	}
 }
 
+// MinFrequency set the frequency threshold for the trainer
 func (wptb WordPieceTrainerBuilder) MinFrequency(frequency int) (retVal WordPieceTrainerBuilder) {
 	wptb.bpeTrainerBuilder.MinFrequency(frequency)
 
 	return wptb
 }
 
-// VocabSize Set the vocabulary size
+// VocabSize set the vocabulary size
 func (wptb WordPieceTrainerBuilder) VocabSize(size int) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.VocabSize(size)
@@ -41,14 +42,14 @@ func (wptb WordPieceTrainerBuilder) ShowProgress(show bool) (retVal WordPieceTra
 	return wptb
 }
 
-// SpecialTokens Set the special tokens
+// SpecialTokens set the special tokens
 func (wptb WordPieceTrainerBuilder) SpecialTokens(tokens []tokenizer.AddedToken) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.SpecialTokens(tokens)
 	return wptb
 }
 
-// LimitAlphabet Set whether to limit the alphabet
+// LimitAlphabet set whether to limit the alphabet
 func (wptb WordPieceTrainerBuilder) LimitAlphabet(limit int) (retVal WordPieceTrainerBuilder) {
 
 	wptb.bpeTrainerBuilder.LimitAlphabet(limit)
@@ -84,12 +85,13 @@ func (wptb WordPieceTrainerBuilder) Build() (retVal WordPieceTrainer) {
 
 }
 
+// WordPieceTrainer is a trainer for WordPiece model
 type WordPieceTrainer struct {
 	bpeTrainer bpe.BpeTrainer
 }
 
+// Builder creates WordPieceTrainerBuilder
 func (wpt WordPieceTrainer) Builder() (retVal WordPieceTrainerBuilder) {
-
 	return NewWordPieceTrainerBuilder()
 }
 
