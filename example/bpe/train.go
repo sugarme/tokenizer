@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/sugarme/tokenizer"
-	bpe "github.com/sugarme/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
 )
 
-func main() {
+func runTrain() {
 
 	startTime := time.Now()
 
@@ -26,10 +26,10 @@ func main() {
 		// "example/tokenizer/bpe/train/input/epo_newscrawl_2017_1M-sentences.txt",
 		// "example/tokenizer/bpe/train/input/epo_web_2011_100K-sentences.txt",
 		// "example/tokenizer/bpe/train/input/epo_web_2012_1M-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_wikipedia_2007_300K-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_wikipedia_2011_300K-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_wikipedia_2012_300K-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_wikipedia_2016_300K-sentences.txt",
+		"example/tokenizer/bpe/train/input/epo_wikipedia_2007_300K-sentences.txt",
+		"example/tokenizer/bpe/train/input/epo_wikipedia_2011_300K-sentences.txt",
+		"example/tokenizer/bpe/train/input/epo_wikipedia_2012_300K-sentences.txt",
+		"example/tokenizer/bpe/train/input/epo_wikipedia_2016_300K-sentences.txt",
 	}
 
 	var vocab map[string]int = make(map[string]int)

@@ -12,7 +12,7 @@ import (
 	"github.com/sugarme/tokenizer/util"
 )
 
-func main() {
+func runBERT() {
 	// Example 1.
 	splitOnAddedToken()
 
@@ -31,7 +31,7 @@ func getBert() (retVal *tokenizer.Tokenizer) {
 	}
 
 	tk := tokenizer.NewTokenizer(model)
-	// fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
+	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
