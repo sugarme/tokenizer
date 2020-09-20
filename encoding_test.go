@@ -14,40 +14,34 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Ids:              []int{1},
 		TypeIds:          []int{0},
 		Tokens:           []string{fmt.Sprintf("%v", "Hello ")},
-		Offsets:          []tokenizer.Offsets{{0, 6}},
+		Offsets:          [][]int{{0, 6}},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]*tokenizer.Encoding, 0),
+		Overflowing:      make([]tokenizer.Encoding, 0),
 		Words:            []int{0},
 	}
 
 	b := tokenizer.Encoding{
-		Ids:     []int{2},
-		TypeIds: []int{1},
-		Tokens:  []string{fmt.Sprintf("%v", "World!")},
-		Offsets: []tokenizer.Offsets{{
-			Start: 0,
-			End:   6},
-		},
+		Ids:              []int{2},
+		TypeIds:          []int{1},
+		Tokens:           []string{fmt.Sprintf("%v", "World!")},
+		Offsets:          [][]int{{0, 6}},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]*tokenizer.Encoding, 0),
+		Overflowing:      make([]tokenizer.Encoding, 0),
 		Words:            []int{0},
 	}
 
 	got := a.MergeWith(&b, true)
 
 	want := &tokenizer.Encoding{
-		Ids:     []int{1, 2},
-		TypeIds: []int{0, 1},
-		Tokens:  []string{fmt.Sprintf("%v", "Hello "), fmt.Sprintf("%v", "World!")},
-		Offsets: []tokenizer.Offsets{
-			{Start: 0, End: 6},
-			{Start: 6, End: 12},
-		},
+		Ids:              []int{1, 2},
+		TypeIds:          []int{0, 1},
+		Tokens:           []string{fmt.Sprintf("%v", "Hello "), fmt.Sprintf("%v", "World!")},
+		Offsets:          [][]int{{0, 6}, {6, 12}},
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
-		Overflowing:      make([]*tokenizer.Encoding, 0),
+		Overflowing:      make([]tokenizer.Encoding, 0),
 		Words:            []int{0, 0},
 	}
 
@@ -66,10 +60,10 @@ func TestTokenizer_Truncate(t *testing.T) {
 			fmt.Sprintf("%v", "World"),
 			fmt.Sprintf("%v", "!"),
 		},
-		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}, {11, 12}},
+		Offsets:          [][]int{{0, 5}, {6, 11}, {11, 12}},
 		SpecialTokenMask: []int{0, 0, 0},
 		AttentionMask:    []int{1, 1, 1},
-		Overflowing:      make([]*tokenizer.Encoding, 0),
+		Overflowing:      make([]tokenizer.Encoding, 0),
 		Words:            []int{0, 1, 2},
 	}
 
@@ -85,20 +79,20 @@ func TestTokenizer_Truncate(t *testing.T) {
 			fmt.Sprintf("%v", "Hello"),
 			fmt.Sprintf("%v", "World"),
 		},
-		Offsets:          []tokenizer.Offsets{{0, 5}, {6, 11}},
+		Offsets:          [][]int{{0, 5}, {6, 11}},
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
-		Overflowing: []*tokenizer.Encoding{
+		Overflowing: []tokenizer.Encoding{
 			{
 				Ids:     []int{3},
 				TypeIds: []int{0},
 				Tokens: []string{
 					fmt.Sprintf("%v", "!"),
 				},
-				Offsets:          []tokenizer.Offsets{{11, 12}},
+				Offsets:          [][]int{{11, 12}},
 				SpecialTokenMask: []int{0},
 				AttentionMask:    []int{1},
-				Overflowing:      make([]*tokenizer.Encoding, 0),
+				Overflowing:      make([]tokenizer.Encoding, 0),
 				Words:            []int{2},
 			},
 		},
@@ -114,14 +108,14 @@ func TestTokenizer_Truncate(t *testing.T) {
 func TestTokenizer_Mapping(t *testing.T) {
 	encoding := tokenizer.DefaultEncoding()
 	encoding.Tokens = []string{"He", "llo", "won", "der", "ful", "friend", "!"}
-	encoding.Offsets = []tokenizer.Offsets{
-		{Start: 0, End: 2},
-		{Start: 2, End: 5},
-		{Start: 7, End: 10},
-		{Start: 10, End: 13},
-		{Start: 13, End: 16},
-		{Start: 17, End: 23},
-		{Start: 23, End: 24},
+	encoding.Offsets = [][]int{
+		{0, 2},
+		{2, 5},
+		{7, 10},
+		{10, 13},
+		{13, 16},
+		{17, 23},
+		{23, 24},
 	}
 	encoding.Words = []int{0, 0, 1, 1, 1, 2, 3}
 
@@ -150,21 +144,21 @@ func TestTokenizer_Mapping(t *testing.T) {
 	}
 	testMapping(t, []int{start, end}, []int{6, 7})
 
-	var chars tokenizer.Offsets
+	var chars []int
 	if chars, ok = encoding.Word2Chars(0); !ok {
-		chars = tokenizer.Offsets{-1, -1}
+		chars = []int{-1, -1}
 	}
-	testMapping(t, []int{chars.Start, chars.End}, []int{0, 5})
+	testMapping(t, []int{chars[0], chars[1]}, []int{0, 5})
 
 	if chars, ok = encoding.Word2Chars(1); !ok {
-		chars = tokenizer.Offsets{-1, -1}
+		chars = []int{-1, -1}
 	}
-	testMapping(t, []int{chars.Start, chars.End}, []int{7, 16})
+	testMapping(t, []int{chars[0], chars[1]}, []int{7, 16})
 
 	if chars, ok = encoding.Token2Chars(0); !ok {
-		chars = tokenizer.Offsets{-1, -1}
+		chars = []int{-1, -1}
 	}
-	testMapping(t, []int{chars.Start, chars.End}, []int{0, 2})
+	testMapping(t, []int{chars[0], chars[1]}, []int{0, 2})
 
 	var word int
 	if word, ok = encoding.Token2Word(1); !ok {

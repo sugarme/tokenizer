@@ -29,10 +29,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 	for _, r := range s {
 		if shouldSplit(r) {
 			if len(word) > 0 {
-				offsets := tokenizer.Offsets{
-					Start: offset - len(word),
-					End:   offset,
-				}
+				offsets := []int{offset - len(word), offset}
 				words = append(words, tokenizer.PreToken{
 					Value:   string(word),
 					Offsets: offsets,
@@ -41,10 +38,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 			}
 
 			if includeSplitToken {
-				offsets := tokenizer.Offsets{
-					Start: offset,
-					End:   offset + 1,
-				}
+				offsets := []int{offset, offset + 1}
 				words = append(words, tokenizer.PreToken{
 					Value:   string([]rune{r}),
 					Offsets: offsets,
@@ -59,10 +53,7 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 
 	// Potential last word
 	if len(word) > 0 {
-		offsets := tokenizer.Offsets{
-			Start: offset - len(word),
-			End:   offset,
-		}
+		offsets := []int{offset - len(word), offset}
 
 		words = append(words, tokenizer.PreToken{
 			Value:   string(word),
@@ -81,22 +72,26 @@ func NewBertPreTokenizer() (retVal BertPreTokenizer) {
 }
 
 // PreTokenize implements PreTokenizer interface for BertPreTokenizer
-func (bt BertPreTokenizer) PreTokenize(pretokenized tokenizer.PreTokenizedString) (retVal tokenizer.PreTokenizedString, err error) {
-
-	err = pretokenized.Split(func(noop int, sub *normalizer.NormalizedString) []*normalizer.NormalizedString {
-
-		var res []*normalizer.NormalizedString
-
+func (bt BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (retVal *tokenizer.PreTokenizedString, err error) {
+	pretok := pretokenized.Split(func(noop int, sub *normalizer.NormalizedString) []tokenizer.SplitIdx {
+		var splits []normalizer.NormalizedString
 		whitespace := normalizer.NewRegexpPattern(`\s+`)
-		subs := sub.Split(whitespace, normalizer.RemovedBehavior)
+		wsSubs := sub.Split(whitespace, normalizer.RemovedBehavior)
 
-		for _, sub := range subs {
-			splits := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)
-			res = append(res, splits...)
+		for _, sub := range wsSubs {
+			puncSubs := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)
+			splits = append(splits, puncSubs...)
 		}
 
-		return res
+		var splitIdxs []tokenizer.SplitIdx
+		for _, s := range splits {
+			normalized := s
+			splitIdx := tokenizer.SplitIdx{Normalized: &normalized, Tokens: nil}
+			splitIdxs = append(splitIdxs, splitIdx)
+		}
+
+		return splitIdxs
 	})
 
-	return pretokenized, err
+	return pretok, nil
 }

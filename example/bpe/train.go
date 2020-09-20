@@ -5,12 +5,12 @@ import (
 	"log"
 	"time"
 
-	bpe "github.com/sugarme/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/tokenizer"
 )
 
-func main() {
+func runTrain() {
 
 	startTime := time.Now()
 
@@ -22,38 +22,54 @@ func main() {
 
 		"example/tokenizer/bpe/train/input/oscar.eo.txt",
 		"example/tokenizer/bpe/train/input/epo_literature_2011_300K-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_mixed_2012_1M-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_newscrawl_2017_1M-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_web_2011_100K-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_web_2012_1M-sentences.txt",
+		// "example/tokenizer/bpe/train/input/epo_mixed_2012_1M-sentences.txt",
+		// "example/tokenizer/bpe/train/input/epo_newscrawl_2017_1M-sentences.txt",
+		// "example/tokenizer/bpe/train/input/epo_web_2011_100K-sentences.txt",
+		// "example/tokenizer/bpe/train/input/epo_web_2012_1M-sentences.txt",
 		"example/tokenizer/bpe/train/input/epo_wikipedia_2007_300K-sentences.txt",
 		"example/tokenizer/bpe/train/input/epo_wikipedia_2011_300K-sentences.txt",
 		"example/tokenizer/bpe/train/input/epo_wikipedia_2012_300K-sentences.txt",
 		"example/tokenizer/bpe/train/input/epo_wikipedia_2016_300K-sentences.txt",
 	}
 
-	model, err := bpe.NewBPE()
-	if err != nil {
-		log.Fatal(err)
-	}
+	var vocab map[string]int = make(map[string]int)
+	vocab["<s>"] = 0
+	vocab["<pad>"] = 1
+	vocab["</s>"] = 2
+	vocab["<unk>"] = 3
+	vocab["<mask>"] = 4
+
+	var merges bpe.Merges = make(map[bpe.Pair]bpe.PairVal)
+
+	model := bpe.NewBPE(vocab, merges)
+
+	// model, err := bpe.DefaultBPE()
+	// if err != nil {
+	// log.Fatal(err)
+	// }
+
+	unkToken := "<unk>"
+	model.UnkToken = &unkToken
 
 	trainer := bpe.NewBpeTrainer(2, 52000)
 
 	tk := tokenizer.NewTokenizer(model)
 
-	tk.AddSpecialTokens([]string{
-		"<s>",
-		"<pad>",
-		"</s>",
-		"<unk>",
-		"<mask>",
-	})
+	// specialToks := []tokenizer.AddedToken{
+	// tokenizer.NewAddedToken("<s>", true),
+	// tokenizer.NewAddedToken("<pad>", true),
+	// tokenizer.NewAddedToken("</s>", true),
+	// tokenizer.NewAddedToken("<unk>", true),
+	// tokenizer.NewAddedToken("<mask>", true),
+	// }
+	//
+	// tk.AddSpecialTokens(specialToks)
 
 	bytelevel := pretokenizer.NewByteLevel()
 
 	tk.WithPreTokenizer(bytelevel)
 
-	err = tk.Train(trainer, files)
+	err := tk.Train(trainer, files)
 	if err != nil {
 		log.Fatal(err)
 	}

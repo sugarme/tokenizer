@@ -12,7 +12,7 @@ import (
 	"github.com/sugarme/tokenizer/util"
 )
 
-func getBert() (retVal tokenizer.Tokenizer) {
+func getBert() *tokenizer.Tokenizer {
 
 	util.CdToThis()
 	vocabFile := "./data/bert/vocab.txt"

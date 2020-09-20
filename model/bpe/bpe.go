@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"sort"
 	// "strconv"
+	"log"
 	"strings"
 
 	"github.com/sugarme/tokenizer"
@@ -44,14 +45,14 @@ type BpeBuilder struct {
 
 func NewBpeBuilder() *BpeBuilder {
 	var (
-		vocab  *model.Vocab = new(model.Vocab)
-		merges *Merges      = new(Merges)
+		vocab  model.Vocab = make(map[string]int)
+		merges Merges      = make(map[Pair]PairVal)
 	)
 	return &BpeBuilder{
 		config: Config{
 			files:                   nil,
-			vocab:                   vocab,
-			merges:                  merges,
+			vocab:                   &vocab,
+			merges:                  &merges,
 			cacheCapacity:           DefaultCacheCapacity,
 			dropout:                 nil,
 			unkToken:                nil,
@@ -197,8 +198,11 @@ func (b *BPE) builder() *BpeBuilder {
 
 // new create a BPE with default values
 func (b *BPE) new() {
-	// TODO: handling error
-	b, _ = b.builder().Build()
+	var err error
+	b, err = b.builder().Build()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // `Clone` can't be derive because it's not implemented for `Cache`.
@@ -209,10 +213,14 @@ func (b *BPE) clone() {
 	b = newBpe
 }
 
-// NewBPE create a default BPE from sratch using its pbeBuilder
-func NewBPE() (*BPE, error) {
+// newBPE create a default BPE from sratch using its pbeBuilder
+func newBPE() (*BPE, error) {
 	b := NewBpeBuilder()
 	return b.Build()
+}
+
+func DefaultBPE() (*BPE, error) {
+	return newBPE()
 }
 
 // NewBpeFromFiles create BPE model from vocab and merges files
@@ -222,11 +230,23 @@ func NewBpeFromFiles(vocab, merges string) (*BPE, error) {
 	return b.Build()
 }
 
-// New creates new BPE model with given vocab and merges
-func (b *BPE) New(vocab model.Vocab, merges Merges) {
-	b.new()
+// NewBPE creates new BPE model with given vocab and merges
+func NewBPE(vocab model.Vocab, merges Merges) *BPE {
+	b, err := newBPE()
+	if err != nil {
+		log.Fatal(err)
+	}
 	b.Vocab = &vocab
+
+	var vocabR model.VocabR = make(map[int]string)
+	for k, v := range vocab {
+		vocabR[v] = k
+	}
+
+	b.VocabR = &vocabR
+
 	b.Merges = &merges
+	return b
 }
 
 // FromFile creates `BpeBuilder` from vocab and merges files.
@@ -355,8 +375,6 @@ func (b *BPE) GetContinuingSubwordPrfix() *string {
 func (b *BPE) MergeWord(w string) *Word {
 
 	word := NewWord()
-
-	chars := strings.Split(w, "")
 	var (
 		prefix, suffix string
 	)
@@ -373,27 +391,38 @@ func (b *BPE) MergeWord(w string) *Word {
 		suffix = ""
 	}
 
-	for i, c := range chars {
-		var s string = c
-		// Add `continuingSubwordPrefix` if relevant
-		if i > 0 && i < len(chars) {
-			s = fmt.Sprintf("%v%v", prefix, s)
-		} else if i == len(chars) { // last `char`
-			s = fmt.Sprintf("%v%v", s, suffix)
+	chars := []rune(w)
+	currRuneIdx := 0
+	for byteIdx, r := range w {
+		var (
+			s       string
+			byteLen int
+		)
+		byteLen = len(string(r))
+
+		// if first rune, add prefix
+		if byteIdx == 0 {
+			s = fmt.Sprintf("%v%v", prefix, string(r))
+		} else if currRuneIdx == len(chars) { // last rune, add suffix
+			s = fmt.Sprintf("%v%v", string(r), suffix)
+		} else { // the rest
+			s = string(r)
 		}
+		currRuneIdx++
 
-		// Look its id up
-
+		// If `s` exists in vocab, add its id, otherwise add id of `unk`
 		vocab := *b.Vocab
-		// if id, ok := (*b.Vocab)[s]; ok { // found
 		if id, ok := vocab[s]; ok { // found
-			word.Add(id)
+			word.Add(id, byteLen)
 		} else { // not found, add `unk`
 			if b.UnkToken != nil {
 				// get `unk` id
 				unkId := (*b.Vocab)[*b.UnkToken]
 				// add `unk`
-				word.Add(unkId)
+				word.Add(unkId, byteLen)
+			} else {
+				fmt.Printf("cannot find '%s' in the vocab. \n", s)
+				panic("Can't find `unk` token in the vocab. Have you added one when initiating the model?")
 			}
 		}
 	}
@@ -414,7 +443,7 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 	offsets := word.GetOffsets()
 	type zword struct { // zip id and offsets
 		Id      int
-		Offsets tokenizer.Offsets
+		Offsets []int
 	}
 	var zWord []zword
 
@@ -426,6 +455,7 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 	}
 
 	for _, z := range zWord {
+		fmt.Printf("id: %v - token value============: '%v' \n", z.Id, (*b.VocabR)[z.Id])
 		tok := tokenizer.Token{
 			Id:      z.Id,
 			Value:   (*b.VocabR)[z.Id],
@@ -450,6 +480,7 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 // NOTE: sentence is []PreToken struct{Value string, Offsets Offsets}
 func (b BPE) Tokenize(sequence string) (retVal []tokenizer.Token, err error) {
 	if len(sequence) == 0 {
+
 		return []tokenizer.Token{}, nil
 	}
 

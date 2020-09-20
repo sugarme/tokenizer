@@ -146,21 +146,26 @@ func TestCanExtractAddedTokens(t *testing.T) {
 	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", nil)
 
 	type tokenid struct {
-		token string
-		id    int
+		tokens string
+		ids    []int
 	}
 
 	var got []tokenid
-	for _, item := range result {
-		got = append(got, tokenid{item.Substring.Normalized.GetNormalized(), item.Id})
+	pretoks := result.GetSplits(normalizer.OriginalTarget)
+	for _, pretok := range pretoks {
+		var tokIds []int
+		for _, tok := range pretok.Tokens {
+			tokIds = append(tokIds, tok.Id)
+		}
+		got = append(got, tokenid{pretok.Value, tokIds})
 	}
 
 	want := []tokenid{
-		{"[CLS]", 2},
-		{" My ", -1},
-		{"name", 1},
-		{" is Anthony ", -1},
-		{"[SEP]", 3},
+		{"[CLS]", []int{2}},
+		{" My ", nil},
+		{"name", []int{1}},
+		{" is Anthony ", nil},
+		{"[SEP]", []int{3}},
 	}
 
 	if !reflect.DeepEqual(want, got) {
@@ -177,9 +182,9 @@ func TestOptionUseCases(t *testing.T) {
 	n := normalizer.Lowercase()
 
 	addedToks := []tokenizer.AddedToken{
-		tokenizer.NewAddedToken("my", false).LStrip(true).RStrip(true),
+		tokenizer.NewAddedToken("my", false).SetLStrip(true).SetRStrip(true),
 		tokenizer.NewAddedToken("name", false),
-		tokenizer.NewAddedToken("ony", false).SingleWord(true),
+		tokenizer.NewAddedToken("ony", false).SetSingleWord(true),
 	}
 
 	addedSpecialToks := []tokenizer.AddedToken{
@@ -194,23 +199,28 @@ func TestOptionUseCases(t *testing.T) {
 
 	type tokenid struct {
 		token string
-		id    int
+		ids   []int
 	}
 
 	var got []tokenid
-	for _, item := range result {
-		got = append(got, tokenid{item.Substring.Normalized.GetNormalized(), item.Id})
+	pretoks := result.GetSplits(normalizer.OriginalTarget)
+	for _, pretok := range pretoks {
+		var tokIds []int
+		for _, tok := range pretok.Tokens {
+			tokIds = append(tokIds, tok.Id)
+		}
+		got = append(got, tokenid{pretok.Value, tokIds})
 	}
 
 	want := []tokenid{
-		{"[CLS]", 3},
+		{"[CLS]", []int{3}},
 		// This one includes both spaces because of the lstrip & rstrip
 		// And it matches because normalized == true
-		{" my ", 0},
-		{"name", 1},
+		{" my ", []int{0}},
+		{"name", []int{1}},
 		// `ony` is not extracted here thanks to single_word
-		{" is anthony ", -1},
-		{"[SEP]", 4},
+		{" is anthony ", nil},
+		{"[SEP]", []int{4}},
 	}
 
 	if !reflect.DeepEqual(want, got) {

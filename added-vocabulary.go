@@ -20,25 +20,25 @@ import (
 // - Whether to include any whitespace on its left or right
 type AddedToken struct {
 	// Content is the content of added token
-	content string
+	Content string
 	// whether this token is single word or break words
-	singleWord bool
+	SingleWord bool
 	// Whether this token should strip whitespace on its left
-	lstrip bool
+	LStrip bool
 	// Whether this token should strip whitespace on its right
-	rstrip bool
+	RStrip bool
 	// Whether this token should be normalized
-	normalized bool
+	Normalized bool
 }
 
 // DefaultAddedToken initiates a default AddedToken
 func DefaultAddedToken() (retVal AddedToken) {
 	return AddedToken{
-		content:    "",
-		singleWord: false,
-		lstrip:     false,
-		rstrip:     false,
-		normalized: true,
+		Content:    "",
+		SingleWord: false,
+		LStrip:     false,
+		RStrip:     false,
+		Normalized: true,
 	}
 }
 
@@ -48,7 +48,7 @@ type ATOption func(at *AddedToken)
 // single words, and never part of a word.
 func WithSingleWord(singleWord bool) ATOption {
 	return func(at *AddedToken) {
-		at.singleWord = singleWord
+		at.SingleWord = singleWord
 	}
 }
 
@@ -56,7 +56,7 @@ func WithSingleWord(singleWord bool) ATOption {
 // on its left in order to strip them out.
 func WithLStrip(lstrip bool) ATOption {
 	return func(at *AddedToken) {
-		at.lstrip = lstrip
+		at.LStrip = lstrip
 	}
 }
 
@@ -64,7 +64,7 @@ func WithLStrip(lstrip bool) ATOption {
 // on its right in order to strip them out.
 func WithRStrip(rstrip bool) ATOption {
 	return func(at *AddedToken) {
-		at.rstrip = rstrip
+		at.RStrip = rstrip
 	}
 }
 
@@ -72,7 +72,7 @@ func WithRStrip(rstrip bool) ATOption {
 // version in the input text.
 func WithNormalized(normalized bool) ATOption {
 	return func(at *AddedToken) {
-		at.normalized = normalized
+		at.Normalized = normalized
 	}
 }
 
@@ -81,8 +81,8 @@ func WithNormalized(normalized bool) ATOption {
 // NOTE. Special token ar not normalized by default.
 func NewAddedToken(s string, special bool, opts ...ATOption) (retVal AddedToken) {
 	addedTok := DefaultAddedToken()
-	addedTok.content = s
-	addedTok.normalized = !special
+	addedTok.Content = s
+	addedTok.Normalized = !special
 
 	for _, opt := range opts {
 		opt(&addedTok)
@@ -93,29 +93,29 @@ func NewAddedToken(s string, special bool, opts ...ATOption) (retVal AddedToken)
 
 // Specify whether this token should only match on whole single words, and never
 // part of a word.
-func (at AddedToken) SingleWord(singleWord bool) (retVal AddedToken) {
-	at.singleWord = singleWord
+func (at AddedToken) SetSingleWord(singleWord bool) (retVal AddedToken) {
+	at.SingleWord = singleWord
 	return at
 }
 
 // Specify whether this token should include all the whitespaces on its left, in
 // order to strip them out.
-func (at AddedToken) LStrip(lstrip bool) (retVal AddedToken) {
-	at.lstrip = lstrip
+func (at AddedToken) SetLStrip(lstrip bool) (retVal AddedToken) {
+	at.LStrip = lstrip
 	return at
 }
 
 // Specify whether this token should include all the whitespaces on its right, in
 // order to strip them out.
-func (at AddedToken) RStrip(rstrip bool) (retVal AddedToken) {
-	at.rstrip = rstrip
+func (at AddedToken) SetRStrip(rstrip bool) (retVal AddedToken) {
+	at.RStrip = rstrip
 	return at
 }
 
 // Specify whether this token should be normalized and match against its normalized
 // version in the input text.
-func (at AddedToken) Normalized(normalized bool) (retVal AddedToken) {
-	at.normalized = normalized
+func (at AddedToken) SetNormalized(normalized bool) (retVal AddedToken) {
+	at.Normalized = normalized
 	return at
 }
 
@@ -125,9 +125,9 @@ func (at AddedToken) Normalized(normalized bool) (retVal AddedToken) {
 func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 	var reStr string // regular expression pattern
 
-	if at.singleWord {
+	if at.SingleWord {
 		var firstB, lastB string
-		runes := []rune(at.content)
+		runes := []rune(at.Content)
 		firstChar := runes[0]
 		lastChar := runes[len(runes)-1]
 		if isWordCharacter(firstChar) {
@@ -142,7 +142,7 @@ func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 		}
 
 		// normalize the content
-		content := normalizer.NewNormalizedFrom(at.content)
+		content := normalizer.NewNormalizedFrom(at.Content)
 		var normalized string
 		if n != nil {
 			normalizedString, err := (*n).Normalize(content)
@@ -151,20 +151,20 @@ func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 			}
 			normalized = normalizedString.GetNormalized()
 		} else { // don't have a normalizer, just use content as is
-			normalized = at.content
+			normalized = at.Content
 		}
 
 		reStr = fmt.Sprintf("%v%v%v", firstB, regexp.QuoteMeta(normalized), lastB)
 
 	} else {
-		reStr = regexp.QuoteMeta(at.content)
+		reStr = regexp.QuoteMeta(at.Content)
 	}
 
-	if at.lstrip && at.rstrip {
+	if at.LStrip && at.RStrip {
 		reStr = fmt.Sprintf("(\\s)?%v(\\s)?", reStr)
-	} else if at.lstrip {
+	} else if at.LStrip {
 		reStr = fmt.Sprintf("(\\s)?%v", reStr)
-	} else if at.rstrip {
+	} else if at.RStrip {
 		reStr = fmt.Sprintf("%v(\\s)?", reStr)
 	}
 
@@ -271,10 +271,10 @@ func (av *AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
 func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
 
 	for _, tok := range tokens {
-		_, isExist := av.specialTokensSet[tok.content]
-		if tok.content != "" && !isExist {
+		_, isExist := av.specialTokensSet[tok.Content]
+		if tok.Content != "" && !isExist {
 			av.specialTokens = append(av.specialTokens, tok)
-			av.specialTokensSet[tok.content] = true
+			av.specialTokensSet[tok.Content] = true
 		}
 	}
 
@@ -288,26 +288,26 @@ func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalize
 
 	ignored := 0
 	for _, token := range tokens {
-		if token.content == "" {
+		if token.Content == "" {
 			ignored++
 			continue
 		}
 
 		var id int
-		if i, ok := av.TokenToId(token.content, model); ok {
+		if i, ok := av.TokenToId(token.Content, model); ok {
 			ignored++
 			id = i
 		} else {
 			id = model.GetVocabSize() + len(av.addedTokenMap)
-			av.addedTokenMap[token.content] = id
+			av.addedTokenMap[token.Content] = id
 
-			if _, ok := av.specialTokensSet[token.content]; !ok {
+			if _, ok := av.specialTokensSet[token.Content]; !ok {
 				av.addedTokens = append(av.addedTokens, token)
 			}
 		}
 
 		// Update the current revert operation
-		av.addedTokenMapR[id] = token.content
+		av.addedTokenMapR[id] = token.Content
 	}
 
 	av.refreshAddedTokens(model, normalizer)
@@ -330,13 +330,13 @@ func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalize
 	var normPatterns, nnormPatterns []string
 	tokens := append(av.specialTokens, av.addedTokens...)
 	for _, token := range tokens {
-		id, ok := av.TokenToId(token.content, model)
+		id, ok := av.TokenToId(token.Content, model)
 		if !ok {
 			log.Fatalf("Missing additional token.\n")
 		}
 
 		pattern := token.GetPattern(normalizer)
-		if token.normalized {
+		if token.Normalized {
 			normIds = append(normIds, id)
 			normPatterns = append(normPatterns, pattern)
 		} else {
@@ -360,7 +360,7 @@ func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalize
 
 type idOffsets struct {
 	id      int // optional - None value = -1
-	offsets Offsets
+	offsets []int
 }
 
 // helper functions to sort idOffsets
@@ -370,7 +370,7 @@ type idOffsets struct {
 type byStart []idOffsets
 
 func (s byStart) Len() int           { return len(s) }
-func (s byStart) Less(i, j int) bool { return s[i].offsets.Start < s[j].offsets.Start }
+func (s byStart) Less(i, j int) bool { return s[i].offsets[0] < s[j].offsets[0] }
 func (s byStart) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // byId sort by id
@@ -381,12 +381,12 @@ func (bi byId) Less(i, j int) bool { return bi[i].id < bi[j].id }
 func (bi byId) Swap(i, j int)      { bi[i], bi[j] = bi[j], bi[i] }
 
 // findMatches finds any AddedToken in the given sentence, using the provided MatchingSet.
-// This method returns a list of "splits", each of them being a pair of ByteOffsets(Offsets)
+// This method returns a list "splits", each of them being a pair of Offsets
 // and an optional ID if it is an AddedToken. The list of splits cover the entire input string.
 func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (retVal []idOffsets) {
 
 	if len(sentence) == 0 {
-		return []idOffsets{{-1, Offsets{0, 0}}}
+		return []idOffsets{{-1, []int{0, 0}}}
 	}
 
 	matches := splitRe.regexSet.Matches(sentence).Matches()
@@ -397,7 +397,7 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 		locs := r.FindAllStringIndex(sentence, -1)
 		for _, loc := range locs {
 			id := idx
-			ioPair := idOffsets{id: id, offsets: Offsets{Start: loc[0], End: loc[1]}}
+			ioPair := idOffsets{id: id, offsets: []int{loc[0], loc[1]}}
 			ioPairs = append(ioPairs, ioPair)
 		}
 	}
@@ -417,7 +417,7 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 		ioPair := ioPairs[i]
 
 		// current match is before the current offset, skip it
-		if ioPair.offsets.Start < currentOffsets {
+		if ioPair.offsets[0] < currentOffsets {
 			i++
 			continue
 		}
@@ -430,14 +430,14 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 			sort.Sort(byId(overlapPairs))
 			lowestPair := overlapPairs[0] // lowest Id one
 			splits = append(splits, lowestPair)
-			currentOffsets = ioPair.offsets.End
+			currentOffsets = ioPair.offsets[1]
 			i++
 			continue
 		}
 
 		// Not found overlap neighbours. Just apply itself
 		splits = append(splits, ioPair)
-		currentOffsets = ioPair.offsets.End
+		currentOffsets = ioPair.offsets[1]
 		i++
 	}
 
@@ -448,136 +448,80 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 	)
 
 	for _, ioPair := range splits {
-		if startOffset < ioPair.offsets.Start {
-			finalSplits = append(finalSplits, idOffsets{-1, Offsets{startOffset, ioPair.offsets.Start}})
+		if startOffset < ioPair.offsets[0] {
+			finalSplits = append(finalSplits, idOffsets{-1, []int{startOffset, ioPair.offsets[0]}})
 		}
 		finalSplits = append(finalSplits, idOffsets{splitRe.ids[ioPair.id], ioPair.offsets})
-		startOffset = ioPair.offsets.End
+		startOffset = ioPair.offsets[1]
 	}
 
 	totalByteLen := len(sentence)
 	if startOffset != totalByteLen {
-		finalSplits = append(finalSplits, idOffsets{-1, Offsets{startOffset, totalByteLen}})
+		finalSplits = append(finalSplits, idOffsets{-1, []int{startOffset, totalByteLen}})
 	}
 
 	return finalSplits
+}
+
+type SplitIdx struct {
+	Normalized *normalizer.NormalizedString
+	Tokens     []Token
 }
 
 // splitWithIndices splits the input sentence to extract anything found from the `MatchingSet`, as well as
 // the list of corresponding IDs.
 //
 // NOTE.The list of IDs have the exact same number of elements as the Iterator.
-func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedString, splitRe matchingSet) (retVal1 []int, retVal2 []*normalizer.NormalizedString) {
+func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedString, splitRe matchingSet) []SplitIdx {
 
 	ioPairs := av.findMatches(sentence.GetNormalized(), splitRe)
 
-	var (
-		indices []int
-		nSplits []*normalizer.NormalizedString
-	)
+	var splits []SplitIdx
 
-	for _, ioPair := range ioPairs {
-		indices = append(indices, ioPair.id)
-		start := ioPair.offsets.Start
-		end := ioPair.offsets.End
-
-		if start == end {
-			continue
+	for _, p := range ioPairs {
+		slice := sentence.Slice(normalizer.NewRange(p.offsets[0], p.offsets[1], normalizer.NormalizedTarget))
+		if p.id == -1 {
+			splits = append(splits, SplitIdx{slice, nil})
+		} else {
+			value := slice.GetNormalized()
+			length := len(value)
+			split := SplitIdx{slice, []Token{NewToken(p.id, value, []int{0, length})}}
+			splits = append(splits, split)
 		}
-
-		nSplit := sentence.SliceBytes(normalizer.NewRange(start, end, normalizer.NormalizedTarget))
-		nSplits = append(nSplits, nSplit)
 	}
 
-	return indices, nSplits
+	return splits
 }
 
-type IdSubString struct {
-	Id        int // optional - None value = -1
-	Substring SubString
-}
-
-// ExtractAndNormalize extracts the additional vocabulary from the given
-// sentence, and normalizes it along the way.
+// ExtractAndNormalize extracts the additional vocabulary from the given sentence, normalizing it along the way.
 //
 // Some tokens should match against their normalized representation, as well as the
 // non-normalized one. For example, when we expect to extract the token `yesterday` in the
 // input sentence `I read a book Yesterday`, if the normalizer is supposed to lowercase
 // everything, we expect a match.
-//
-// NOTE. This method returns 2 values: a SubString (NormalizedString, []Offsets) and an optional uint32(id),
-// The optional []uint32 contains the relevant ID if this is an additional token.
-// The offsets being returned here are in the `original` referential. They are the offsets of
-// the given part in the original input
-func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.Normalizer) (retVal []IdSubString) {
+func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.Normalizer) *PreTokenizedString {
 
-	var pretokenized PreTokenizedString = NewPreTokenizedString(sequence)
+	pretokenized := NewPreTokenizedString(sequence)
 
 	// 1. Extract all non-normalized tokens from the non-normalized string
-	var indices []int
-	err := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []*normalizer.NormalizedString {
-		idxs, splits := av.splitWithIndices(seq, av.splitRe)
-		indices = idxs
-		return splits
+	pretok1 := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []SplitIdx {
+		return av.splitWithIndices(seq, av.splitRe)
 	})
-	if err != nil {
-		log.Fatalf("AddedVocabulary bad split - non-normalized\n")
-	}
 
 	// 2. Extract the normalized tokens from the normalized pieces of the string
-	var multiIndices []int
-	err = pretokenized.Split(func(i int, seq *normalizer.NormalizedString) []*normalizer.NormalizedString {
-		// if i >= 0 && i < len(indices) {
-		if indices[i] != -1 {
-			multiIndices = append(multiIndices, indices[i])
-			return []*normalizer.NormalizedString{seq}
-		} else {
-			var (
-				nSeq *normalizer.NormalizedString
-				err  error
-			)
-			if n != nil { // having a normalizer
-				nSeq, err = (*n).Normalize(seq)
-				if err != nil {
-					// Cannot normalize input, so just take the input
-					fmt.Printf("Normalize err: %v. Take input value as result.\n", err)
-					nSeq = seq
-				}
-			} else { // normalizer not provided
-				nSeq = seq
+	pretok2 := pretok1.Split(func(i int, seq *normalizer.NormalizedString) []SplitIdx {
+		newSeq := seq
+		var err error
+		if n != nil {
+			newSeq, err = (*n).Normalize(seq)
+			if err != nil {
+				log.Fatal(err)
 			}
-
-			idxs, splits := av.splitWithIndices(nSeq, av.splitNormalizedRe)
-			multiIndices = append(multiIndices, idxs...)
-
-			return splits
 		}
+		return av.splitWithIndices(newSeq, av.splitNormalizedRe)
 	})
-	if err != nil {
-		log.Fatalf("AddedVocabulary bad split - normalized\n")
-	}
 
-	var (
-		isPairs []IdSubString
-		currIdx int = 0
-	)
-	for {
-		sub, ok := pretokenized.Next()
-		if !ok {
-			break
-		}
-
-		var id int // id is optional - None value = -1
-		if currIdx >= len(multiIndices) {
-			id = -1
-		} else {
-			id = multiIndices[currIdx]
-		}
-		isPairs = append(isPairs, IdSubString{id, sub})
-		currIdx++
-	}
-
-	return isPairs
+	return pretok2
 }
 
 type AddedTokenWithId struct {

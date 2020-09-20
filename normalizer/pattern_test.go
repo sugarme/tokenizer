@@ -214,9 +214,9 @@ func TestRegexp(t *testing.T) {
 
 	inside = "𝔾𝕠𝕠𝕕 𝕞𝕠𝕣𝕟𝕚𝕟𝕘"
 	want = []normalizer.OffsetsMatch{
-		{Offsets: []int{0, 4}, Match: false},
-		{Offsets: []int{4, 5}, Match: true},
-		{Offsets: []int{5, 12}, Match: false},
+		{Offsets: []int{0, 16}, Match: false},
+		{Offsets: []int{16, 17}, Match: true},
+		{Offsets: []int{17, 45}, Match: false},
 	}
 	doTest(t, p, inside, want)
 

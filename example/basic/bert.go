@@ -12,7 +12,7 @@ import (
 	"github.com/sugarme/tokenizer/util"
 )
 
-func main() {
+func runBERT() {
 	// Example 1.
 	splitOnAddedToken()
 
@@ -20,10 +20,10 @@ func main() {
 	bertTokenize()
 }
 
-func getBert() (retVal tokenizer.Tokenizer) {
+func getBert() (retVal *tokenizer.Tokenizer) {
 
 	util.CdToThis()
-	vocabFile := "../../data/bert/vocab.txt"
+	vocabFile := "../../data/bert-base-uncased-vocab.txt"
 
 	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
@@ -31,7 +31,7 @@ func getBert() (retVal tokenizer.Tokenizer) {
 	}
 
 	tk := tokenizer.NewTokenizer(model)
-	// fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
+	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
 
 	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
 	tk.WithNormalizer(bertNormalizer)
@@ -48,6 +48,7 @@ func splitOnAddedToken() {
 	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
 
 	sentence := `Yesterday I saw a [MASK] far away`
+	// sentence := `Hello, y'all! How are you 😁 ?`
 	// Output:
 	// tokens: [yesterday i saw a [MASK] far away]
 	// offsets: [{0 9} {10 11} {12 15} {16 17} {18 24} {25 28} {29 33}]
@@ -65,6 +66,7 @@ func splitOnAddedToken() {
 
 	fmt.Printf("tokens: %v\n", en.GetTokens())
 	fmt.Printf("offsets: %v\n", en.GetOffsets())
+	fmt.Printf("word idx: %v\n", en.GetWords())
 }
 
 func bertTokenize() {

@@ -11,11 +11,11 @@ func TestMerge_Merge(t *testing.T) {
 	// Let's say we have the word 'hello' and a word-to-id vocab that looks
 	// like this: {'h': 0, 'e': 1, 'l': 2, 'o': 3}.
 	word := bpe.NewWord()
-	word.Add(0) // 'h'
-	word.Add(1) // 'e'
-	word.Add(2) // 'l'
-	word.Add(2) // 'l'
-	word.Add(3) // 'o'
+	word.Add(0, 1) // 'h'
+	word.Add(1, 1) // 'e'
+	word.Add(2, 1) // 'l'
+	word.Add(2, 1) // 'l'
+	word.Add(3, 1) // 'o'
 
 	// We're going to perform a merge on the pair ('l', 'l') ~= (2, 2). Let's
 	// say that 'll' has the ID of 4 in the updated word-to-id vocab.

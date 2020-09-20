@@ -112,71 +112,69 @@ func (s StringPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 }
 
 func findMatches(re *regexp.Regexp, inside string) (retVal []OffsetsMatch) {
+
 	matches := re.FindAllStringIndex(inside, -1)
-	var (
-		currRuneIdx int = 0
-		subs        []OffsetsMatch
-	)
 
 	// 0. If no matches, just return
 	if len(matches) == 0 {
 		return []OffsetsMatch{
 			{
-				Offsets: []int{0, len([]rune(inside))},
+				Offsets: []int{0, len(inside)},
 				Match:   false,
 			},
 		}
 	}
 
-	for i, m := range matches {
-		// 1. First unmatched substring if first match is not start at 0
-		if i == 0 && m[0] > 0 {
-			substring := inside[0:m[0]]
-			runes := []rune(substring)
+	var (
+		currIndex int = 0
+		subs      []OffsetsMatch
+	)
 
-			first := OffsetsMatch{
-				Offsets: []int{0, len(runes)},
-				Match:   false,
-			}
-			subs = append(subs, first)
-			currRuneIdx += len(runes)
+	// 1. Sub before matched if any
+	if matches[0][0] > 0 {
+		offsets := []int{0, matches[0][0]}
+		first := OffsetsMatch{
+			Offsets: offsets,
+			Match:   false,
 		}
+		subs = append(subs, first)
+		currIndex += matches[0][0]
+	}
 
-		// 2. Matched sub itself
-		matchedSubstring := inside[m[0]:m[1]]
-		matchedRunes := []rune(matchedSubstring)
-		matched := OffsetsMatch{
-			Offsets: []int{currRuneIdx, currRuneIdx + len(matchedRunes)},
+	for i, m := range matches {
+
+		// 2. matched itself
+		sub := OffsetsMatch{
+			Offsets: m,
 			Match:   true,
 		}
-		subs = append(subs, matched)
-		currRuneIdx += len(matchedRunes)
+		subs = append(subs, sub)
+		currIndex += m[1] - m[0]
 
-		// 3. Unmatched sub between matched sub if any
+		// 3. unmatched in between if any (will not if 2 continuous matched)
 		if i+1 < len(matches) {
 			next := matches[i+1]
-			if next[0] > m[1] {
-				betweenSubstring := inside[m[1]:next[0]]
-				betweenRunes := []rune(betweenSubstring)
+			current := matches[i]
+			if current[1] != next[0] { // not continuous matches
+				offsets := []int{m[1], next[0]}
 				between := OffsetsMatch{
-					Offsets: []int{currRuneIdx, currRuneIdx + len(betweenRunes)},
+					Offsets: offsets,
 					Match:   false,
 				}
 				subs = append(subs, between)
-				currRuneIdx += len(betweenRunes)
+				currIndex += offsets[1] - offsets[0]
 			}
 		}
 	}
 
-	// 4. Added last one if any
-	lastMatch := matches[len(matches)-1]
-	if lastMatch[1] < len(inside) {
-		lastSubstring := inside[lastMatch[1]:]
-		lastRunes := []rune(lastSubstring)
+	// 4. Last unmatched if any
+	if currIndex < len(inside) {
+		offsets := []int{currIndex, len(inside)}
 		last := OffsetsMatch{
-			Offsets: []int{currRuneIdx, currRuneIdx + len(lastRunes)},
+			Offsets: offsets,
 			Match:   false,
 		}
+
 		subs = append(subs, last)
 	}
 

@@ -58,10 +58,10 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 	words = append(words, encoding.GetWords()...)
 	words = append(words, -1)
 
-	var offsets []tokenizer.Offsets
-	offsets = append(offsets, tokenizer.Offsets{Start: 0, End: 0})
+	var offsets [][]int
+	offsets = append(offsets, []int{0, 0})
 	offsets = append(offsets, encoding.GetOffsets()...)
-	offsets = append(offsets, tokenizer.Offsets{Start: 0, End: 0})
+	offsets = append(offsets, []int{0, 0})
 
 	var specialTokens []int
 	specialTokens = append(specialTokens, 1)
@@ -90,9 +90,9 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 		pairWords = append(pairWords, pairEncoding.GetWords()...)
 		pairWords = append(pairWords, -1)
 
-		var pairOffsets []tokenizer.Offsets
+		var pairOffsets [][]int
 		pairOffsets = append(pairOffsets, pairEncoding.GetOffsets()...)
-		pairOffsets = append(pairOffsets, tokenizer.Offsets{Start: 0, End: 0})
+		pairOffsets = append(pairOffsets, []int{0, 0})
 
 		var pairSpecialTokens []int
 		pairSpecialTokens = append(pairSpecialTokens, 0)

@@ -12,14 +12,32 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-// Makerange creates a sequence of number (range)
-// Ref. https://stackoverflow.com/questions/39868029
-func MakeRange(min, max int) []int {
-	a := make([]int, max-min+1)
-	for i := range a {
-		a[i] = min + i
+/*
+ * // Makerange creates a sequence of number (range)
+ * // Ref. https://stackoverflow.com/questions/39868029
+ * func MakeRange(min, max int) []int {
+ *   if min == max {
+ *     return []int{}
+ *   }
+ *   a := make([]int, max-min+1)
+ *   for i := range a {
+ *     a[i] = min + i
+ *   }
+ *   return a
+ * }
+ *  */
+func MakeRange(start, end int) []int {
+
+	var r []int
+	if end == start {
+		return []int{}
+	} else {
+		for i := start; i < end; i++ {
+			r = append(r, start)
+		}
 	}
-	return a
+
+	return r
 }
 
 // StringIndex returns index (start) for substring on a given string
