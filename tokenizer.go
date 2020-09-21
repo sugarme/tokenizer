@@ -302,10 +302,10 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 			return nil, err
 		}
 
-		fmt.Printf("============doPreTokenize result:=================================== \n")
-		for i, s := range pretokenized.splits {
-			fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
-		}
+		// fmt.Printf("============doPreTokenize result:=================================== \n")
+		// for i, s := range pretokenized.splits {
+		// fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
+		// }
 
 		wordIdx := -1
 		if isPreTokenized {
@@ -314,8 +314,8 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 
 		subseqEncoding, err := t.doTokenize(pretokenized, typeId, wordIdx, offsetType)
 
-		fmt.Printf("==========doTokenizer result: =====================\n")
-		fmt.Printf("encoding: %+v\n", subseqEncoding)
+		// fmt.Printf("==========doTokenizer result: =====================\n")
+		// fmt.Printf("encoding: %+v\n", subseqEncoding)
 
 		return subseqEncoding, err
 	}
@@ -477,10 +477,10 @@ func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wor
 		return nil, err
 	}
 
-	fmt.Printf("==========pretokenized splits: =============================== \n")
-	for i, s := range pretok.splits {
-		fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
-	}
+	// fmt.Printf("==========pretokenized splits: =============================== \n")
+	// for i, s := range pretok.splits {
+	// fmt.Printf("%v - normalized: %+v - tokens: %+v\n", i, s.normalized, s.tokens)
+	// }
 
 	return pretok.IntoEncoding(typeId, wordIdx, offsetType)
 }
@@ -939,7 +939,7 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 
 	// calculate frequency and create a final map
 	for result := range lnChan {
-		fmt.Printf("Result: %v\n", result)
+		// fmt.Printf("Result: %v\n", result)
 		for w, c := range result {
 			count, ok := words[w]
 			// word exists, sum up frequency

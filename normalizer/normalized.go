@@ -2,7 +2,7 @@ package normalizer
 
 import (
 	"bytes"
-	"fmt"
+	// "fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -908,9 +908,9 @@ func (n *NormalizedString) NFD() (retVal *NormalizedString) {
 		}
 	}
 
-	for i, c := range changeMap {
-		fmt.Printf("%v - Char: %+q - changes: %v\n", i, c.RuneVal, c.Changes)
-	}
+	// for i, c := range changeMap {
+	// fmt.Printf("%v - Char: %+q - changes: %v\n", i, c.RuneVal, c.Changes)
+	// }
 
 	return n.Transform(changeMap, 0)
 }
@@ -1061,12 +1061,13 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 
 	revChangeMap := slice.Reverse(changeMap).([]ChangeMap)
 
-	fmt.Printf("Alignments: %+v\n", n.alignments)
-	fmt.Printf("changeMap: %+v\n", revChangeMap)
+	// fmt.Printf("Alignments: %+v\n", n.alignments)
+	// fmt.Printf("changeMap: %+v\n", revChangeMap)
 
-	for _, item := range revChangeMap {
-		fmt.Printf("item: %+v\n", item)
-	}
+	// for _, item := range revChangeMap {
+	// fmt.Printf("item: %+v\n", item)
+	// }
+
 	return n.Transform(revChangeMap, removed)
 	// return n.Transform(revChangeMap, 0)
 

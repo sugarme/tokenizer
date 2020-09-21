@@ -455,7 +455,6 @@ func (b *BPE) WordToTokens(word Word) []tokenizer.Token {
 	}
 
 	for _, z := range zWord {
-		fmt.Printf("id: %v - token value============: '%v' \n", z.Id, (*b.VocabR)[z.Id])
 		tok := tokenizer.Token{
 			Id:      z.Id,
 			Value:   (*b.VocabR)[z.Id],

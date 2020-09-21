@@ -1,7 +1,7 @@
 package pretokenizer
 
 import (
-	"fmt"
+	// "fmt"
 	"regexp"
 	"strings"
 
@@ -255,7 +255,7 @@ func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpec
 		return tokenizer.DefaultProcess(encoding, pairEncoding, addSpecialTokens)
 	}
 
-	fmt.Printf("trimming offsets.........\n")
+	// fmt.Printf("trimming offsets.........\n")
 
 	var newEncoding *tokenizer.Encoding
 	newEncoding = processOffsets(encoding, bl.AddPrefixSpace)

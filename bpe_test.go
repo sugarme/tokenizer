@@ -69,7 +69,7 @@ func TestByteLevelBasic(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output========: %+v\n", output1)
+	// fmt.Printf("output========: %+v\n", output1)
 	checkOffsets(t, input, output1, 0, "Hello")
 	checkOffsets(t, input, output1, 1, " there")
 	checkOffsets(t, input, output1, 2, ",")
@@ -86,7 +86,7 @@ func TestByteLevelBasic(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output========: %+v\n", output2)
+	// fmt.Printf("output========: %+v\n", output2)
 
 	checkOffsets(t, input, output2, 0, "Hello")
 	checkOffsets(t, input, output2, 1, "there")
@@ -109,7 +109,7 @@ func TestByteLevelUnicode(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output: %+v\n", output)
+	// fmt.Printf("output: %+v\n", output)
 
 	checkOffsets(t, input, output, 1, "⭢")
 	checkOffsets(t, input, output, 2, "⭢")
@@ -130,7 +130,7 @@ func TestByteLevelDoubleSequence(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output: %+v\n", output)
+	// fmt.Printf("output: %+v\n", output)
 
 	got1 := output.GetOffsets()
 	want1 := [][]int{
@@ -202,7 +202,7 @@ func TestByteLevelPreTokenizedSequence(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output: %+v\n", output)
+	// fmt.Printf("output: %+v\n", output)
 
 	got1 := output.GetOffsets()
 	want1 := [][]int{{0, 2}, {0, 4}, {0, 2}, {0, 4}, {4, 6}, {6, 9}}
@@ -237,7 +237,7 @@ func TestByteLevelPreTokenizedSequenceWithTrimming(t *testing.T) {
 		t.Error(err)
 	}
 
-	fmt.Printf("output: %+v\n", output)
+	// fmt.Printf("output: %+v\n", output)
 
 	got1 := output.GetOffsets()
 	want1 := [][]int{{0, 2}, {1, 4}, {1, 2}, {1, 4}, {4, 6}, {6, 9}}
