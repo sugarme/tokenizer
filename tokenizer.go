@@ -172,7 +172,7 @@ type Tokenizer struct {
 	// Parts
 	normalizer    *normalizer.Normalizer // optional
 	preTokenizer  *PreTokenizer          // optional
-	model         *Model
+	model         Model
 	postProcessor *PostProcessor // optional
 	decoder       *Decoder       // optional
 
@@ -189,7 +189,7 @@ func NewTokenizer(model Model) *Tokenizer {
 	return &Tokenizer{
 		normalizer:      nil,
 		preTokenizer:    nil,
-		model:           &model,
+		model:           model,
 		postProcessor:   nil,
 		decoder:         nil,
 		addedVocabulary: NewAddedVocabulary(),
@@ -230,12 +230,12 @@ func (t *Tokenizer) GetDecoder() *Decoder {
 	return t.decoder
 }
 
-func (t *Tokenizer) WithModel(model *Model) {
+func (t *Tokenizer) WithModel(model Model) {
 	t.model = model
 }
 
 func (t *Tokenizer) GetModel() Model {
-	return *t.model
+	return t.model
 }
 
 func (t *Tokenizer) WithTruncation(trunc *TruncationParams) {
@@ -256,7 +256,7 @@ func (t *Tokenizer) GetPadding() (retVal *PaddingParams) {
 
 // GetVocab get the vocabulary
 func (t *Tokenizer) GetVocab(withAddedTokens bool) map[string]int {
-	finalVocab := (*t.model).GetVocab()
+	finalVocab := t.model.GetVocab()
 	if withAddedTokens {
 		addedVocab := t.addedVocabulary.GetVocab()
 		if len(addedVocab) > 0 {
@@ -272,21 +272,21 @@ func (t *Tokenizer) GetVocab(withAddedTokens bool) map[string]int {
 // GetVocabSize get the size of vocabulary
 func (t *Tokenizer) GetVocabSize(withAddedTokens bool) int {
 	if !withAddedTokens {
-		return (*t.model).GetVocabSize()
+		return t.model.GetVocabSize()
 	}
 
-	return (*t.model).GetVocabSize() + t.addedVocabulary.Len()
+	return t.model.GetVocabSize() + t.addedVocabulary.Len()
 }
 
 // TokenToId converts a token to a corresponding id
 func (t *Tokenizer) TokenToId(token string) (id int, ok bool) {
-	id, ok = t.addedVocabulary.TokenToId(token, *t.model)
+	id, ok = t.addedVocabulary.TokenToId(token, t.model)
 	return id, ok
 }
 
 // IdToToken converts an Id to a corresponding token
 func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
-	token, ok = t.addedVocabulary.IdToToken(id, *t.model)
+	token, ok = t.addedVocabulary.IdToToken(id, t.model)
 	return token, ok
 }
 
@@ -422,7 +422,7 @@ func (t *Tokenizer) Decode(ids []int, skipSpecialTokens bool) (retVal string) {
 
 	var tokens []string
 	for _, id := range ids {
-		if tok, ok := t.addedVocabulary.IdToToken(id, *t.model); ok {
+		if tok, ok := t.addedVocabulary.IdToToken(id, t.model); ok {
 			if !skipSpecialTokens || !t.addedVocabulary.IsSpecialToken(tok) {
 				tokens = append(tokens, tok)
 			}
@@ -439,12 +439,12 @@ func (t *Tokenizer) Decode(ids []int, skipSpecialTokens bool) (retVal string) {
 // AddSpecialTokens registers the given tokens as special tokens. This is especially useful for removing
 // these special tokens while decoding
 func (t *Tokenizer) AddSpecialTokens(tokens []AddedToken) (retVal int) {
-	return t.addedVocabulary.AddSpecialTokens(tokens, *t.model, t.normalizer)
+	return t.addedVocabulary.AddSpecialTokens(tokens, t.model, t.normalizer)
 }
 
 // AddTokens adds the given tokens to the added vocabulary
 func (t *Tokenizer) AddTokens(tokens []AddedToken) (retVal int) {
-	return t.addedVocabulary.AddTokens(tokens, *t.model, t.normalizer)
+	return t.addedVocabulary.AddTokens(tokens, t.model, t.normalizer)
 }
 
 // doNormalize does Normalization logic, go through all normalizers
@@ -471,7 +471,7 @@ func (t *Tokenizer) doPreTokenize(pretokenized *PreTokenizedString) (*PreTokeniz
 func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wordIdx int, offsetType OffsetType) (*Encoding, error) {
 
 	pretok, err := pretokenized.Tokenize(func(normalized *normalizer.NormalizedString) ([]Token, error) {
-		return (*t.model).Tokenize(normalized.GetNormalized())
+		return (t.model).Tokenize(normalized.GetNormalized())
 	})
 	if err != nil {
 		return nil, err
@@ -748,7 +748,7 @@ func (t *Tokenizer) Train(trainer Trainer, files []string) error {
 	model, specialTokens := trainer.Train(dict)
 
 	// Replace with trained model
-	t.model = &model
+	t.model = model
 	t.AddSpecialTokens(specialTokens)
 
 	return nil
@@ -955,7 +955,7 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 	model, specialTokens := trainer.Train(words)
 
 	// Replace with trained model
-	t.model = &model
+	t.model = model
 	t.AddSpecialTokens(specialTokens)
 
 	return nil
