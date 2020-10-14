@@ -960,3 +960,34 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 
 	return nil
 }
+
+// Simpler Tokenizer APIs:
+// =======================
+
+// EncodeSingle encodes a single input string.
+func (t *Tokenizer) EncodeSingle(input string) (*Encoding, error) {
+
+	seq := NewInputSequence(input)
+
+	return t.EncodeSingleSequence(seq, 0, Byte)
+}
+
+// EncodePair encodes a pair of string sequences.
+func (t *Tokenizer) EncodePair(input, pair string) (*Encoding, error) {
+
+	seq := NewInputSequence(input)
+	pseq := NewInputSequence(pair)
+	encodeInput := NewDualEncodeInput(seq, pseq)
+
+	return t.Encode(encodeInput, false)
+}
+
+// Tokenize slices input string into tokens.
+func (t *Tokenizer) Tokenize(input string) ([]string, error) {
+	en, err := t.EncodeSingle(input)
+	if err != nil {
+		return nil, err
+	}
+
+	return en.Tokens, nil
+}
