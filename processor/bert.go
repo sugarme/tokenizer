@@ -75,7 +75,7 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 
 	if pairEncoding != nil {
 		var pairIds []int
-		pairIds = append(pairIds, pairEncoding.GetTypeIds()...)
+		pairIds = append(pairIds, pairEncoding.Ids...)
 		pairIds = append(pairIds, bp.sep.Id)
 
 		var pairTypeIds []int
