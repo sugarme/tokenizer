@@ -21,6 +21,8 @@ It implements various tokenizer models:
 - [x] Wordpiece model
 - [x] Byte Pair Encoding (BPE)
 
+It can be used for both **training** new models from scratch or **fine-tuning** existing model. See [examples](./example) detail.
+
 ## Basic example
 
 ```go
@@ -58,7 +60,7 @@ func getBert() *tokenizer.Tokenizer {
 	return tk
 }
 
-func ExampleTokenizer_Encode() {
+func main() {
 
 	tk := getBert()
 
@@ -96,6 +98,6 @@ func ExampleTokenizer_Encode() {
 
 ## Acknowledgement
 
-- This project has been inspired and used many concepts from [Python HuggingFace Transformers](https://github.com/huggingface/tokenizers).
+- This project has been inspired and used many concepts from [Python HuggingFace Tokenizers](https://github.com/huggingface/tokenizers).
 
 
