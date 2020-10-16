@@ -11,15 +11,17 @@ func doTest(t *testing.T, p normalizer.Pattern, inside string, want []normalizer
 
 	var got []normalizer.OffsetsMatch
 
-	switch reflect.TypeOf(p).Name() {
-	case "RunePattern":
-		got = p.(normalizer.RunePattern).FindMatches(inside)
-	case "StringPattern":
-		got = p.(normalizer.StringPattern).FindMatches(inside)
-	case "FnPattern":
-		got = p.(normalizer.FnPattern).FindMatches(inside)
-	case "RegexpPattern":
-		got = p.(normalizer.RegexpPattern).FindMatches(inside)
+	typeStr := reflect.TypeOf(p).String()
+
+	switch typeStr {
+	case "*normalizer.RunePattern":
+		got = p.(*normalizer.RunePattern).FindMatches(inside)
+	case "*normalizer.StringPattern":
+		got = p.(*normalizer.StringPattern).FindMatches(inside)
+	case "*normalizer.FnPattern":
+		got = p.(*normalizer.FnPattern).FindMatches(inside)
+	case "*normalizer.RegexpPattern":
+		got = p.(*normalizer.RegexpPattern).FindMatches(inside)
 
 	default:
 		panic("Invalid type\n")

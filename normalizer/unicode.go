@@ -43,8 +43,8 @@ type UnicodeNormalizer struct {
 	Form norm.Form
 }
 
-func NewUnicodeNormalizer(form norm.Form) UnicodeNormalizer {
-	return UnicodeNormalizer{
+func NewUnicodeNormalizer(form norm.Form) *UnicodeNormalizer {
+	return &UnicodeNormalizer{
 		Form: form,
 	}
 }

@@ -13,7 +13,7 @@ type Pattern interface {
 	//
 	// NOTE. This method *must* cover the whole string in its outputs, with
 	// contiguous ordered slices.
-	FindMatches(inside string) (retVal []OffsetsMatch)
+	FindMatches(inside string) []OffsetsMatch
 }
 
 // OfsetsMatch contains a combination of Offsets position
@@ -29,12 +29,12 @@ type RunePattern struct {
 	rune
 }
 
-func NewRunePattern(r rune) RunePattern {
-	return RunePattern{r}
+func NewRunePattern(r rune) *RunePattern {
+	return &RunePattern{r}
 }
 
 // FindMaches implements Pattern interface for RunePattern
-func (r RunePattern) FindMatches(inside string) (retVal []OffsetsMatch) {
+func (r *RunePattern) FindMatches(inside string) []OffsetsMatch {
 
 	if len(inside) == 0 {
 		return []OffsetsMatch{
@@ -90,11 +90,11 @@ type StringPattern struct {
 	string
 }
 
-func NewStringPattern(s string) StringPattern {
-	return StringPattern{s}
+func NewStringPattern(s string) *StringPattern {
+	return &StringPattern{s}
 }
 
-func (s StringPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
+func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 	// If we try to find the matches with an empty string, just don't match anything
 	if s.string == "" {
 		return []OffsetsMatch{
@@ -111,7 +111,7 @@ func (s StringPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
 	return findMatches(re, inside)
 }
 
-func findMatches(re *regexp.Regexp, inside string) (retVal []OffsetsMatch) {
+func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 
 	matches := re.FindAllStringIndex(inside, -1)
 
@@ -185,15 +185,15 @@ type RegexpPattern struct {
 	re *regexp.Regexp
 }
 
-func NewRegexpPattern(s string) RegexpPattern {
+func NewRegexpPattern(s string) *RegexpPattern {
 	re := regexp.MustCompile(s)
-	return RegexpPattern{
+	return &RegexpPattern{
 		re: re,
 	}
 }
 
 // FindMatches implements Pattern interface for RegexpPattern
-func (rp RegexpPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
+func (rp *RegexpPattern) FindMatches(inside string) []OffsetsMatch {
 	if len(inside) == 0 {
 		return []OffsetsMatch{
 			{
@@ -213,12 +213,12 @@ type FnPattern struct {
 	fn PatternFn
 }
 
-func NewFnPattern(fn PatternFn) FnPattern {
-	return FnPattern{fn}
+func NewFnPattern(fn PatternFn) *FnPattern {
+	return &FnPattern{fn}
 }
 
 // FindMatches implements Pattern interface for FnPattern
-func (fp FnPattern) FindMatches(inside string) (retVal []OffsetsMatch) {
+func (fp *FnPattern) FindMatches(inside string) []OffsetsMatch {
 	if len(inside) == 0 {
 		return []OffsetsMatch{
 			{
@@ -276,17 +276,17 @@ type Invert struct {
 }
 
 // FindMatches implement Pattern interface for Invert
-func (i Invert) FindMatches(inside string) (retVal []OffsetsMatch) {
+func (i *Invert) FindMatches(inside string) []OffsetsMatch {
 
 	var matches []OffsetsMatch
 
 	switch reflect.TypeOf(i.Pattern).Name() {
 	case "StringPattern":
-		matches = i.Pattern.(StringPattern).FindMatches(inside)
+		matches = i.Pattern.(*StringPattern).FindMatches(inside)
 	case "RunePattern":
-		matches = i.Pattern.(RunePattern).FindMatches(inside)
+		matches = i.Pattern.(*RunePattern).FindMatches(inside)
 	case "FnPattern":
-		matches = i.Pattern.(FnPattern).FindMatches(inside)
+		matches = i.Pattern.(*FnPattern).FindMatches(inside)
 
 	default:
 		log.Fatalf("Unsupported type - %v\n", reflect.TypeOf(i.Pattern).Name())

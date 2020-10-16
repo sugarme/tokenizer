@@ -47,7 +47,7 @@ func WithStrip(strip bool) DefaultOption {
  * }
  *  */
 
-func (dn DefaultNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
+func (dn *DefaultNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
 
 	var normalized *NormalizedString = n
 
@@ -62,7 +62,7 @@ func (dn DefaultNormalizer) Normalize(n *NormalizedString) (*NormalizedString, e
 	return normalized, nil
 }
 
-func NewDefaultNormalizer(opts ...DefaultOption) DefaultNormalizer {
+func NewDefaultNormalizer(opts ...DefaultOption) *DefaultNormalizer {
 
 	dn := DefaultNormalizer{
 		lower: true,
@@ -74,7 +74,7 @@ func NewDefaultNormalizer(opts ...DefaultOption) DefaultNormalizer {
 		o(&dn)
 	}
 
-	return dn
+	return &dn
 
 }
 
