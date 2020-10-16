@@ -20,7 +20,7 @@ func BertBaseUncased() *tokenizer.Tokenizer {
 
 	util.CdToThis()
 
-	vocabFile := "data/bert-base-uncased-vocab.txt"
+	vocabFile := "model/bert-base-uncased-vocab.txt"
 	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
 		log.Fatal(err)
