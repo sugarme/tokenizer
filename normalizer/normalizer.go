@@ -12,17 +12,17 @@ type normalizer struct {
 	Normalizer Normalizer
 }
 
-func newNormalizer(opts ...DefaultOption) normalizer {
+func newNormalizer(opts ...DefaultOption) *normalizer {
 	n := NewDefaultNormalizer()
 	for _, opt := range opts {
-		opt(&n)
+		opt(n)
 	}
-	return normalizer{
+	return &normalizer{
 		Normalizer: n,
 	}
 }
 
-func (n normalizer) Normalize(normalized *NormalizedString) (*NormalizedString, error) {
+func (n *normalizer) Normalize(normalized *NormalizedString) (*NormalizedString, error) {
 
 	return normalized, nil
 }
@@ -49,7 +49,7 @@ func NewNormalizer(opts ...Option) Normalizer {
 	nml := newNormalizer()
 
 	for _, o := range opts {
-		o(&nml)
+		o(nml)
 	}
 
 	return nml

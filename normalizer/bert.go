@@ -11,8 +11,8 @@ type BertNormalizer struct {
 	StripAccents       bool // whether to remove accents
 }
 
-func NewBertNormalizer(cleanText, lowercase, handleChineseChars, stripAccents bool) BertNormalizer {
-	return BertNormalizer{
+func NewBertNormalizer(cleanText, lowercase, handleChineseChars, stripAccents bool) *BertNormalizer {
+	return &BertNormalizer{
 		CleanText:          cleanText,
 		Lowercase:          lowercase,
 		HandleChineseChars: handleChineseChars,
@@ -187,7 +187,7 @@ func stripAccents(n *NormalizedString) *NormalizedString {
 }
 
 // Normalize implements Normalizer interface for BertNormalizer
-func (bn BertNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
+func (bn *BertNormalizer) Normalize(n *NormalizedString) (*NormalizedString, error) {
 	if bn.CleanText {
 		n = doCleanText(n)
 	}

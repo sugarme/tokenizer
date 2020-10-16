@@ -67,12 +67,12 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 
 type BertPreTokenizer struct{}
 
-func NewBertPreTokenizer() (retVal BertPreTokenizer) {
-	return BertPreTokenizer{}
+func NewBertPreTokenizer() *BertPreTokenizer {
+	return &BertPreTokenizer{}
 }
 
 // PreTokenize implements PreTokenizer interface for BertPreTokenizer
-func (bt BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (retVal *tokenizer.PreTokenizedString, err error) {
+func (bt *BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {
 	pretok := pretokenized.Split(func(noop int, sub *normalizer.NormalizedString) []tokenizer.SplitIdx {
 		var splits []normalizer.NormalizedString
 		whitespace := normalizer.NewRegexpPattern(`\s+`)

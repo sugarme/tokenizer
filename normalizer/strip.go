@@ -5,8 +5,8 @@ type Strip struct {
 	stripRight bool
 }
 
-func NewStrip(stripLeft, stripRight bool) (retVal Strip) {
-	return Strip{
+func NewStrip(stripLeft, stripRight bool) *Strip {
+	return &Strip{
 		stripLeft:  stripLeft,
 		stripRight: stripRight,
 	}
@@ -15,7 +15,7 @@ func NewStrip(stripLeft, stripRight bool) (retVal Strip) {
 // Implement Normalizer interface for Strip:
 // =========================================
 
-func (s Strip) Normalize(normalized *NormalizedString) (retVal *NormalizedString, err error) {
+func (s *Strip) Normalize(normalized *NormalizedString) (*NormalizedString, error) {
 
 	if s.stripLeft && s.stripRight {
 		return normalized.Strip(), nil
