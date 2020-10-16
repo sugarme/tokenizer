@@ -27,5 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [#8]: Fixed `encoding.MergeWith` merge overflowing incorrectly. 
 
+## [0.1.5]
+
+### Added
+- [#10]: setup pretrained subpackage to load pretrained tokenizers. 
+
+### Changed
+- None
+
+### Fixed
+- None
 
 [#8]: https://github.com/sugarme/tokenizer/pull/8
+[#10]: https://github.com/sugarme/tokenizer/pull/10
