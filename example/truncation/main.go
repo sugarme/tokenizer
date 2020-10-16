@@ -58,8 +58,9 @@ func main() {
 	input := "A visually stunning rumination on love."
 	pairInput := "This is the long paragraph that I want to put context on it. It is not only about how to deal with anger but also how to maintain being calm at all time."
 
-	encodeInput := tokenizer.NewDualEncodeInput(tokenizer.NewInputSequence(input), tokenizer.NewInputSequence(pairInput))
-	pairEn, err := tk.Encode(encodeInput, false)
+	// encodeInput := tokenizer.NewDualEncodeInput(tokenizer.NewInputSequence(input), tokenizer.NewInputSequence(pairInput))
+	// pairEn, err := tk.Encode(encodeInput, false)
+	pairEn, err := tk.EncodePair(input, pairInput)
 	if err != nil {
 		log.Fatal(err)
 	}

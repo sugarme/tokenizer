@@ -965,26 +965,56 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 // =======================
 
 // EncodeSingle encodes a single input string.
-func (t *Tokenizer) EncodeSingle(input string) (*Encoding, error) {
+//
+// Params:
+// - input: the input string to be tokenized
+// - addSpecialTokensOpt: optional (default = false) whether adding special tokens
+// e.g. in BERT model `[CLS]` `[UNK]` or `[SEP]`
+func (t *Tokenizer) EncodeSingle(input string, addSpecialTokensOpt ...bool) (*Encoding, error) {
 
-	seq := NewInputSequence(input)
+	addSpecialTokens := false
+	if len(addSpecialTokensOpt) > 0 {
+		addSpecialTokens = addSpecialTokensOpt[0]
+	}
 
-	return t.EncodeSingleSequence(seq, 0, Byte)
+	encodeInput := NewSingleEncodeInput(NewInputSequence(input))
+
+	return t.Encode(encodeInput, addSpecialTokens)
 }
 
 // EncodePair encodes a pair of string sequences.
-func (t *Tokenizer) EncodePair(input, pair string) (*Encoding, error) {
+//
+// Params:
+// - input: the sequence string to be tokenized
+// - pair: the pair sequence stirng to be tokenized with
+// - addSpecialTokensOpt: optional (default = false) whether adding special tokens
+// e.g. in BERT model `[CLS]` `[UNK]` or `[SEP]`
+func (t *Tokenizer) EncodePair(input, pair string, addSpecialTokensOpt ...bool) (*Encoding, error) {
+
+	addSpecialTokens := false
+	if len(addSpecialTokensOpt) > 0 {
+		addSpecialTokens = addSpecialTokensOpt[0]
+	}
 
 	seq := NewInputSequence(input)
 	pseq := NewInputSequence(pair)
 	encodeInput := NewDualEncodeInput(seq, pseq)
 
-	return t.Encode(encodeInput, false)
+	return t.Encode(encodeInput, addSpecialTokens)
 }
 
 // Tokenize slices input string into tokens.
-func (t *Tokenizer) Tokenize(input string) ([]string, error) {
-	en, err := t.EncodeSingle(input)
+//
+// Params:
+// - input: the input string to be tokenized
+// - addSpecialTokensOpt: optional (default = false) whether adding special tokens
+// e.g. in BERT model `[CLS]` `[UNK]` or `[SEP]`
+func (t *Tokenizer) Tokenize(input string, addSpecialTokensOpt ...bool) ([]string, error) {
+	addSpecialTokens := false
+	if len(addSpecialTokensOpt) > 0 {
+		addSpecialTokens = addSpecialTokensOpt[0]
+	}
+	en, err := t.EncodeSingle(input, addSpecialTokens)
 	if err != nil {
 		return nil, err
 	}
