@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.6]
 
+### Changed
+- Update Changelog and README
+
+## [0.1.7]
+
+### Changed
+- Updated `example_test` and `example` in README
+
 ### Added
 - [#11]: added `addSpecialTokens` param to `EncodeSingle` `EncodePair` and `Tokenizer` APIs.
 
