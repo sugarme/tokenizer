@@ -324,29 +324,52 @@ func (e *Encoding) Merge(encodings []Encoding, growingOffsets bool) (retVal *Enc
 
 // MergeWith merges the current encoding with other (pair) encoding
 func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encoding) {
+	// Merge overflowing
+	overflowings := make([]Encoding, 0)
+	var (
+		en              Encoding   = *e
+		pen             Encoding   = *pair
+		enOverflowings  []Encoding = e.Overflowing
+		penOverflowings []Encoding = pair.Overflowing
+	)
+	en.Overflowing = []Encoding{}
+	pen.Overflowing = []Encoding{}
 
-	// Keep a copy before merging overflowings
-	ids := e.Ids
-	tokens := e.Tokens
-	wordIds := e.Words
-	offsets := e.Offsets
-	typeIds := e.TypeIds
-	specialTokenMask := e.SpecialTokenMask
-	attentionMask := e.AttentionMask
+	// 1. All our overflowings with all other overflowings
+	for _, o := range enOverflowings {
+		nEncoding := o
+		// 1.1. The pair itself
+		merge := mergeEncoding(nEncoding, pen, growingOffsets)
+		overflowings = append(overflowings, merge)
 
-	// Overflow
-	e.mergeOverflow(pair)
+		// 1.2. Its overflowings
+		for _, otherO := range penOverflowings {
+			oEncoding := otherO
+			merge := mergeEncoding(nEncoding, oEncoding, growingOffsets)
+			overflowings = append(overflowings, merge)
+		}
+	}
 
-	// Others
-	e.Ids = append(ids, pair.Ids...)
-	e.Tokens = append(tokens, pair.Tokens...)
-	e.Words = append(wordIds, pair.Words...)
-	e.TypeIds = append(typeIds, pair.TypeIds...)
-	e.SpecialTokenMask = append(specialTokenMask, pair.SpecialTokenMask...)
-	e.AttentionMask = append(attentionMask, pair.AttentionMask...)
+	// 2. Ourself with all the other overflowings
+	for _, otherO := range penOverflowings {
+		oEncoding := otherO
+		merge := mergeEncoding(en, oEncoding, growingOffsets)
+		overflowings = append(overflowings, merge)
+	}
+
+	e.Overflowing = overflowings
+
+	// Merging others
+	e.Ids = append(e.Ids, pair.Ids...)
+	e.Tokens = append(e.Tokens, pair.Tokens...)
+	e.Words = append(e.Words, pair.Words...)
+	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
+	e.SpecialTokenMask = append(e.SpecialTokenMask, pair.SpecialTokenMask...)
+	e.AttentionMask = append(e.AttentionMask, pair.AttentionMask...)
 
 	// Offsets
 	var startingOffset int = 0
+	offsets := e.Offsets
 	if growingOffsets {
 		if len(offsets) > 0 {
 			last := offsets[len(offsets)-1]
@@ -366,57 +389,42 @@ func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encod
 	return e
 }
 
-// mergeOverflow merges overflowings of curent encoding with the pair.
-//
-// NOTE: this is a hacking solution created specifically for
-// public method `MergeWith`. The merging have side-effects
-// on other fields of Encoding.
-func (e *Encoding) mergeOverflow(pair *Encoding) *Encoding {
-	// Merge overflowing
-	overflowings := make([]Encoding, 0)
-	// 1. All current overflowing with all other overflowing
-	for _, o := range e.Overflowing {
-		currO := o
-		// 1.1. The pair itself
-		currO.mergeOverflow(pair) // recursively call
-		overflowings = append(overflowings, currO)
-		currO = o // reset
+// mergeEncoding merges 2 encodings those have `Overflowing` field empty.
+// Otherwise, it will be panic.
+func mergeEncoding(en1, en2 Encoding, growingOffsets bool) Encoding {
+	if len(en1.Overflowing) > 0 || len(en2.Overflowing) > 0 {
+		log.Fatalf("Invalid input encodings. Input encodings must have 'Overflowing' field empty.\n")
+	}
 
-		// 1.2. The pair's overflowing
-		for _, otherO := range pair.Overflowing {
-			currO.mergeOverflow(&otherO)
-			overflowings = append(overflowings, currO)
-			currO = o // reset
+	var merge Encoding
+	merge.Overflowing = make([]Encoding, 0)
+	merge.Ids = append(en1.Ids, en2.Ids...)
+	merge.TypeIds = append(en1.TypeIds, en2.TypeIds...)
+	merge.Words = append(en1.Words, en2.Words...)
+	merge.Tokens = append(en1.Tokens, en2.Tokens...)
+	merge.SpecialTokenMask = append(en1.SpecialTokenMask, en2.SpecialTokenMask...)
+	merge.AttentionMask = append(en1.AttentionMask, en2.AttentionMask...)
+
+	// Offsets
+	offsets := en1.Offsets
+	var startingOffset int = 0
+	if growingOffsets {
+		if len(offsets) > 0 {
+			last := offsets[len(offsets)-1]
+			startingOffset = last[1]
 		}
 	}
 
-	// 2. Current encoding with all other overflowing
-	for _, otherO := range pair.Overflowing {
-		newE := e
-		newE.mergeOverflow(&otherO)
-		overflowings = append(overflowings, *newE)
-	}
-
-	// 3. Current encoding and other encoding
-	e.Ids = append(e.Ids, pair.Ids...)
-	e.TypeIds = append(e.TypeIds, pair.TypeIds...)
-	e.Tokens = append(e.Tokens, pair.Tokens...)
-	e.SpecialTokenMask = append(e.SpecialTokenMask, pair.SpecialTokenMask...)
-	e.AttentionMask = append(e.AttentionMask, pair.AttentionMask...)
-	e.Overflowing = overflowings
-	e.Words = append(e.Words, pair.Words...)
-
-	// Offsets
-	var startingOffset int = 0
-	for _, o := range pair.Offsets {
+	for _, o := range en2.Offsets {
 		adjustedO := []int{
 			o[0] + startingOffset,
 			o[1] + startingOffset,
 		}
-		e.Offsets = append(e.Offsets, adjustedO)
+		offsets = append(offsets, adjustedO)
 	}
+	merge.Offsets = offsets
 
-	return e
+	return merge
 }
 
 // Pad pads current encoding with given length, values to either Left or Right direction
