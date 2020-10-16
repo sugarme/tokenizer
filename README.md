@@ -21,7 +21,7 @@ It implements various tokenizer models:
 - [x] Wordpiece model
 - [x] Byte Pair Encoding (BPE)
 
-It can be used for both **training** new models from scratch or **fine-tuning** existing model. See [examples](./example) detail.
+It can be used for both **training** new models from scratch or **fine-tuning** existing models. See [examples](./example) detail.
 
 ## Basic example
 

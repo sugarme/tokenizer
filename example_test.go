@@ -15,7 +15,7 @@ import (
 func getBert() *tokenizer.Tokenizer {
 
 	util.CdToThis()
-	vocabFile := "./data/bert/vocab.txt"
+	vocabFile := "./bert-base-uncased-vocab.txt"
 
 	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
