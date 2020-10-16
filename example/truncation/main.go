@@ -28,7 +28,7 @@ func getBert() (retVal *tokenizer.Tokenizer) {
 	tk.WithPreTokenizer(bertPreTokenizer)
 
 	truncParams := tokenizer.TruncationParams{
-		MaxLength: 34,
+		MaxLength: 25,
 		Strategy:  tokenizer.OnlySecond,
 		Stride:    0,
 	}
