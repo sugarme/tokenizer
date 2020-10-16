@@ -30,42 +30,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/model/wordpiece"
-	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/processor"
+	"github.com/sugarme/tokenizer/pretrained"
 )
-
-func getBert() *tokenizer.Tokenizer {
-
-	vocabFile := "./bert-base-uncased-vocab.txt"
-	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tk := tokenizer.NewTokenizer(model)
-	fmt.Printf("Vocab size: %v\n", tk.GetVocabSize(false))
-
-	bertNormalizer := normalizer.NewBertNormalizer(true, true, true, true)
-	tk.WithNormalizer(bertNormalizer)
-
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
-
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
-
-	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
-
-	return tk
-}
 
 func main() {
 
-	tk := getBert()
+	tk := pretrained.BertBaseUncased()
 	sentence := `Yesterday I saw a [MASK] far away`
+
 	en, err := tk.EncodeSingle(sentence)
 	if err != nil {
 		log.Fatal(err)
