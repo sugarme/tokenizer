@@ -35,14 +35,11 @@ import (
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/util"
 )
 
 func getBert() *tokenizer.Tokenizer {
 
-	util.CdToThis()
-	vocabFile := "./data/bert/vocab.txt"
-
+	vocabFile := "./bert-base-uncased-vocab.txt"
 	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
 	if err != nil {
 		log.Fatal(err)
@@ -63,7 +60,6 @@ func getBert() *tokenizer.Tokenizer {
 func main() {
 
 	tk := getBert()
-
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
 
