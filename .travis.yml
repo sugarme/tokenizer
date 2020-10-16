@@ -1,0 +1,21 @@
+language: go
+
+go:
+  - 1.14.x
+
+env:
+  - GO111MODULE=on
+
+branches:
+  only:
+    - master
+
+dist: bionic
+
+script:
+  - go get -u ./...
+  - go test -v github.com/sugarme/tokenizer/normalizer
+  - go test -v github.com/sugarme/tokenizer/model/bpe
+  - go test -v github.com/sugarme/tokenizer/model/wordpiece
+  - go test -v github.com/sugarme/tokenizer/pretokenizer
+  - go test -v github.com/sugarme/tokenizer
