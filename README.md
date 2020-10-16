@@ -4,7 +4,7 @@
 
 `tokenizer` is pure Go package to facilitate applying Natural Language Processing (NLP) models train/test and inference in Go. 
 
-It is heavily inspired by and based on the popular [Python HuggingFace Tokenizers](https://github.com/huggingface/tokenizers). 
+It is heavily inspired by and based on the popular [HuggingFace Tokenizers](https://github.com/huggingface/tokenizers). 
 
 `tokenizer` is part of an ambitious goal (together with [**transformer**](https://github.com/sugarme/transformer) and [**gotch**](https://github.com/sugarme/gotch)) to bring more AI/deep-learning tools to Gophers so that they can stick to the language they love and build faster software in production. 
 
@@ -54,21 +54,19 @@ func getBert() *tokenizer.Tokenizer {
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
 
+	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
+	tk.WithPreTokenizer(bertPreTokenizer)
+
+	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
+
 	return tk
 }
 
 func main() {
 
 	tk := getBert()
-	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
-	tk.WithPreTokenizer(bertPreTokenizer)
-
-	tk.AddSpecialTokens([]tokenizer.AddedToken{tokenizer.NewAddedToken("[MASK]", true)})
-
 	sentence := `Yesterday I saw a [MASK] far away`
-
-	input := tokenizer.NewInputSequence(sentence)
-	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
+	en, err := tk.EncodeSingle(sentence)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,6 +92,6 @@ func main() {
 
 ## Acknowledgement
 
-- This project has been inspired and used many concepts from [Python HuggingFace Tokenizers](https://github.com/huggingface/tokenizers).
+- This project has been inspired and used many concepts from [HuggingFace Tokenizers](https://github.com/huggingface/tokenizers).
 
 

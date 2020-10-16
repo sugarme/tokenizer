@@ -59,7 +59,7 @@ func splitOnAddedToken() {
 	// offsets: [{0 5} {6 10} {11 14} {15 21} {22 24} {25 32}]
 
 	input := tokenizer.NewInputSequence(sentence)
-	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), true)
+	en, err := tk.Encode(tokenizer.NewSingleEncodeInput(input), false)
 	if err != nil {
 		log.Fatal(err)
 	}
