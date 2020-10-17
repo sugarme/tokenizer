@@ -61,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - [#13]: fixed Wordpiece Decoder not join incorrectly tokens and not strip prefix.
 
+## [0.1.10]
+
+## Fixed
+- [#13]: fixed Wordpiece Decoder not join incorrectly tokens and not strip prefix.
+
 [#8]: https://github.com/sugarme/tokenizer/pull/8
 [#10]: https://github.com/sugarme/tokenizer/pull/10
 [#11]: https://github.com/sugarme/tokenizer/issue/11
