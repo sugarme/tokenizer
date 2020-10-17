@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [#11]: added `addSpecialTokens` param to `EncodeSingle` `EncodePair` and `Tokenizer` APIs.
 
+## [0.1.8]
+
+## Fixed
+- [#12]: fixed using pointer to Decoder interface in Tokenizer struct.
+
 [#8]: https://github.com/sugarme/tokenizer/pull/8
 [#10]: https://github.com/sugarme/tokenizer/pull/10
 [#11]: https://github.com/sugarme/tokenizer/issue/11
+[#12]: https://github.com/sugarme/tokenizer/issue/11
