@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/decoder"
 	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
@@ -38,6 +39,10 @@ func getBert() (retVal *tokenizer.Tokenizer) {
 
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
+
+	wpDecoder := decoder.NewWordPieceDecoder("", false)
+
+	tk.WithDecoder(wpDecoder)
 
 	return tk
 }
@@ -99,6 +104,9 @@ func bertTokenize() {
 	fmt.Printf("tokens: %v\n", en.GetTokens())
 	fmt.Printf("offsets: %v\n", en.GetOffsets())
 	fmt.Printf("word Ids: %v\n", en.GetWords())
+
+	decodedStr := tk.Decode(en.Ids, true)
+	fmt.Printf("decodedStr: '%v'\n", decodedStr)
 
 	// Output:
 	// original: 'Hello, y'all! How are you 😁 ?'

@@ -174,7 +174,7 @@ type Tokenizer struct {
 	preTokenizer  *PreTokenizer          // optional
 	model         Model
 	postProcessor *PostProcessor // optional
-	decoder       *Decoder       // optional
+	decoder       Decoder        // optional - interface
 
 	// Added vocabulary capability
 	addedVocabulary AddedVocabulary
@@ -222,11 +222,11 @@ func (t *Tokenizer) GetPostProcessor() *PostProcessor {
 	return t.postProcessor
 }
 
-func (t *Tokenizer) WithDecoder(decoder *Decoder) {
+func (t *Tokenizer) WithDecoder(decoder Decoder) {
 	t.decoder = decoder
 }
 
-func (t *Tokenizer) GetDecoder() *Decoder {
+func (t *Tokenizer) GetDecoder() Decoder {
 	return t.decoder
 }
 
@@ -430,7 +430,7 @@ func (t *Tokenizer) Decode(ids []int, skipSpecialTokens bool) (retVal string) {
 	}
 
 	if t.decoder != nil {
-		return (*t.decoder).Decode(tokens)
+		return (t.decoder).Decode(tokens)
 	}
 
 	return strings.Join(tokens, " ")
