@@ -1,6 +1,7 @@
 package decoder
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -31,7 +32,7 @@ func DefaultWordpieceDecoder() *WordPieceDecoder {
 
 func (wd *WordPieceDecoder) Decode(tokens []string) string {
 	output := strings.Join(tokens, " ")
-	output = strings.ReplaceAll(output, wd.prefix, "")
+	output = strings.ReplaceAll(output, fmt.Sprintf(" %v", wd.prefix), "")
 	if wd.cleanup {
 		output = strings.ReplaceAll(output, " .", ".")
 		output = strings.ReplaceAll(output, " ?", "?")
