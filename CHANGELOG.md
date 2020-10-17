@@ -56,7 +56,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 - [#12]: fixed using pointer to Decoder interface in Tokenizer struct.
 
+## [0.1.9]
+
+## Fixed
+- [#13]: fixed Wordpiece Decoder not join incorrectly tokens and not strip prefix.
+
 [#8]: https://github.com/sugarme/tokenizer/pull/8
 [#10]: https://github.com/sugarme/tokenizer/pull/10
 [#11]: https://github.com/sugarme/tokenizer/issue/11
-[#12]: https://github.com/sugarme/tokenizer/issue/11
+[#12]: https://github.com/sugarme/tokenizer/issue/12
+[#13]: https://github.com/sugarme/tokenizer/issue/13

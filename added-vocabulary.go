@@ -261,9 +261,10 @@ func (av *AddedVocabulary) IdToToken(id int, model Model) (retVal string, ok boo
 }
 
 // Check if a token is a special token
-func (av *AddedVocabulary) IsSpecialToken(token string) (retVal bool) {
-	_, retVal = av.specialTokensSet[token]
-	return retVal
+func (av *AddedVocabulary) IsSpecialToken(token string) bool {
+	_, ok := av.specialTokensSet[token]
+
+	return ok
 }
 
 // Add some special tokens to the vocabulary

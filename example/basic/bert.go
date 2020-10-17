@@ -40,7 +40,7 @@ func getBert() (retVal *tokenizer.Tokenizer) {
 	bertPreTokenizer := pretokenizer.NewBertPreTokenizer()
 	tk.WithPreTokenizer(bertPreTokenizer)
 
-	wpDecoder := decoder.NewWordPieceDecoder("", false)
+	wpDecoder := decoder.DefaultWordpieceDecoder()
 
 	tk.WithDecoder(wpDecoder)
 

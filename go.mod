@@ -7,8 +7,8 @@ require (
 	github.com/rivo/uniseg v0.1.0
 	github.com/schollz/progressbar/v2 v2.15.0
 	github.com/stretchr/testify v1.4.0 // indirect
-	github.com/sugarme/regexpset v0.0.0-20200813070853-0a3212d91786
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/text v0.3.2
+	github.com/sugarme/regexpset v0.0.0-20200920021344-4d4ec8eaf93c
+	golang.org/x/sync v0.0.0-20201008141435-b3e1573b7520
+	golang.org/x/text v0.3.3
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
