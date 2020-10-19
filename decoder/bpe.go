@@ -23,7 +23,6 @@ func DefaultBpeDecoder() *BpeDecoder {
 func (bd *BpeDecoder) Decode(tokens []string) string {
 	output := strings.Join(tokens, "")
 	output = strings.ReplaceAll(output, bd.suffix, " ")
-	output = strings.TrimPrefix(output, " ")
 
 	return output
 }

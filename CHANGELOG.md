@@ -18,12 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.4]
 
-### Added
-- None
-
-### Changed
-- None
-
 ### Fixed
 - [#8]: Fixed `encoding.MergeWith` merge overflowing incorrectly. 
 
@@ -31,12 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - [#10]: setup pretrained subpackage to load pretrained tokenizers. 
-
-### Changed
-- None
-
-### Fixed
-- None
 
 ## [0.1.6]
 
@@ -53,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.8]
 
-## Fixed
+### Fixed
 - [#12]: fixed using pointer to Decoder interface in Tokenizer struct.
 
 ## [0.1.9]
@@ -63,11 +51,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.10]
 
-## Fixed
+### Fixed
 - [#13]: fixed Wordpiece Decoder not join incorrectly tokens and not strip prefix.
+
+## [0.1.11]
+
+### Added
+- Added pretrained model "Roberta" and "GPT2" and "BertLargeCasedWholeWordMaskingSquad"
+
+### Fixed
+- [#14]: fixed truncation and padding not working properly
+
+### Changed
+- Update "example/truncation", "example/pretrained"
 
 [#8]: https://github.com/sugarme/tokenizer/pull/8
 [#10]: https://github.com/sugarme/tokenizer/pull/10
-[#11]: https://github.com/sugarme/tokenizer/issue/11
-[#12]: https://github.com/sugarme/tokenizer/issue/12
-[#13]: https://github.com/sugarme/tokenizer/issue/13
+[#11]: https://github.com/sugarme/tokenizer/issues/11
+[#12]: https://github.com/sugarme/tokenizer/issues/12
+[#13]: https://github.com/sugarme/tokenizer/issues/13
+[#14]: https://github.com/sugarme/tokenizer/issues/14
