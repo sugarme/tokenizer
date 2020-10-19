@@ -428,18 +428,26 @@ func mergeEncoding(en1, en2 Encoding, growingOffsets bool) Encoding {
 }
 
 // Pad pads current encoding with given length, values to either Left or Right direction
-func (e *Encoding) Pad(targetLength, padId, padTypeId int, padToken string, direction PaddingDirection) (retVal *Encoding) {
-	// 1. Recursively call for overflowing part
+func (e *Encoding) Pad(targetLength, padId, padTypeId int, padToken string, direction PaddingDirection) *Encoding {
+	// 1. Overflowing
+	var overflowing []Encoding
 	for _, o := range e.Overflowing {
-		o.Pad(targetLength, padId, padTypeId, padToken, direction)
+		padded := o.pad(targetLength, padId, padTypeId, padToken, direction)
+		overflowing = append(overflowing, *padded)
 	}
+	e.Overflowing = overflowing
 
 	// 2. Check whether we should pad encoding itself
 	// if wanted padding length is smaller, then do nothing
 	if len(e.Ids) >= targetLength {
-		return
+		return e
 	}
 
+	paddedEn := e.pad(targetLength, padId, padTypeId, padToken, direction)
+	return paddedEn
+}
+
+func (e *Encoding) pad(targetLength, padId, padTypeId int, padToken string, direction PaddingDirection) *Encoding {
 	padLength := targetLength - len(e.Ids)
 
 	switch direction {

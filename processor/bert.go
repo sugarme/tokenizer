@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"github.com/sugarme/tokenizer"
 )
 
@@ -32,12 +33,48 @@ func (bp *BertProcessing) AddedTokens(isPair bool) (retVal int) {
 	}
 }
 
+// Process post-processes input encoding(s) by adding special tokens if specifying.
 func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) (retVal *tokenizer.Encoding) {
-
 	if !addSpecialTokens {
 		return tokenizer.DefaultProcess(encoding, pairEncoding, addSpecialTokens)
 	}
 
+	// add special token "[CLS]" and "[SEP]" to encoding itself
+	newEncoding := bp.addSpecialToken(encoding)
+
+	// add special token "[CLS]" and "[SEP]" to overflowing encodings if it has
+	var overflowing []tokenizer.Encoding
+	for _, en := range encoding.Overflowing {
+		newEn := bp.addSpecialToken(&en)
+		overflowing = append(overflowing, *newEn)
+	}
+	newEncoding.Overflowing = overflowing
+
+	if pairEncoding != nil {
+
+		// Add special token "[SEP]" to pair encoding itself
+		newPairEncoding := bp.pairAddSpecialToken(pairEncoding)
+
+		// Add special token "[SEP]" at the end of its overflowing if it has
+		var pairOverflowing []tokenizer.Encoding
+		for _, en := range pairEncoding.Overflowing {
+			newEnc := bp.pairAddSpecialToken(&en)
+			pairOverflowing = append(pairOverflowing, *newEnc)
+		}
+		newPairEncoding.Overflowing = pairOverflowing
+
+		// Merge newPairEncoding with newEncoding
+		newEncoding.MergeWith(newPairEncoding, false)
+
+		fmt.Printf("newEncoding after MergedWith: %+v\n", newEncoding)
+	}
+
+	return newEncoding
+}
+
+// addSpecialToken adds special token "[CLS]" and "[SEP]" to input encoding. It ignores
+// `Overflowing` field.
+func (bp *BertProcessing) addSpecialToken(encoding *tokenizer.Encoding) *tokenizer.Encoding {
 	var ids []int
 	ids = append(ids, bp.cls.Id)
 	ids = append(ids, encoding.GetIds()...)
@@ -65,50 +102,55 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 
 	var specialTokens []int
 	specialTokens = append(specialTokens, 1)
-	specialTokens = append(specialTokens, 0)
-	specialTokens = append(specialTokens, len(encoding.GetIds()))
+	for i := 0; i < len(encoding.Ids); i++ {
+		specialTokens = append(specialTokens, 0)
+	}
 	specialTokens = append(specialTokens, 1)
 
-	var attentionMask []int = []int{1, len(ids)}
-
-	newEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, encoding.TakeOverflowing(), words)
-
-	if pairEncoding != nil {
-		var pairIds []int
-		pairIds = append(pairIds, pairEncoding.Ids...)
-		pairIds = append(pairIds, bp.sep.Id)
-
-		var pairTypeIds []int
-		pairTypeIds = append(pairTypeIds, pairEncoding.GetTypeIds()...)
-		pairTypeIds = append(pairTypeIds, 1)
-
-		var pairTokens []string
-		pairTokens = append(pairTokens, pairEncoding.GetTokens()...)
-		pairTokens = append(pairTokens, bp.sep.Value)
-
-		var pairWords []int
-		pairWords = append(pairWords, pairEncoding.GetWords()...)
-		pairWords = append(pairWords, -1)
-
-		var pairOffsets [][]int
-		pairOffsets = append(pairOffsets, pairEncoding.GetOffsets()...)
-		pairOffsets = append(pairOffsets, []int{0, 0})
-
-		var pairSpecialTokens []int
-		pairSpecialTokens = append(pairSpecialTokens, 0)
-		pairSpecialTokens = append(pairSpecialTokens, len(pairEncoding.GetTypeIds()))
-		pairSpecialTokens = append(pairSpecialTokens, 1)
-
-		var pairAttentionMask []int
-		pairAttentionMask = append(pairAttentionMask, 1)
-		pairAttentionMask = append(pairAttentionMask, len(pairIds))
-
-		newPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, pairEncoding.TakeOverflowing(), pairWords)
-
-		// Merge newPairEncoding with newEncoding
-		newEncoding.MergeWith(newPairEncoding, false)
-
+	// As all tokens are non-padded tokens, just assign 1
+	nonPaddedTokens := len(encoding.Ids) + 2
+	var attentionMask []int
+	for i := 0; i < nonPaddedTokens; i++ {
+		attentionMask = append(attentionMask, 1)
 	}
 
-	return newEncoding
+	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, words)
+}
+
+// pairAddSpecialToken adds special token "[SEP]" to input encoding. It ignores
+// `Overflowing` field.
+func (bp *BertProcessing) pairAddSpecialToken(pairEncoding *tokenizer.Encoding) *tokenizer.Encoding {
+	var pairIds []int
+	pairIds = append(pairIds, pairEncoding.Ids...)
+	pairIds = append(pairIds, bp.sep.Id)
+
+	var pairTypeIds []int
+	pairTypeIds = append(pairTypeIds, pairEncoding.GetTypeIds()...)
+	pairTypeIds = append(pairTypeIds, 1)
+
+	var pairTokens []string
+	pairTokens = append(pairTokens, pairEncoding.GetTokens()...)
+	pairTokens = append(pairTokens, bp.sep.Value)
+
+	var pairWords []int
+	pairWords = append(pairWords, pairEncoding.GetWords()...)
+	pairWords = append(pairWords, -1)
+
+	var pairOffsets [][]int
+	pairOffsets = append(pairOffsets, pairEncoding.GetOffsets()...)
+	pairOffsets = append(pairOffsets, []int{0, 0})
+
+	var pairSpecialTokens []int
+	for i := 0; i < len(pairEncoding.Ids); i++ {
+		pairSpecialTokens = append(pairSpecialTokens, 0)
+	}
+	pairSpecialTokens = append(pairSpecialTokens, 1)
+
+	var pairAttentionMask []int
+	for i := 0; i < len(pairEncoding.Ids); i++ {
+		pairAttentionMask = append(pairAttentionMask, 1)
+	}
+	pairAttentionMask = append(pairAttentionMask, 1)
+
+	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWords)
 }

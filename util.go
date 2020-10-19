@@ -42,7 +42,7 @@ func WithBatchLongest() PaddingStrategyOption {
 	}
 }
 
-func WithFixed(size uint) PaddingStrategyOption {
+func WithFixed(size int) PaddingStrategyOption {
 	return func(ps *PaddingStrategy) {
 		ps.Value = size
 		ps.Name = "Fixed"
@@ -170,8 +170,9 @@ func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
 	// TODO: implement concurrency with for loop
 	var newEncodings []Encoding
 	for _, e := range encodings {
-		e.Pad(padLength, params.PadId, params.PadTypeId, params.PadToken, params.Direction)
-		newEncodings = append(newEncodings, e)
+		en := e
+		paddedEn := en.Pad(padLength, params.PadId, params.PadTypeId, params.PadToken, params.Direction)
+		newEncodings = append(newEncodings, *paddedEn)
 	}
 
 	return newEncodings

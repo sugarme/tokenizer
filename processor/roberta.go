@@ -53,6 +53,11 @@ func (rp *RobertaProcessing) AddedTokens(isPair bool) int {
 	}
 }
 
+// Process post-processes input encoding(s) by adding special tokens if instructed to do so.
+//
+// Specifically, if addSpecialToken=true, it will add special tokens patterns
+// - Single encoding: <s> Sequence </s>
+// - Pair encoding: <s> SequenceA </s> </s> SequenceB </s>
 func (rp *RobertaProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) *tokenizer.Encoding {
 
 	var (
@@ -86,72 +91,28 @@ func (rp *RobertaProcessing) Process(encoding, pairEncoding *tokenizer.Encoding,
 		return tokenizer.DefaultProcess(newEncoding, newPairEncoding, addSpecialTokens)
 	}
 
-	var ids []int
-	ids = append(ids, rp.cls.Id)
-	ids = append(ids, newEncoding.GetIds()...)
-	ids = append(ids, rp.sep.Id)
+	// add special token to itself
+	finalEncoding := rp.addSpecialToken(newEncoding)
 
-	var typeIds []int
-	typeIds = append(typeIds, 0)
-	typeIds = append(typeIds, newEncoding.GetTypeIds()...)
-	typeIds = append(typeIds, 0)
-
-	var tokens []string
-	tokens = append(tokens, rp.cls.Value)
-	tokens = append(tokens, newEncoding.GetTokens()...)
-	tokens = append(tokens, rp.sep.Value)
-
-	var words []int
-	words = append(words, -1)
-	words = append(words, newEncoding.GetWords()...)
-	words = append(words, -1)
-
-	var offsets [][]int
-	offsets = append(offsets, []int{0, 0})
-	offsets = append(offsets, newEncoding.GetOffsets()...)
-	offsets = append(offsets, []int{0, 0})
-
-	var specialTokens []int
-	specialTokens = append(specialTokens, 1)
-	specialTokens = append(specialTokens, 0)
-	specialTokens = append(specialTokens, len(newEncoding.GetIds()))
-	specialTokens = append(specialTokens, 1)
-
-	var attentionMask []int = []int{1, len(ids)}
-
-	finalEncoding := tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, newEncoding.TakeOverflowing(), words)
+	// add special token to its overflowing
+	var overflowing []tokenizer.Encoding
+	for _, en := range newEncoding.Overflowing {
+		newEn := rp.addSpecialToken(&en)
+		overflowing = append(overflowing, *newEn)
+	}
+	finalEncoding.Overflowing = overflowing
 
 	if pairEncoding != nil {
-		var pairIds []int
-		pairIds = append(pairIds, newPairEncoding.GetTypeIds()...)
-		pairIds = append(pairIds, rp.sep.Id)
 
-		var pairTypeIds []int
-		pairTypeIds = append(pairTypeIds, newPairEncoding.GetTypeIds()...)
-		pairTypeIds = append(pairTypeIds, 1)
-
-		var pairTokens []string
-		pairTokens = append(pairTokens, newPairEncoding.GetTokens()...)
-		pairTokens = append(pairTokens, rp.sep.Value)
-
-		var pairWords []int
-		pairWords = append(pairWords, newPairEncoding.GetWords()...)
-		pairWords = append(pairWords, -1)
-
-		var pairOffsets [][]int
-		pairOffsets = append(pairOffsets, newPairEncoding.GetOffsets()...)
-		pairOffsets = append(pairOffsets, []int{0, 0})
-
-		var pairSpecialTokens []int
-		pairSpecialTokens = append(pairSpecialTokens, 0)
-		pairSpecialTokens = append(pairSpecialTokens, len(newPairEncoding.GetTypeIds()))
-		pairSpecialTokens = append(pairSpecialTokens, 1)
-
-		var pairAttentionMask []int
-		pairAttentionMask = append(pairAttentionMask, 1)
-		pairAttentionMask = append(pairAttentionMask, len(pairIds))
-
-		finalPairEncoding := tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, newPairEncoding.TakeOverflowing(), pairWords)
+		// add special tokens for pair itself
+		finalPairEncoding := rp.pairAddSpecialToken(newPairEncoding)
+		// add special tokens for pair's overflowing
+		var pairOverflowing []tokenizer.Encoding
+		for _, en := range newPairEncoding.Overflowing {
+			newEn := rp.pairAddSpecialToken(&en)
+			pairOverflowing = append(pairOverflowing, *newEn)
+		}
+		finalPairEncoding.Overflowing = pairOverflowing
 
 		// Merge with pair
 		finalEncoding.MergeWith(finalPairEncoding, false)
@@ -159,6 +120,100 @@ func (rp *RobertaProcessing) Process(encoding, pairEncoding *tokenizer.Encoding,
 	}
 
 	return finalEncoding
+}
+
+// addSpecialToken adds special tokens to input encoding. It ignores the `Overflowing` field
+// of input encoding.
+//
+// Specifically, it adds: <s> Sequence </s>
+func (rp *RobertaProcessing) addSpecialToken(encoding *tokenizer.Encoding) *tokenizer.Encoding {
+	var ids []int
+	ids = append(ids, rp.cls.Id)
+	ids = append(ids, encoding.Ids...)
+	ids = append(ids, rp.sep.Id)
+
+	var typeIds []int
+	typeIds = append(typeIds, 0)
+	typeIds = append(typeIds, encoding.TypeIds...)
+	typeIds = append(typeIds, 0)
+
+	var tokens []string
+	tokens = append(tokens, rp.cls.Value)
+	tokens = append(tokens, encoding.Tokens...)
+	tokens = append(tokens, rp.sep.Value)
+
+	var words []int
+	words = append(words, -1)
+	words = append(words, encoding.Words...)
+	words = append(words, -1)
+
+	var offsets [][]int
+	offsets = append(offsets, []int{0, 0})
+	offsets = append(offsets, encoding.Offsets...)
+	offsets = append(offsets, []int{0, 0})
+
+	var specialTokens []int
+	specialTokens = append(specialTokens, 1)
+	for i := 0; i < len(encoding.SpecialTokenMask); i++ {
+		specialTokens = append(specialTokens, 0)
+	}
+	specialTokens = append(specialTokens, 1)
+
+	var attentionMask []int
+	attentionMask = append(attentionMask, 1)
+	for i := 0; i < len(encoding.AttentionMask); i++ {
+		attentionMask = append(attentionMask, 1)
+	}
+	attentionMask = append(attentionMask, 1)
+
+	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, words)
+}
+
+// addSpecialToken adds special tokens to input pair encoding. It ignores the `Overflowing` field
+// of input pair encoding.
+//
+// Specifically, it adds </s> PairEncoding </s>
+func (rp *RobertaProcessing) pairAddSpecialToken(pair *tokenizer.Encoding) *tokenizer.Encoding {
+	var pairIds []int
+	pairIds = append(pairIds, rp.sep.Id)
+	pairIds = append(pairIds, pair.Ids...)
+	pairIds = append(pairIds, rp.sep.Id)
+
+	var pairTypeIds []int
+	pairTypeIds = append(pairTypeIds, 1)
+	pairTypeIds = append(pairTypeIds, pair.TypeIds...)
+	pairTypeIds = append(pairTypeIds, 1)
+
+	var pairTokens []string
+	pairTokens = append(pairTokens, rp.sep.Value)
+	pairTokens = append(pairTokens, pair.Tokens...)
+	pairTokens = append(pairTokens, rp.sep.Value)
+
+	var pairWords []int
+	pairWords = append(pairWords, -1)
+	pairWords = append(pairWords, pair.Words...)
+	pairWords = append(pairWords, -1)
+
+	var pairOffsets [][]int
+	pairOffsets = append(pairOffsets, []int{0, 0})
+	pairOffsets = append(pairOffsets, pair.Offsets...)
+	pairOffsets = append(pairOffsets, []int{0, 0})
+
+	var pairSpecialTokens []int
+	pairSpecialTokens = append(pairSpecialTokens, 1)
+	for i := 0; i < len(pair.SpecialTokenMask); i++ {
+		pairSpecialTokens = append(pairSpecialTokens, 0)
+	}
+	pairSpecialTokens = append(pairSpecialTokens, 1)
+
+	var pairAttentionMask []int
+	pairAttentionMask = append(pairAttentionMask, 1)
+	for i := 0; i < len(pair.AttentionMask); i++ {
+		pairAttentionMask = append(pairAttentionMask, 1)
+	}
+	pairAttentionMask = append(pairAttentionMask, 1)
+
+	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWords)
 }
 
 // TODO: implement Serialize interface for RobertaProcessing

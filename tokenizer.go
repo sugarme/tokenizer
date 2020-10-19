@@ -528,8 +528,8 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 	var padEncodings []Encoding
 	encodings := []Encoding{*finalEncoding}
 	padEncodings = PadEncodings(encodings, *t.padding)
-	if len(padEncodings) <= 1 {
-		return finalEncoding
+	if len(padEncodings) == 1 {
+		return &padEncodings[0]
 	} else {
 		return padEncodings[0].Merge(padEncodings[1:], true)
 	}
