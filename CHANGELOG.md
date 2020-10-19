@@ -65,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update "example/truncation", "example/pretrained"
 
+## [0.1.12]
+
+### Changed
+- Clean-up unwanted console print-out at `processor/bert`
+
 [#8]: https://github.com/sugarme/tokenizer/pull/8
 [#10]: https://github.com/sugarme/tokenizer/pull/10
 [#11]: https://github.com/sugarme/tokenizer/issues/11

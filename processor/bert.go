@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"fmt"
 	"github.com/sugarme/tokenizer"
 )
 
@@ -65,8 +64,6 @@ func (bp *BertProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, ad
 
 		// Merge newPairEncoding with newEncoding
 		newEncoding.MergeWith(newPairEncoding, false)
-
-		fmt.Printf("newEncoding after MergedWith: %+v\n", newEncoding)
 	}
 
 	return newEncoding
