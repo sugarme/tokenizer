@@ -3,7 +3,7 @@ package tokenizer
 
 import (
 	"bufio"
-	"context"
+	// "context"
 	"fmt"
 	"log"
 	"math"
@@ -14,7 +14,7 @@ import (
 	"sync"
 
 	progressbar "github.com/schollz/progressbar/v2"
-	"golang.org/x/sync/errgroup"
+	// "golang.org/x/sync/errgroup"
 
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/util"
@@ -840,6 +840,7 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 
 }
 
+/*
 func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 	type Job struct {
 		File     string
@@ -889,16 +890,16 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 				}
 
 				trainer.ProcessTokens(words, encoding.Tokens)
-
-				/*
-				 *         normalized := t.normalize(line)
-				 *         preTokenized := t.preTokenize(normalized.GetNormalized())
-				 *         var tokens []string
-				 *         for _, tok := range preTokenized {
-				 *           tokens = append(tokens, tok.Value)
-				 *         }
-				 *         trainer.ProcessTokens(words, tokens)
-				 *  */
+				//
+				//
+				// normalized := t.normalize(line)
+				// preTokenized := t.preTokenize(normalized.GetNormalized())
+				// var tokens []string
+				// for _, tok := range preTokenized {
+				// tokens = append(tokens, tok.Value)
+				// }
+				// trainer.ProcessTokens(words, tokens)
+				//
 				// Pass processed data to channel
 				lnChan <- words
 
@@ -960,6 +961,8 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 
 	return nil
 }
+
+*/
 
 // Simpler Tokenizer APIs:
 // =======================

@@ -8,8 +8,6 @@ require (
 	github.com/schollz/progressbar/v2 v2.15.0
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/sugarme/regexpset v0.0.0-20200920021344-4d4ec8eaf93c
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/text v0.3.3
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
