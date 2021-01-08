@@ -2,6 +2,7 @@ package pretrained
 
 import (
 	"log"
+	"os"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/decoder"
@@ -30,7 +31,13 @@ import (
 // "https://cdn.huggingface.co/gpt2-vocab.json"
 func GPT2(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
 
+	currDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	util.CdToThis()
+	defer util.CdBack(currDir)
+
 	vocabFile := "model/gpt2-vocab.json"
 	mergeFile := "model/gpt2-merges.txt"
 

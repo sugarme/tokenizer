@@ -20,16 +20,16 @@ func runTrain() {
 		// "example/tokenizer/bpe/train/input/test.txt",
 		// "example/tokenizer/bpe/train/input/test-eo.txt",
 
-		"example/tokenizer/bpe/train/input/oscar.eo.txt",
-		"example/tokenizer/bpe/train/input/epo_literature_2011_300K-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_mixed_2012_1M-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_newscrawl_2017_1M-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_web_2011_100K-sentences.txt",
-		// "example/tokenizer/bpe/train/input/epo_web_2012_1M-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_wikipedia_2007_300K-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_wikipedia_2011_300K-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_wikipedia_2012_300K-sentences.txt",
-		"example/tokenizer/bpe/train/input/epo_wikipedia_2016_300K-sentences.txt",
+		"input/oscar.eo.txt",
+		"input/epo_literature_2011_300K-sentences.txt",
+		"input/epo_mixed_2012_1M-sentences.txt",
+		"input/epo_newscrawl_2017_1M-sentences.txt",
+		"input/epo_web_2011_100K-sentences.txt",
+		"input/epo_web_2012_1M-sentences.txt",
+		"input/epo_wikipedia_2007_300K-sentences.txt",
+		"input/epo_wikipedia_2011_300K-sentences.txt",
+		"input/epo_wikipedia_2012_300K-sentences.txt",
+		"input/epo_wikipedia_2016_300K-sentences.txt",
 	}
 
 	var vocab map[string]int = make(map[string]int)

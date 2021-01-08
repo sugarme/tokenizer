@@ -2,6 +2,7 @@ package pretrained
 
 import (
 	"log"
+	"os"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/decoder"
@@ -29,7 +30,13 @@ import (
 // - vocab: "https://cdn.huggingface.co/roberta-base-vocab.json",
 // - merges: "https://cdn.huggingface.co/roberta-base-merges.txt",
 func RobertaBase(addPrefixSpace, trimOffsets bool) *tokenizer.Tokenizer {
+	currDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	util.CdToThis()
+	defer util.CdBack(currDir)
+
 	vocabFile := "model/roberta-base-vocab.json"
 	mergesFile := "model/roberta-base-merges.txt"
 	model, err := bpe.NewBpeFromFiles(vocabFile, mergesFile)

@@ -52,3 +52,10 @@ func CdToThis() {
 		log.Fatal(err)
 	}
 }
+
+// CdBack returns back to previous path.
+func CdBack(backDir string) {
+	if err := os.Chdir(backDir); err != nil {
+		log.Fatal(err)
+	}
+}

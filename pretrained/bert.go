@@ -2,6 +2,7 @@ package pretrained
 
 import (
 	"log"
+	"os"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/decoder"
@@ -26,7 +27,12 @@ import (
 // "https://cdn.huggingface.co/bert-base-uncased-vocab.txt"
 func BertBaseUncased() *tokenizer.Tokenizer {
 
+	currDir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
 	util.CdToThis()
+	defer util.CdBack(currDir)
 
 	vocabFile := "model/bert-base-uncased-vocab.txt"
 	model, err := wordpiece.NewWordPieceFromFile(vocabFile, "[UNK]")
