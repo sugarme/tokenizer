@@ -294,12 +294,16 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
 func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, offsetType OffsetType) (*Encoding, error) {
 
 	encode := func(isPreTokenized bool, subseqIdx int, subseq string) (*Encoding, error) {
-
 		normalized := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
-
-		pretokenized, err := t.doPreTokenize(normalized)
-		if err != nil {
-			return nil, err
+		var (
+			pretokenized *PreTokenizedString = normalized
+			err          error
+		)
+		if t.preTokenizer != nil {
+			pretokenized, err = t.doPreTokenize(normalized)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// fmt.Printf("============doPreTokenize result:=================================== \n")

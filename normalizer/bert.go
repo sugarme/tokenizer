@@ -218,3 +218,13 @@ func IsBertPunctuation(c rune) bool {
 func IsBertWhitespace(c rune) bool {
 	return isWhitespace(c)
 }
+
+// IsPunctuation returns whether input rune is a punctuation or not.
+func IsPunctuation(c rune) bool {
+	return isPunctuation(c)
+}
+
+// IsWhitespace checks whether an input rune is a whitespace
+func IsWhitespace(c rune) bool {
+	return isWhitespace(c)
+}

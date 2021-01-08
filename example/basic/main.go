@@ -19,5 +19,7 @@ func main() {
 
 	case "bpe":
 		runBPE()
+	case "word":
+		runWordLevel()
 	}
 }

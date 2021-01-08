@@ -3,7 +3,6 @@ package wordlevel
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,15 +17,18 @@ type config struct {
 
 // WordLevelBuilder is a builder for WordLevel model
 type WordLevelBuilder struct {
-	config config
+	config *config
 }
 
 // defaultWordLevelBuilder creates a WordLevelBuilder with default values
 func defaultWordLevelBuilder() *WordLevelBuilder {
+	unkTok := "<unk>"
+	vocab := make(map[string]int)
+	vocab[unkTok] = 0
 	return &WordLevelBuilder{
-		config: config{
-			vocab:    make(map[string]int),
-			unkToken: "<unk>",
+		config: &config{
+			vocab:    vocab,
+			unkToken: unkTok,
 		},
 	}
 }
@@ -44,6 +46,7 @@ func (wlb *WordLevelBuilder) Vocab(vocab map[string]int) {
 // UnkToken set `UNK` token for the vocab
 func (wlb *WordLevelBuilder) UnkToken(unkToken string) {
 	wlb.config.unkToken = unkToken
+	wlb.config.vocab[unkToken] = len(wlb.config.vocab)
 }
 
 // Build builds a WordLevel using configuration
@@ -106,9 +109,16 @@ func NewWorldLevelFromFile(vocabFile string, unkToken string) (*WordLevel, error
 
 // NewWordLevel initiates a new WordLevel
 func NewWordLevel() *WordLevel {
+	vocab := make(map[string]int)
+	vocabR := make(map[int]string)
+	// Add default unknown token
+	unkTok := "<unk>"
+	vocab[unkTok] = 0
+	vocabR[0] = unkTok
+
 	return &WordLevel{
-		vocab:    make(map[string]int),
-		vocabR:   make(map[int]string),
+		vocab:    vocab,
+		vocabR:   vocabR,
 		unkToken: "<unk>",
 	}
 }
@@ -117,17 +127,17 @@ func NewWordLevel() *WordLevel {
 // =======================================
 
 // GetVocab returns model vocab.
-func (wl WordLevel) GetVocab() (retVal map[string]int) {
+func (wl *WordLevel) GetVocab() (retVal map[string]int) {
 	return wl.vocab
 }
 
 // GetVocabSize returns size of vocab.
-func (wl WordLevel) GetVocabSize() (retVal int) {
+func (wl *WordLevel) GetVocabSize() (retVal int) {
 	return len(wl.vocab)
 }
 
 // Tokenize transforms given input to token
-func (wl WordLevel) Tokenize(token string) []tokenizer.Token {
+func (wl *WordLevel) Tokenize(token string) ([]tokenizer.Token, error) {
 
 	var output []tokenizer.Token
 	var (
@@ -139,7 +149,9 @@ func (wl WordLevel) Tokenize(token string) []tokenizer.Token {
 	if !ok {
 		id, unkOk = wl.vocab[wl.unkToken]
 		if !unkOk {
-			log.Fatalf("Missing 'unk' token in vocab.\n")
+			fmt.Printf("token: %q\n", token)
+			err := fmt.Errorf("Missing 'unk' token in vocab.\n")
+			return nil, err
 		}
 	}
 
@@ -149,23 +161,23 @@ func (wl WordLevel) Tokenize(token string) []tokenizer.Token {
 		Offsets: []int{0, len(token)},
 	})
 
-	return output
+	return output, nil
 }
 
 // TokenToId returns id of a given token if existing
-func (wl WordLevel) TokenToId(token string) (int, bool) {
+func (wl *WordLevel) TokenToId(token string) (int, bool) {
 	id, ok := wl.vocab[token]
 	return id, ok
 }
 
 // IdToToken gets token of given id if existing
-func (wl WordLevel) IdToToken(id int) (string, bool) {
+func (wl *WordLevel) IdToToken(id int) (string, bool) {
 	tok, ok := wl.vocabR[id]
 	return tok, ok
 }
 
 // Save saves vocab to a file
-func (wl WordLevel) Save(dir string, nameOpt ...string) (err error) {
+func (wl *WordLevel) Save(dir string, nameOpt ...string) (err error) {
 	var vfile string
 	if len(nameOpt) > 0 {
 		vfile = fmt.Sprintf("%v/%v-vocab.txt", dir, nameOpt[0])
