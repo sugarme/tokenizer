@@ -116,6 +116,16 @@ func NewWordLevel() *WordLevel {
 // Implement Model interface for WordLevel
 // =======================================
 
+// GetVocab returns model vocab.
+func (wl WordLevel) GetVocab() (retVal map[string]int) {
+	return wl.vocab
+}
+
+// GetVocabSize returns size of vocab.
+func (wl WordLevel) GetVocabSize() (retVal int) {
+	return len(wl.vocab)
+}
+
 // Tokenize transforms given input to token
 func (wl WordLevel) Tokenize(token string) []tokenizer.Token {
 
@@ -152,11 +162,6 @@ func (wl WordLevel) TokenToId(token string) (int, bool) {
 func (wl WordLevel) IdToToken(id int) (string, bool) {
 	tok, ok := wl.vocabR[id]
 	return tok, ok
-}
-
-// Vocab returns a map of model vocab
-func (wl WordLevel) Vocab() map[string]int {
-	return wl.vocab
 }
 
 // Save saves vocab to a file
