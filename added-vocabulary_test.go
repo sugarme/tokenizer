@@ -195,7 +195,7 @@ func TestOptionUseCases(t *testing.T) {
 	vocab.AddTokens(addedToks, model, nil)
 	vocab.AddSpecialTokens(addedSpecialToks, model, nil)
 
-	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", &n)
+	result := vocab.ExtractAndNormalize("[CLS] My name is Anthony [SEP]", n)
 
 	type tokenid struct {
 		token string

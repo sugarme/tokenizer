@@ -170,11 +170,11 @@ func NewDualEncodeInput(sentence, pairSentence InputSequence) (retVal EncodeInpu
 // It can implement any encoding or decoding of any text.
 type Tokenizer struct {
 	// Parts
-	normalizer    *normalizer.Normalizer // optional
-	preTokenizer  *PreTokenizer          // optional
+	normalizer    normalizer.Normalizer // optional
+	preTokenizer  PreTokenizer          // optional
 	model         Model
-	postProcessor *PostProcessor // optional
-	decoder       Decoder        // optional - interface
+	postProcessor PostProcessor // optional
+	decoder       Decoder       // optional - interface
 
 	// Added vocabulary capability
 	addedVocabulary AddedVocabulary
@@ -199,26 +199,26 @@ func NewTokenizer(model Model) *Tokenizer {
 }
 
 func (t *Tokenizer) WithNormalizer(n normalizer.Normalizer) {
-	t.normalizer = &n
+	t.normalizer = n
 }
 
-func (t *Tokenizer) GetNormalizer() *normalizer.Normalizer {
+func (t *Tokenizer) GetNormalizer() normalizer.Normalizer {
 	return t.normalizer
 }
 
 func (t *Tokenizer) WithPreTokenizer(preTokenizer PreTokenizer) {
-	t.preTokenizer = &preTokenizer
+	t.preTokenizer = preTokenizer
 }
 
-func (t *Tokenizer) GetPreTokenizer() *PreTokenizer {
+func (t *Tokenizer) GetPreTokenizer() PreTokenizer {
 	return t.preTokenizer
 }
 
 func (t *Tokenizer) WithPostProcessor(postProcessor PostProcessor) {
-	t.postProcessor = &postProcessor
+	t.postProcessor = postProcessor
 }
 
-func (t *Tokenizer) GetPostProcessor() *PostProcessor {
+func (t *Tokenizer) GetPostProcessor() PostProcessor {
 	return t.postProcessor
 }
 
@@ -456,7 +456,7 @@ func (t *Tokenizer) doNormalize(s string) (retVal *normalizer.NormalizedString, 
 
 	normalized := normalizer.NewNormalizedFrom(s)
 	if t.normalizer != nil {
-		normalized, err = (*t.normalizer).Normalize(normalized)
+		normalized, err = (t.normalizer).Normalize(normalized)
 		if err != nil {
 			return retVal, err
 		}
@@ -467,7 +467,7 @@ func (t *Tokenizer) doNormalize(s string) (retVal *normalizer.NormalizedString, 
 
 // doPreTokenize does the pretokenization logic, handling the case where there is no PreTokenizer set
 func (t *Tokenizer) doPreTokenize(pretokenized *PreTokenizedString) (*PreTokenizedString, error) {
-	return (*t.preTokenizer).PreTokenize(pretokenized)
+	return (t.preTokenizer).PreTokenize(pretokenized)
 }
 
 // doTokenize does Tokenization logic, makes the bridge between the pre-tokenization phase and the real
@@ -501,7 +501,7 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 		trunc := t.trunc
 		var nAddedTokens int = 0 // number of AddedToken
 		if t.postProcessor != nil {
-			processor := *t.postProcessor
+			processor := t.postProcessor
 			nAddedTokens = processor.AddedTokens(pairEncoding != nil)
 		}
 
@@ -518,7 +518,7 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 	// 2. Post-process
 	var finalEncoding *Encoding
 	if t.postProcessor != nil {
-		processor := *t.postProcessor
+		processor := t.postProcessor
 		finalEncoding = processor.Process(tEncoding, tPairEncoding, addSpecialTokens)
 	} else {
 		finalEncoding = DefaultProcess(tEncoding, tPairEncoding, addSpecialTokens)

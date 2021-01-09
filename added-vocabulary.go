@@ -122,7 +122,7 @@ func (at AddedToken) SetNormalized(normalized bool) (retVal AddedToken) {
 // GetPattern retrieves the pattern built for this token, according to all the specified parameters.
 //
 // NOTE. normalizer input is optional
-func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
+func (at AddedToken) GetPattern(n normalizer.Normalizer) (retVal string) {
 	var reStr string // regular expression pattern
 
 	if at.SingleWord {
@@ -145,7 +145,7 @@ func (at AddedToken) GetPattern(n *normalizer.Normalizer) (retVal string) {
 		content := normalizer.NewNormalizedFrom(at.Content)
 		var normalized string
 		if n != nil {
-			normalizedString, err := (*n).Normalize(content)
+			normalizedString, err := n.Normalize(content)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -269,7 +269,7 @@ func (av *AddedVocabulary) IsSpecialToken(token string) bool {
 
 // Add some special tokens to the vocabulary
 // It returns number of added tokens
-func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
+func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, normalizer normalizer.Normalizer) (retVal int) {
 
 	for _, tok := range tokens {
 		_, isExist := av.specialTokensSet[tok.Content]
@@ -285,7 +285,7 @@ func (av *AddedVocabulary) AddSpecialTokens(tokens []AddedToken, model Model, no
 
 // Add some tokens to the vocabulary
 // It returns number of added tokens
-func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer *normalizer.Normalizer) (retVal int) {
+func (av *AddedVocabulary) AddTokens(tokens []AddedToken, model Model, normalizer normalizer.Normalizer) (retVal int) {
 
 	ignored := 0
 	for _, token := range tokens {
@@ -326,7 +326,7 @@ type tokenId struct {
 //
 // NOTE. We keep two different regular expression sets, one that will take care of matching against the
 // non-normalized string, and one matching against the normalized one.
-func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer *normalizer.Normalizer) {
+func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer normalizer.Normalizer) {
 	var normIds, nnormIds []int
 	var normPatterns, nnormPatterns []string
 	tokens := append(av.specialTokens, av.addedTokens...)
@@ -500,7 +500,7 @@ func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedStrin
 // non-normalized one. For example, when we expect to extract the token `yesterday` in the
 // input sentence `I read a book Yesterday`, if the normalizer is supposed to lowercase
 // everything, we expect a match.
-func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.Normalizer) *PreTokenizedString {
+func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n normalizer.Normalizer) *PreTokenizedString {
 
 	pretokenized := NewPreTokenizedString(sequence)
 
@@ -514,7 +514,7 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n *normalizer.No
 		newSeq := seq
 		var err error
 		if n != nil {
-			newSeq, err = (*n).Normalize(seq)
+			newSeq, err = n.Normalize(seq)
 			if err != nil {
 				log.Fatal(err)
 			}
