@@ -507,7 +507,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	endShiftStart := nRange.end
 	initialRemoved := 0
 	if initialOffset > 0 {
-		log.Printf("=> Clearing alignment for %v chars\n", initialOffset)
+		// log.Printf("=> Clearing alignment for %v chars\n", initialOffset)
 		removedBytes := 0
 		var removedChars []rune
 		for i := 0; i < initialOffset; i++ {
