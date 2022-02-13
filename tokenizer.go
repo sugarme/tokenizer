@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+
 	// "regexp"
 	"sync"
 
@@ -299,6 +300,7 @@ func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, off
 			pretokenized *PreTokenizedString = normalized
 			err          error
 		)
+
 		if t.preTokenizer != nil {
 			pretokenized, err = t.doPreTokenize(normalized)
 			if err != nil {
@@ -467,6 +469,10 @@ func (t *Tokenizer) doNormalize(s string) (retVal *normalizer.NormalizedString, 
 
 // doPreTokenize does the pretokenization logic, handling the case where there is no PreTokenizer set
 func (t *Tokenizer) doPreTokenize(pretokenized *PreTokenizedString) (*PreTokenizedString, error) {
+	if t.preTokenizer == nil {
+		err := fmt.Errorf("Tokenizer.doPreTokenize() failed: there's no 'PreTokenizer' setup. You have to include a 'PreTokenizer' at the time of creating 'Tokenizer'.")
+		return nil, err
+	}
 	return (t.preTokenizer).PreTokenize(pretokenized)
 }
 
@@ -475,6 +481,10 @@ func (t *Tokenizer) doPreTokenize(pretokenized *PreTokenizedString) (*PreTokeniz
 func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wordIdx int, offsetType OffsetType) (*Encoding, error) {
 
 	pretok, err := pretokenized.Tokenize(func(normalized *normalizer.NormalizedString) ([]Token, error) {
+		if t.model == nil {
+			err := fmt.Errorf("Tokenizer.doTokenize() failed: there's no 'Tokenizer Model' setup. You have to include a 'Tokenizer Model' at the time of creating 'Tokenizer'.")
+			return nil, err
+		}
 		return (t.model).Tokenize(normalized.GetNormalized())
 	})
 	if err != nil {
