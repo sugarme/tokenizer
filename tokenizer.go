@@ -574,7 +574,7 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 
 	// Do padding if included
 	if t.padding != nil {
-		PadEncodings(encodings, *t.padding)
+		encodings = PadEncodings(encodings, *t.padding)
 	}
 
 	return encodings, nil
