@@ -501,7 +501,6 @@ func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wor
 
 // PostProcess does post-processing logic, handling the case where there is no PostProcessor set
 func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) (retVal *Encoding) {
-
 	var tEncoding, tPairEncoding *Encoding
 
 	// 1. Truncate if needed
@@ -516,9 +515,12 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 		}
 
 		if addSpecialTokens && nAddedTokens > 0 {
-			params := trunc
-			params.MaxLength = trunc.MaxLength - nAddedTokens
-
+			maxLength := trunc.MaxLength - nAddedTokens
+			params := &TruncationParams{
+				MaxLength: maxLength,
+				Strategy:  trunc.Strategy,
+				Stride:    trunc.Stride,
+			}
 			tEncoding, tPairEncoding = TruncateEncodings(encoding, pairEncoding, params)
 		} else {
 			tEncoding, tPairEncoding = TruncateEncodings(encoding, pairEncoding, trunc)
@@ -551,8 +553,11 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 
 // EncodeBatch encodes all sentences in concurrency
 func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (retVal []Encoding, err error) {
-	var encodings []Encoding
-	var wg sync.WaitGroup
+	var (
+		encodings []Encoding
+		wg        sync.WaitGroup
+		mu        = &sync.Mutex{}
+	)
 
 	wg.Add(len(inputs))
 
@@ -565,7 +570,9 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 			if err != nil {
 				log.Fatal(err)
 			}
+			mu.Lock()
 			encodings = append(encodings, *e)
+			mu.Unlock()
 
 		}(i)
 	}
