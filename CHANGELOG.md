@@ -5,8 +5,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Fixed data race at `PostProcess` and `EncodeBatch`
-- Error handling when `Tokenizer Model` is nil.
 
 ### Fixed
 - [#...]: Fix a bug with...
@@ -16,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - [#...]: 
+
+## [0.1.16]
+- Fixed data race at `PostProcess` and `EncodeBatch`
+- Error handling when `Tokenizer Model` is nil.
 
 ## [0.1.12]
 
