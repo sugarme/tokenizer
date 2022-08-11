@@ -1,6 +1,7 @@
 package pretrained
 
 import (
+	"embed"
 	"log"
 	"os"
 
@@ -29,6 +30,16 @@ import (
 // Source:
 // "https://cdn.huggingface.co/gpt2-merges.txt"
 // "https://cdn.huggingface.co/gpt2-vocab.json"
+
+//go:embed model/gpt2-merges.txt
+//go:embed model/gpt2-vocab.json
+var fs embed.FS
+
+const (
+	vocabFilename = "model/gpt2-vocab.json"
+	mergeFilename = "model/gpt2-merges.txt"
+)
+
 func GPT2(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
 
 	currDir, err := os.Getwd()
@@ -38,10 +49,7 @@ func GPT2(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
 	util.CdToThis()
 	defer util.CdBack(currDir)
 
-	vocabFile := "model/gpt2-vocab.json"
-	mergeFile := "model/gpt2-merges.txt"
-
-	model, err := bpe.NewBpeFromFiles(vocabFile, mergeFile)
+	model, err := bpe.NewBPEFromFS(fs, vocabFilename, mergeFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
