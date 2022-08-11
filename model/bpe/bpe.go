@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+
 	// "strconv"
 	"log"
 	"strings"
@@ -247,6 +248,7 @@ func NewBpeFromFiles(vocab, merges string) (*BPE, error) {
 	return b.Build()
 }
 
+// NewBPEFromFS create BPE model from |vocab| and |merges| files in |fs|.
 func NewBPEFromFS(fs embed.FS, vocab, merges string) (*BPE, error) {
 	b := NewBpeBuilder()
 	b.FS(fs)
