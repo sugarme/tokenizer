@@ -3,14 +3,12 @@ package pretrained
 import (
 	"embed"
 	"log"
-	"os"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/decoder"
 	"github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/util"
 )
 
 // GPT2 loads GPT2 (small) tokenizer from vocab and merges files.
@@ -41,15 +39,7 @@ const (
 )
 
 func GPT2(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
-
-	currDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	util.CdToThis()
-	defer util.CdBack(currDir)
-
-	model, err := bpe.NewBPEFromFS(fs, vocabFilename, mergeFilename)
+	var model, err = bpe.NewBPEFromFS(fs, vocabFilename, mergeFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
