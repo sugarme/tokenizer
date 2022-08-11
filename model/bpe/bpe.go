@@ -72,6 +72,7 @@ func (bb *BpeBuilder) Files(vocab string, merges string) {
 	bb.config.files = &configFiles{vocab, merges}
 }
 
+// FS sets the fs to use to load embedded vocab and merges files.
 func (bb *BpeBuilder) FS(fs embed.FS) {
 	bb.config.fs = &fs
 }
