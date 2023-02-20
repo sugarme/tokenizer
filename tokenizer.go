@@ -554,7 +554,7 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 // EncodeBatch encodes all sentences in concurrency
 func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (retVal []Encoding, err error) {
 	var (
-		encodings []Encoding
+		encodings []Encoding = make([]Encoding, len(inputs))
 		wg        sync.WaitGroup
 		mu        = &sync.Mutex{}
 	)
@@ -571,7 +571,7 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 				log.Fatal(err)
 			}
 			mu.Lock()
-			encodings = append(encodings, *e)
+			encodings[i] = *e
 			mu.Unlock()
 
 		}(i)
@@ -657,11 +657,11 @@ func (t *Tokenizer) Save(path string, pretty bool) (err error) {
 
 // Train trains a model and replaces the current model using a given trainer
 // The tokenizer does the following steps
-// 1. Concurrently, reads training data (text) from files, normalizes text using
-// 		specified normalizer, and generates a slice of words and their frequency (count)
-// 2. Train tokenizer model using specified tokenizer configuration on slice of word-count
-//		generated from previous step to create `vocab` and `merges` data (files)
-// 3. Update current tokenizer with newly generated model (`vocab` and `merges` data)
+//  1. Concurrently, reads training data (text) from files, normalizes text using
+//     specified normalizer, and generates a slice of words and their frequency (count)
+//  2. Train tokenizer model using specified tokenizer configuration on slice of word-count
+//     generated from previous step to create `vocab` and `merges` data (files)
+//  3. Update current tokenizer with newly generated model (`vocab` and `merges` data)
 func (t *Tokenizer) Train(trainer Trainer, files []string) error {
 	type Job struct {
 		File     string
