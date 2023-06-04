@@ -82,6 +82,7 @@ func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *En
 // Decoder takes care of (merges) the given slice of tokens to string
 type Decoder interface {
 	Decode(tokens []string) string
+	DecodeChain(tokens []string) []string
 }
 
 // Trainer is responsible for training a model. It takes lines/sentences

@@ -2,7 +2,6 @@ package decoder
 
 import (
 	"encoding/hex"
-	// "strconv"
 	"strings"
 	"unicode/utf8"
 
