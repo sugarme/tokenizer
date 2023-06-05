@@ -560,6 +560,7 @@ func testSplit(t *testing.T, behavior normalizer.SplitDelimiterBehavior, n *norm
 		t.Errorf("Want: %v\n", want)
 		t.Errorf("Got: %v\n", got)
 	}
+
 }
 
 func TestNormalized_TransformRange_SingleBytes(t *testing.T) {

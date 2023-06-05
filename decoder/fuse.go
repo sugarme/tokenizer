@@ -2,6 +2,8 @@ package decoder
 
 import (
 	"strings"
+
+	"github.com/sugarme/tokenizer"
 )
 
 // Fuse constructs Fuse decoder
@@ -13,7 +15,11 @@ type Fuse struct {
 func NewFuse() *Fuse {
 	base := new(DecoderBase)
 
-	return &Fuse{base}
+	d := &Fuse{base}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 func (f *Fuse) DecodeChain(tokens []string) []string {

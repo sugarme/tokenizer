@@ -3,6 +3,8 @@ package decoder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/sugarme/tokenizer"
 )
 
 // WordPieceDecoder takes care of decoding a list of wordpiece tokens
@@ -18,11 +20,15 @@ type WordPieceDecoder struct {
 // NewBpeDecoder creates a new BpeDecoder
 func NewWordPieceDecoder(prefix string, cleanup bool) *WordPieceDecoder {
 	base := new(DecoderBase)
-	return &WordPieceDecoder{
+	d := &WordPieceDecoder{
 		DecoderBase: base,
 		prefix:      prefix,
 		cleanup:     cleanup,
 	}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 // DefaultBpeDecoder create a new BpeDecoder with default suffix (`</w>`)

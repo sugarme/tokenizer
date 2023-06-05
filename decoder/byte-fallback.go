@@ -17,10 +17,14 @@ type ByteFallback struct {
 func NewByteFallback() *ByteFallback {
 	base := new(DecoderBase)
 
-	return &ByteFallback{
+	d := &ByteFallback{
 		DecoderBase: base,
 		typ:         "ByteFallback",
 	}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 var _ tokenizer.Decoder = new(ByteFallback)

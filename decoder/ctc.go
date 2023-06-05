@@ -1,6 +1,10 @@
 package decoder
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/sugarme/tokenizer"
+)
 
 type CTC struct {
 	*DecoderBase
@@ -13,12 +17,16 @@ type CTC struct {
 func NewCTC(padToken string, wordDelimiterToken string, cleanup bool) *CTC {
 	base := new(DecoderBase)
 
-	return &CTC{
+	d := &CTC{
 		DecoderBase:        base,
 		PadToken:           padToken,
 		WordDelimiterToken: wordDelimiterToken,
 		Cleanup:            cleanup,
 	}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 func DefaultCTC() *CTC {

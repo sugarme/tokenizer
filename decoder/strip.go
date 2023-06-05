@@ -2,6 +2,8 @@ package decoder
 
 import (
 	"strings"
+
+	"github.com/sugarme/tokenizer"
 )
 
 type Strip struct {
@@ -15,12 +17,16 @@ type Strip struct {
 func NewStrip(content string, start, stop int) *Strip {
 	base := new(DecoderBase)
 
-	return &Strip{
+	d := &Strip{
 		DecoderBase: base,
 		Content:     content,
 		Start:       start,
 		Stop:        stop,
 	}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 func (d *Strip) DecodeChain(tokens []string) []string {

@@ -13,17 +13,29 @@ type Sequence struct {
 var _ tokenizer.Decoder = new(Sequence)
 
 func NewSequence(decoders []tokenizer.Decoder) *Sequence {
-	return &Sequence{
-		decoders: decoders,
+	base := new(DecoderBase)
+
+	seq := &Sequence{
+		DecoderBase: base,
+		decoders:    decoders,
 	}
+
+	seq.DecoderBase.Decoder = interface{}(seq).(tokenizer.Decoder)
+
+	return seq
 }
 
 // Decode implements `tokenizer.Decoder` interface.
 func (d *Sequence) DecodeChain(tokens []string) []string {
-	var toks = tokens
+	var input []string
+	for _, token := range tokens {
+		input = append(input, token)
+	}
 	for _, dec := range d.decoders {
-		toks = dec.DecodeChain(toks)
+		tmp := dec.DecodeChain(input)
+		input = []string{}
+		input = tmp
 	}
 
-	return toks
+	return input
 }

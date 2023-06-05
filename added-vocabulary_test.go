@@ -151,7 +151,7 @@ func TestCanExtractAddedTokens(t *testing.T) {
 	}
 
 	var got []tokenid
-	pretoks := result.GetSplits(normalizer.OriginalTarget)
+	pretoks := result.GetSplits(normalizer.OriginalTarget, tokenizer.Byte)
 	for _, pretok := range pretoks {
 		var tokIds []int
 		for _, tok := range pretok.Tokens {
@@ -203,7 +203,7 @@ func TestOptionUseCases(t *testing.T) {
 	}
 
 	var got []tokenid
-	pretoks := result.GetSplits(normalizer.OriginalTarget)
+	pretoks := result.GetSplits(normalizer.OriginalTarget, tokenizer.Byte)
 	for _, pretok := range pretoks {
 		var tokIds []int
 		for _, tok := range pretok.Tokens {

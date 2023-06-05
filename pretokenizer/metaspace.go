@@ -1,6 +1,7 @@
 package pretokenizer
 
 import (
+	// "log"
 	"strings"
 
 	"github.com/sugarme/tokenizer"
@@ -34,7 +35,7 @@ func (m *Metaspace) SetReplacement(replacement string) {
 }
 
 func DefaultMetaspace() *Metaspace {
-	return NewMetaspace("_", true)
+	return NewMetaspace("▁", true) // NOTE. `▁`  != `_`
 }
 
 // PreTokenize implements PreTokenizer interface
@@ -42,9 +43,11 @@ func (m *Metaspace) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*to
 	// func(int, *normalizer.NormalizedString) []SplitIdx
 	splitFn := func(_ int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
 		var splits []normalizer.NormalizedString
-		whitespace := normalizer.NewRegexpPattern(`\s+`)
+		whitespace := normalizer.NewRegexpPattern(`\s`)
 
 		normalized = normalized.Replace(whitespace, m.StrRep)
+
+		// log.Printf("normalized: %+v\n", normalized)
 
 		if m.AddPrefixSpace && !strings.HasPrefix(normalized.GetNormalized(), m.Replacement) {
 			normalized = normalized.Prepend(m.StrRep)
@@ -52,6 +55,8 @@ func (m *Metaspace) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*to
 
 		replacement := normalizer.NewRegexpPattern(m.Replacement)
 		splits = normalized.Split(replacement, normalizer.MergedWithNextBehavior)
+
+		// log.Printf("splits: %+v\n", splits)
 
 		var splitIdxs []tokenizer.SplitIdx
 		for _, s := range splits {

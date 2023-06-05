@@ -18,10 +18,10 @@ import (
 // SplitDelimiterBehavior is a enum-like type . It defines the expected behavior
 // for the delimiter of a Split Pattern
 // When splitting on `'-'` for example, with input `the-final--countdown`:
-//  - RemovedBehavior => `[ "the", "final", "countdown" ]`
-//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
-//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
-//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - RemovedBehavior => `[ "the", "final", "countdown" ]`
+//   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
 type SplitDelimiterBehavior int
 
 const (
@@ -449,6 +449,7 @@ type ChangeMap struct {
 //   - `1` if this is a new char
 //   - `-N` if the char is right before N removed chars
 //   - `0` if the char is replacing the existing one
+//
 // Since it is possible that the normalized string doesn't include some of the characters at
 // the beginning of the original one, we need an `initialOffset` which represents the number
 // of removed chars at the very beginning.
@@ -839,6 +840,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 //   - `1` if this is a new rune
 //   - `-N` if the char is right before N removed runes
 //   - `0` if this rune represents the old one (even if changed)
+//
 // Since it is possible that the normalized string doesn't include some of the `characters` (runes) at
 // the beginning of the original one, we need an `initial_offset` which represents the number
 // of removed runes at the very beginning.
@@ -1187,10 +1189,10 @@ func (n *NormalizedString) Clear() {
 //
 // The behavior can be one of the followings:
 // When splitting on `'-'` for example, with input `the-final--countdown`:
-//  - RemovedBehavior => `[ "the", "", "final", "", "", "countdown" ]`
-//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
-//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
-//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - RemovedBehavior => `[ "the", "", "final", "", "", "countdown" ]`
+//   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
 func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
 	// fmt.Printf("input normalized: %v\n", n)
@@ -1269,7 +1271,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		}
 	}
 
-	// fmt.Printf("output: %v\n", slices)
+	// log.Printf("output: %+v\n", slices)
 
 	return slices
 }

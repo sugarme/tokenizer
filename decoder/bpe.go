@@ -2,6 +2,8 @@ package decoder
 
 import (
 	"strings"
+
+	"github.com/sugarme/tokenizer"
 )
 
 // Allows decoding Original BPE by joining all the tokens and then replacing
@@ -15,10 +17,14 @@ type BpeDecoder struct {
 // NewBpeDecoder creates a new BpeDecoder
 func NewBpeDecoder(suffix string) *BpeDecoder {
 	base := new(DecoderBase)
-	return &BpeDecoder{
+	d := &BpeDecoder{
 		DecoderBase: base,
 		suffix:      suffix,
 	}
+
+	d.DecoderBase.Decoder = interface{}(d).(tokenizer.Decoder)
+
+	return d
 }
 
 // DefaultBpeDecoder create a new BpeDecoder with default suffix (`</w>`)

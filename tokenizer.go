@@ -830,7 +830,8 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 			log.Fatalf("call 'doPreTokenize' method error: %v\n", err)
 		}
 
-		pretoks := pretokenized.GetSplits(normalizer.OriginalTarget)
+		// NOTE. should we get OffsetType as input parameter: either Byte or Char?
+		pretoks := pretokenized.GetSplits(normalizer.OriginalTarget, Byte)
 		var tokens []string
 		for _, pretok := range pretoks {
 			tokens = append(tokens, pretok.Value)

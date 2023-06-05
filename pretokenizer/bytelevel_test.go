@@ -91,7 +91,7 @@ func TestAddPrefixSpace(t *testing.T) {
 			t.Error(err)
 		}
 
-		pretokens := pretok.GetSplits(normalizer.NormalizedTarget)
+		pretokens := pretok.GetSplits(normalizer.NormalizedTarget, tokenizer.Byte)
 
 		var want, got []charidx
 
@@ -139,7 +139,7 @@ func TestDecodeWorksOnSeparatedTokens(t *testing.T) {
 		}
 
 		var separatedTokens []string
-		for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+		for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte) {
 			chars := strings.Split(preTok.Value, "")
 			separatedTokens = append(separatedTokens, chars...)
 		}
@@ -168,7 +168,7 @@ func TestHandlingOfNewLines(t *testing.T) {
 
 	var got []charidx
 
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte) {
 		got = append(got, charidx{s: preTok.Value, o: preTok.Offsets})
 	}
 
@@ -200,7 +200,7 @@ func TestHandlingOfMultipleSpaces(t *testing.T) {
 
 	var got []charidx
 
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte) {
 		got = append(got, charidx{s: preTok.Value, o: preTok.Offsets})
 	}
 
@@ -232,7 +232,7 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 	var got1 []charidx
 
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte) {
 		got1 = append(got1, charidx{s: preTok.Value, o: preTok.Offsets})
 	}
 
@@ -249,7 +249,7 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 	var got2 []charidx
 
-	for _, preTok := range pretok.GetSplits(normalizer.NormalizedTarget) {
+	for _, preTok := range pretok.GetSplits(normalizer.NormalizedTarget, tokenizer.Byte) {
 		got2 = append(got2, charidx{s: preTok.Value, o: preTok.Offsets})
 	}
 
@@ -266,7 +266,7 @@ func TestOffsetsWhenCharSplitUp(t *testing.T) {
 
 	var got3 []string
 
-	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget) {
+	for _, preTok := range pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte) {
 		o := preTok.Offsets
 		got3 = append(got3, input[o[0]:o[1]])
 	}
