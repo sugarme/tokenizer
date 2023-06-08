@@ -4,7 +4,6 @@ package tokenizer
 import (
 	"bufio"
 	// "context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -18,9 +17,6 @@ import (
 	progressbar "github.com/schollz/progressbar/v2"
 	// "golang.org/x/sync/errgroup"
 
-	"github.com/sugarme/tokenizer/model/bpe"
-	"github.com/sugarme/tokenizer/model/wordlevel"
-	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/util"
 )
@@ -613,73 +609,6 @@ func (t *Tokenizer) DecodeBatch(sentences [][]int, skipSpecialTokens bool) []str
 	wg.Wait()
 
 	return decodings
-}
-
-// FromFile instantiates a new Tokenizer from the given file
-func FromFile(file string) (*Tokenizer, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	dec := json.NewDecoder(f)
-
-	var config *Config
-	err = dec.Decode(&config)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		dropout                 float32
-		unkToken                string
-		continuingSubwordPrefix string
-		endOfWordSuffix         string
-	)
-
-	if config.Model.Dropout != nil {
-		dropout = config.Model.Dropout.(float32)
-	}
-	if config.Model.UnkToken != "" {
-		unkToken = config.Model.UnkToken
-	}
-
-	if config.Model.ContinuingSubwordPrefix != nil {
-		continuingSubwordPrefix = config.Model.ContinuingSubwordPrefix.(string)
-	}
-
-	if config.Model.EndOfWordSuffix != nil {
-		endOfWordSuffix = config.Model.EndOfWordSuffix.(string)
-	}
-
-	var model Model
-	switch config.Model.Type {
-	case "BPE":
-		model = bpe.New(config.Model.Vocab, config.Model.Merges, &dropout, &unkToken, &continuingSubwordPrefix, &endOfWordSuffix)
-
-	default:
-		err := fmt.Errorf("Unsupported model type: %q\n", config.Model.Type)
-		return nil, err
-	}
-
-	tk := NewTokenizer(model)
-
-	// TODO. continue with config
-	// 1. normalizer.Normalizer
-	if config.Normalizer.Type != "" {
-		switch config.Normalizer.Type {
-		case "Sequence":
-			normalizer.NewNormalizer()
-		}
-	}
-	// 2. PreTokenizer
-	// 3. PostProcessor
-	// 4. Decoder
-	// 5. AddedVocabulary
-	// 6. TruncationParams
-	// 7. PaddingParams
-
-	return tk, nil
 }
 
 // wordCount returns a map of word and its count

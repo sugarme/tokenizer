@@ -2,7 +2,7 @@ package tokenizer
 
 import (
 	"encoding/json"
-	"fmt"
+	// "fmt"
 	"os"
 )
 
@@ -56,6 +56,7 @@ type ModelConfig struct {
 	ByteFallback            bool           `json:"byte_fallback"`
 	Vocab                   map[string]int `json:"vocab"`
 	Merges                  []string       `json:"merges"`
+	MaxInputCharsPerWord    interface{}    `json:"max_input_chars_per_word"`
 }
 
 // ConfigFromFile loads config from file.

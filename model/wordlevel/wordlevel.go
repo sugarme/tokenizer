@@ -63,6 +63,8 @@ func (wlb *WordLevelBuilder) Build() *WordLevel {
 	}
 }
 
+var _ tokenizer.Model = new(WordLevel)
+
 // WordLevel is a model for building WordLevel tokenizer
 type WordLevel struct {
 	vocab    map[string]int
@@ -240,4 +242,18 @@ func makeFilePath(filename string) error {
 		return err
 	}
 	return os.MkdirAll(dirName, os.ModePerm)
+}
+
+// New creates new WordLevel from input data.
+func New(vocab map[string]int, unkToken *string) (*WordLevel, error) {
+	builder := &WordLevelBuilder{
+		config: &config{
+			vocab:    vocab,
+			unkToken: *unkToken,
+		},
+	}
+
+	m := builder.Build()
+
+	return m, nil
 }

@@ -397,3 +397,27 @@ func makeFilePath(filename string) error {
 	}
 	return os.MkdirAll(dirName, os.ModePerm)
 }
+
+// New creates WordPiece model from input data.
+func New(
+	vocab map[string]int,
+	unkToken *string,
+	continuingSubwordPrefix *string,
+	maxInputCharsPerWord *int,
+) (*WordPiece, error) {
+	vc := interface{}(vocab).(model.Vocab)
+
+	builder := WordPieceBuilder{
+		config: config{
+			files:                   "",
+			vocab:                   &vc,
+			unkToken:                *unkToken,
+			continuingSubwordPrefix: *continuingSubwordPrefix,
+			maxInputCharsPerWord:    *maxInputCharsPerWord,
+		},
+	}
+
+	m := builder.Build()
+
+	return &m, nil
+}

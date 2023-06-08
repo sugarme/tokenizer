@@ -13,8 +13,8 @@ func TestMetaspace_Decode(t *testing.T) {
 	// dec := NewMetaspace("_", true)
 
 	tokens := []string{
-		"_Hey",
-		"_friend!",
+		"▁Hey",
+		"▁friend!",
 	}
 	got := dec.DecodeChain(tokens)
 	want := []string{
