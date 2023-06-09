@@ -1,31 +1,15 @@
 package pretrained
 
 import (
-	"encoding/json"
-	"os"
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/util"
 )
 
 func TestCreateBPE(t *testing.T) {
-	// BPE
-	file, err := tokenizer.CachedPath("hf-internal-testing/llama-tokenizer", "tokenizer.json")
-	if err != nil {
-		panic(err)
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		panic(err)
-	}
-
-	dec := json.NewDecoder(f)
-
-	var config *tokenizer.Config
-	err = dec.Decode(&config)
+	modelName := "hf-internal-testing/llama-tokenizer"
+	config, err := loadConfig(modelName)
 	if err != nil {
 		panic(err)
 	}
@@ -45,21 +29,8 @@ func TestCreateBPE(t *testing.T) {
 }
 
 func TestCreateWordPiece(t *testing.T) {
-	// file, err := tokenizer.CachedPath("hf-internal-testing/tiny-random-bert", "tokenizer.json")
-	file, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
-	if err != nil {
-		panic(err)
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		panic(err)
-	}
-
-	dec := json.NewDecoder(f)
-
-	var config *tokenizer.Config
-	err = dec.Decode(&config)
+	modelName := "bert-base-uncased"
+	config, err := loadConfig(modelName)
 	if err != nil {
 		panic(err)
 	}
@@ -79,20 +50,8 @@ func TestCreateWordPiece(t *testing.T) {
 }
 
 func TestCreateModel(t *testing.T) {
-	file, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
-	if err != nil {
-		panic(err)
-	}
-
-	f, err := os.Open(file)
-	if err != nil {
-		panic(err)
-	}
-
-	dec := json.NewDecoder(f)
-
-	var config *tokenizer.Config
-	err = dec.Decode(&config)
+	modelName := "bert-base-uncased"
+	config, err := loadConfig(modelName)
 	if err != nil {
 		panic(err)
 	}

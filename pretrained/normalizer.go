@@ -10,13 +10,14 @@ package pretrained
 // 7. NFKD
 // 8. Sequence
 // 9. Lowercase
-// 10. Nmt
-// 11. Precompiled
+// 10. Nmt (TODO)
+// 11. Precompiled (TODO)
 // 12. Replace
 // 13. Prepend
 
 import (
 	"fmt"
+
 	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/util"
 )
@@ -65,40 +66,75 @@ func CreateNormalizer(config map[string]interface{}) (normalizer.Normalizer, err
 	case "Replace":
 		return createReplaceNormalizer(params)
 
+	case "Prepend":
+		return createPrependNormalizer(params)
+
 	default:
 		msg := fmt.Errorf("Could not create Normalizer from config: %#v", config)
 		return nil, msg
 	}
 }
 
+// BertNormalizer json data:
+// -------------------------
+// "type":"BertNormalizer"
+// "clean_text":true
+// "handle_chinese_chars":true
+// "strip_accents":null
+// "lowercase":true
 func createBertNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	if params == nil {
+		return nil, nil
+	}
+
+	cleanText := params.Get("clean_text", false).(bool)
+	handleChineseChars := params.Get("handle_chinese_chars", false).(bool)
+	stripAccents := params.Get("strip_accents", false).(bool)
+	lowercase := params.Get("lowercase", false).(bool)
+
+	return normalizer.NewBertNormalizer(cleanText, lowercase, handleChineseChars, stripAccents), nil
 }
 
 func createReplaceNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	if params == nil {
+		return nil, nil
+	}
+
+	var pattern string
+	var patternType normalizer.ReplacePattern
+	switch {
+	case params.Has("String"):
+		pattern = params.Get("String").(string)
+		patternType = normalizer.String
+
+	case params.Has("Regex"):
+		pattern = params.Get("Regex").(string)
+		patternType = normalizer.String
+	}
+
+	content := params.Get("content").(string)
+
+	return normalizer.NewReplace(patternType, pattern, content), nil
 }
 
 func createPrependNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	var prepend string
+	if params.Has("prepend") {
+		prepend = params.Get("prepend").(string)
+	}
+
+	return normalizer.NewPrepend(prepend), nil
 }
 
 func createStripNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	stripLeft := params.Get("strip_left", false).(bool)
+	stripRight := params.Get("strip_right", false).(bool)
+
+	return normalizer.NewStrip(stripLeft, stripRight), nil
 }
 
 func createStripAccents(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
-}
-
-func createMetaspaceNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	return normalizer.NewStripAccents(), nil
 }
 
 func createPrecompiledNormalizer(params *util.Params) (normalizer.Normalizer, error) {
@@ -112,6 +148,21 @@ func createNmtNormalizer(params *util.Params) (normalizer.Normalizer, error) {
 }
 
 func createSequenceNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	var data []interface{}
+	if params.Has("normalizers") {
+		data = params.Get("normalizers").([]interface{})
+	}
+
+	var norms []normalizer.Normalizer
+	for _, d := range data {
+		n, err := CreateNormalizer(d.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		norms = append(norms, n)
+	}
+
+	seq := normalizer.NewSequence(norms)
+
+	return seq, nil
 }

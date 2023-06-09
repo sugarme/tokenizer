@@ -31,3 +31,13 @@ func (s *Strip) Normalize(normalized *NormalizedString) (*NormalizedString, erro
 
 	return normalized, nil
 }
+
+type StripAccents struct{}
+
+func NewStripAccents() *StripAccents {
+	return new(StripAccents)
+}
+
+func (sa *StripAccents) Normalize(normalized *NormalizedString) (*NormalizedString, error) {
+	return normalized.RemoveAccents(), nil
+}

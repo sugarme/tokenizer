@@ -39,12 +39,19 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	}
 	tk.WithNormalizer(n)
 
-	// 2. PreTokenizer
-	// 3. PostProcessor
-	// 4. Decoder
-	// 5. AddedVocabulary
-	// 6. TruncationParams
-	// 7. PaddingParams
+	// 3. PreTokenizer
+	preTok, err := CreatePreTokenizer(config.PreTokenizer)
+	if err != nil {
+		err = fmt.Errorf("Creating PreTokenizer failed: %v", err)
+		return nil, err
+	}
+	tk.WithPreTokenizer(preTok)
+
+	// 4. PostProcessor
+	// 5. Decoder
+	// 6. AddedVocabulary
+	// 7. TruncationParams
+	// 8. PaddingParams
 
 	return tk, nil
 }
