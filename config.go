@@ -12,11 +12,16 @@ type Config struct {
 	Truncation    map[string]interface{} `json:"truncation"`
 	Padding       map[string]interface{} `json:"padding"`
 	AddedTokens   []TokenConfig          `json:"added_tokens"`
-	Normalizer    NormalizerConfig       `json:"normalizer"`
-	PreTokenizer  PreTokenizerConfig     `json:"pre_tokenizer"`
-	PostProcessor PostProcessorConfig    `json:"post_processor"`
-	Decoder       DecoderConfig          `json:"decoder"`
-	Model         ModelConfig            `json:"model"`
+	Normalizer    map[string]interface{} `json:"normalizer"`
+	PreTokenizer  map[string]interface{} `json:"pre_tokenizer"`
+	PostProcessor map[string]interface{} `json:"post_processor"`
+	Decoder       map[string]interface{} `json:"decoder"`
+	Model         map[string]interface{} `json:"model"`
+	// Normalizer    NormalizerConfig       `json:"normalizer"`
+	// PreTokenizer  PreTokenizerConfig     `json:"pre_tokenizer"`
+	// PostProcessor PostProcessorConfig    `json:"post_processor"`
+	// Decoder       DecoderConfig          `json:"decoder"`
+	// Model         ModelConfig            `json:"model"`
 }
 
 type TokenConfig struct {

@@ -14,9 +14,9 @@ const (
 )
 
 type Replace struct {
-	PatternType ReplacePattern
-	Pattern     Pattern
-	Content     string
+	PatternType ReplacePattern `json:"pattern_type"`
+	Pattern     Pattern        `json:"pattern"`
+	Content     string         `json:"content"`
 }
 
 var _ Normalizer = new(Replace)

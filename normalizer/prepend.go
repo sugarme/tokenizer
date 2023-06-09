@@ -2,7 +2,7 @@ package normalizer
 
 // Prepend creates a normalizer that strip the normalized string inplace.
 type Prepend struct {
-	Prepend string
+	Prepend string `json:"prepend"`
 }
 
 func NewPrepend(prepend string) *Prepend {

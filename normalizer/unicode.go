@@ -7,38 +7,6 @@ import (
 // Basic Unicode normal form composing and decomposing - NFC, NFD, NFKC, NFKD
 // Ref. https://blog.golang.org/normalization
 
-// type NFD struct{}
-//
-// func (un *NFD) Normalize(n Normalized) (Normalized, error) {
-// n.NFD()
-//
-// return n, nil
-// }
-//
-// type NFC struct{}
-//
-// func (un *NFC) Normalize(n Normalized) (Normalized, error) {
-// n.NFC()
-//
-// return n, nil
-// }
-//
-// type NFKD struct{}
-//
-// func (un *NFKD) Normalize(n Normalized) (Normalized, error) {
-// n.NFKD()
-//
-// return n, nil
-// }
-//
-// type NFKC struct{}
-//
-// func (un *NFKC) Normalize(n Normalized) (Normalized, error) {
-// n.NFKC()
-//
-// return n, nil
-// }
-
 type UnicodeNormalizer struct {
 	Form norm.Form
 }
@@ -62,4 +30,44 @@ func (un *UnicodeNormalizer) Normalize(n *NormalizedString) (*NormalizedString, 
 	}
 
 	return n, nil
+}
+
+type NFC struct{}
+
+func NewNFC() *NFC {
+	return new(NFC)
+}
+
+func (n *NFC) Normalize(norm *NormalizedString) (*NormalizedString, error) {
+	return norm.NFC(), nil
+}
+
+type NFKC struct{}
+
+func NewNFKC() *NFKC {
+	return new(NFKC)
+}
+
+func (n *NFKC) Normalize(norm *NormalizedString) (*NormalizedString, error) {
+	return norm.NFKC(), nil
+}
+
+type NFD struct{}
+
+func NewNFD() *NFD {
+	return new(NFD)
+}
+
+func (n *NFD) Normalize(norm *NormalizedString) (*NormalizedString, error) {
+	return norm.NFD(), nil
+}
+
+type NFKD struct{}
+
+func NewNFKD() *NFKD {
+	return new(NFKD)
+}
+
+func (n *NFKD) Normalize(norm *NormalizedString) (*NormalizedString, error) {
+	return norm.NFKD(), nil
 }

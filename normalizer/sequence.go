@@ -3,7 +3,7 @@ package normalizer
 // Sequence wraps a slice of normalizers to normalize
 // string in sequence.
 type Sequence struct {
-	Normalizers []Normalizer
+	Normalizers []Normalizer `json:"normalizers"`
 }
 
 func NewSequence(norms []Normalizer) *Sequence {
