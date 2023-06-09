@@ -1,10 +1,7 @@
 package pretrained
 
 import (
-	// "reflect"
-	// "log"
 	"testing"
-	// "github.com/sugarme/tokenizer/util"
 )
 
 func TestCreateSequenceNormalizer(t *testing.T) {

@@ -48,10 +48,44 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	tk.WithPreTokenizer(preTok)
 
 	// 4. PostProcessor
+	postProcessor, err := CreatePostProcessor(config.PostProcessor)
+	if err != nil {
+		err = fmt.Errorf("Creating PostProcessor failed: %v", err)
+		return nil, err
+	}
+	tk.WithPostProcessor(postProcessor)
+
 	// 5. Decoder
+	decoder, err := CreateDecoder(config.Decoder)
+	if err != nil {
+		err = fmt.Errorf("Creating Decoder failed: %v", err)
+		return nil, err
+	}
+	tk.WithDecoder(decoder)
+
 	// 6. AddedVocabulary
+	addedTokens, err := CreateAddedTokens(config.AddedTokens)
+	if err != nil {
+		err = fmt.Errorf("Creating AddedTokens failed: %v", err)
+		return nil, err
+	}
+	tk.AddSpecialTokens(addedTokens)
+
 	// 7. TruncationParams
+	truncParams, err := CreateTruncationParams(config.Truncation)
+	if err != nil {
+		err = fmt.Errorf("Creating TruncationParams failed: %v", err)
+		return nil, err
+	}
+	tk.WithTruncation(truncParams)
+
 	// 8. PaddingParams
+	paddingParams, err := CreatePaddingParams(config.Padding)
+	if err != nil {
+		err = fmt.Errorf("Creating PaddingParams failed: %v", err)
+		return nil, err
+	}
+	tk.WithPadding(paddingParams)
 
 	return tk, nil
 }
