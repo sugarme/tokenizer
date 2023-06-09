@@ -400,17 +400,16 @@ func makeFilePath(filename string) error {
 
 // New creates WordPiece model from input data.
 func New(
-	vocab map[string]int,
+	vocab model.Vocab,
 	unkToken *string,
 	continuingSubwordPrefix *string,
 	maxInputCharsPerWord *int,
 ) (*WordPiece, error) {
-	vc := interface{}(vocab).(model.Vocab)
 
 	builder := WordPieceBuilder{
 		config: config{
 			files:                   "",
-			vocab:                   &vc,
+			vocab:                   &vocab,
 			unkToken:                *unkToken,
 			continuingSubwordPrefix: *continuingSubwordPrefix,
 			maxInputCharsPerWord:    *maxInputCharsPerWord,

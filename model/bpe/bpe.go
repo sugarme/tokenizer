@@ -663,7 +663,8 @@ func CreateMerges(vocab map[string]int, mergesData []string) (*Merges, error) {
 
 // New create new BPE model.
 func New(
-	vocab map[string]int,
+	// vocab map[string]int,
+	vocab model.Vocab,
 	mergesData []string,
 	dropout *float32,
 	unkToken *string,
@@ -675,12 +676,12 @@ func New(
 		return nil, err
 	}
 
-	vc := interface{}(vocab).(model.Vocab)
+	// vc := interface{}(vocab).(model.Vocab)
 
 	builder := &BpeBuilder{
 		config: Config{
 			files:                   nil,
-			vocab:                   &vc,
+			vocab:                   &vocab,
 			merges:                  merges,
 			cacheCapacity:           DefaultCacheCapacity,
 			dropout:                 dropout,
