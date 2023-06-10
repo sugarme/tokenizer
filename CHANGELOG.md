@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+###  Breaking Changes
+- `processor.NewRobertaProcessing` added 2 new parameters.
+- added `SequenceRanges` field to `Encoding` struct
+
+
 ### Fixed
 - [#...]: Fix a bug with...
 

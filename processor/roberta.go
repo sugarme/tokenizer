@@ -24,12 +24,13 @@ func DefaultRobertaProcessing() *RobertaProcessing {
 	}
 }
 
-func NewRobertaProcessing(sep, cls PostToken) *RobertaProcessing {
-	r := DefaultRobertaProcessing()
-	r.sep = sep
-	r.cls = cls
-
-	return r
+func NewRobertaProcessing(sep, cls PostToken, trimOffsets bool, addPrefixSpace bool) *RobertaProcessing {
+	return &RobertaProcessing{
+		sep:            sep,
+		cls:            cls,
+		trimOffsets:    trimOffsets,
+		addPrefixSpace: addPrefixSpace,
+	}
 }
 
 // TrimOffsets set whether the processor will trim offsets
@@ -166,7 +167,8 @@ func (rp *RobertaProcessing) addSpecialToken(encoding *tokenizer.Encoding) *toke
 	}
 	attentionMask = append(attentionMask, 1)
 
-	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, words)
+	wordsOpt := tokenizer.WithWordsEncodingOpt(words)
+	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, wordsOpt)
 }
 
 // addSpecialToken adds special tokens to input pair encoding. It ignores the `Overflowing` field
@@ -213,7 +215,8 @@ func (rp *RobertaProcessing) pairAddSpecialToken(pair *tokenizer.Encoding) *toke
 	}
 	pairAttentionMask = append(pairAttentionMask, 1)
 
-	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWords)
+	pairWordsOpt := tokenizer.WithWordsEncodingOpt(pairWords)
+	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWordsOpt)
 }
 
 // TODO: implement Serialize interface for RobertaProcessing

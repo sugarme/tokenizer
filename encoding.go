@@ -15,24 +15,49 @@ const (
 
 // Encoding represents the output of tokenizer
 type Encoding struct {
-	Ids              []int      // ID produced by the `tokenizer`
-	TypeIds          []int      // Type of the ID
-	Tokens           []string   // Tokens associated with each ID
-	Offsets          [][]int    // Offsets of the token/ID from the NormalizedString
-	SpecialTokenMask []int      // Mask identifying special tokens
-	AttentionMask    []int      // Mask identifying padding tokens for the attention mechanism
-	Overflowing      []Encoding // A list of overflowing generated when being truncated
-	Words            []int      // Optional - Indexes of the word associated with each token/ID. None value = -1
+	Ids              []int         // ID produced by the `tokenizer`
+	TypeIds          []int         // Type of the ID
+	Tokens           []string      // Tokens associated with each ID
+	Offsets          [][]int       // Offsets of the token/ID from the NormalizedString
+	SpecialTokenMask []int         // Mask identifying special tokens
+	AttentionMask    []int         // Mask identifying padding tokens for the attention mechanism
+	Overflowing      []Encoding    // A list of overflowing generated when being truncated
+	Words            []int         // Optional - Indexes of the word associated with each token/ID. None value = -1
+	SequenceRanges   map[int]Range // Range of tokens covered by each sequence. If empty -> only one sequence and covers the entire range.
+}
+
+type EncodingOpts struct {
+	Words         []int
+	SequenceRange map[int]Range
+}
+
+type EncodingOpt func(o *EncodingOpts)
+
+func WithWordsEncodingOpt(v []int) EncodingOpt {
+	return func(o *EncodingOpts) {
+		o.Words = v
+	}
+}
+func WithSequenceRangeEncodingOpt(v map[int]Range) EncodingOpt {
+	return func(o *EncodingOpts) {
+		o.SequenceRange = v
+	}
+}
+
+func DefaultEncodingOpts() *EncodingOpts {
+	return &EncodingOpts{
+		Words:         nil,
+		SequenceRange: make(map[int]Range),
+	}
 }
 
 // NewEncoding initiate a new encoding from input data
-func NewEncoding(ids []int, typeIds []int, tokens []string, offsets [][]int, specialTokenMask []int, attentionMask []int, overflowing []Encoding, wordsOpt ...[]int) *Encoding {
-	var words []int
-	if len(wordsOpt) > 0 {
-		words = wordsOpt[0]
-	} else {
-		words = nil
+func NewEncoding(ids []int, typeIds []int, tokens []string, offsets [][]int, specialTokenMask []int, attentionMask []int, overflowing []Encoding, opts ...EncodingOpt) *Encoding {
+	o := DefaultEncodingOpts()
+	for _, opt := range opts {
+		opt(o)
 	}
+
 	return &Encoding{
 		ids,
 		typeIds,
@@ -41,7 +66,8 @@ func NewEncoding(ids []int, typeIds []int, tokens []string, offsets [][]int, spe
 		specialTokenMask,
 		attentionMask,
 		overflowing,
-		words,
+		o.Words,
+		o.SequenceRange,
 	}
 }
 
@@ -55,6 +81,7 @@ func NewEncodingWithCapacity(l int) (retVal *Encoding) {
 		AttentionMask:    make([]int, l),
 		Overflowing:      []Encoding{},
 		Words:            make([]int, l),
+		SequenceRanges:   make(map[int]Range),
 	}
 }
 
@@ -69,6 +96,7 @@ func DefaultEncoding() *Encoding {
 		AttentionMask:    []int{},
 		Overflowing:      []Encoding{},
 		Words:            nil,
+		SequenceRanges:   make(map[int]Range),
 	}
 }
 
@@ -97,6 +125,7 @@ func NewEncodingFromTokens(tokens []Token, typeId int) (retVal *Encoding) {
 		AttentionMask:    make([]int, 1, len(tokens)),
 		Overflowing:      []Encoding{},
 		Words:            words,
+		SequenceRanges:   make(map[int]Range),
 	}
 }
 
@@ -108,6 +137,15 @@ func (e *Encoding) IsEmpty() (retVal bool) {
 // Len returns number of encoding tokens
 func (e *Encoding) Len() (retVal int) {
 	return len(e.Ids)
+}
+
+// NSequences returns number of sequences combined in this encoding.
+func (e *Encoding) NSequences() int {
+	if len(e.SequenceRanges) == 0 {
+		return 1
+	}
+
+	return len(e.SequenceRanges)
 }
 
 // GetToken returns tokens from encoding
@@ -125,6 +163,33 @@ func (e *Encoding) SetWord(index int, val int) {
 	e.Words[index] = val
 }
 
+// SetSequenceIds set the given sequence id for the whole range of tokens contained in this Encoding
+func (e *Encoding) SetSequenceIds(sequenceId int) {
+	e.SequenceRanges[sequenceId] = NewRange(0, e.Len())
+	// log.Printf("SequenceRange: %+v\n", e.SequenceRange)
+}
+
+func (e *Encoding) GetSequenceIds() []int {
+	sequences := make([]int, e.Len())
+	for seqId := 0; seqId < e.NSequences(); seqId++ {
+		r := e.SequenceRanges[seqId]
+		seqLen := r.Len()
+		var a []int
+		for i := 0; i < seqLen; i++ {
+			a = append(a, seqId)
+		}
+		// replace items in Range r with seqId
+		start := r[0]
+		end := r[len(r)-1]
+		before := sequences[:start]
+		after := sequences[end:]
+		sequences = append(before, a...)
+		sequences = append(sequences, after...)
+	}
+
+	return sequences
+}
+
 // GetIds returns Ids from encoding
 func (e *Encoding) GetIds() []int {
 	return e.Ids
@@ -133,6 +198,10 @@ func (e *Encoding) GetIds() []int {
 // GetTypeIds returns type Ids from encoding
 func (e *Encoding) GetTypeIds() []int {
 	return e.TypeIds
+}
+
+func (e *Encoding) SetTypeIds(typeIds []int) {
+	e.TypeIds = typeIds
 }
 
 // GetOffsets returns offsets from encoding
@@ -325,7 +394,7 @@ func (e *Encoding) Merge(encodings []Encoding, growingOffsets bool) (retVal *Enc
 // MergeWith merges the current encoding with other (pair) encoding
 func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encoding) {
 	// Merge overflowing
-	overflowings := make([]Encoding, 0)
+	var overflowings []Encoding
 	var (
 		en              Encoding   = *e
 		pen             Encoding   = *pair
@@ -360,6 +429,14 @@ func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encod
 	e.Overflowing = overflowings
 
 	// Merging others
+	originalLen := e.Len()
+	for seqId, r := range pair.SequenceRanges {
+		start := originalLen + r[0]
+		end := originalLen + r[r.Len()-1] + 1
+		newRange := NewRange(start, end)
+		e.SequenceRanges[seqId] = newRange
+	}
+
 	e.Ids = append(e.Ids, pair.Ids...)
 	e.Tokens = append(e.Tokens, pair.Tokens...)
 	e.Words = append(e.Words, pair.Words...)

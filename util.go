@@ -23,11 +23,12 @@ type PaddingParams struct {
 // - string `BatchLongest`
 // - or a func type `Fixed(uint)` which return a uint
 // Example:
-// func main() {
-//     var ps PaddingStrategy
-//     ps = NewPaddingStrategy(WithFixed(3))
-//     fmt.Println(ps.Value)
-// }
+//
+//	func main() {
+//	    var ps PaddingStrategy
+//	    ps = NewPaddingStrategy(WithFixed(3))
+//	    fmt.Println(ps.Value)
+//	}
 type PaddingStrategy struct {
 	Value interface{}
 	Name  string
@@ -177,3 +178,41 @@ func PadEncodings(encodings []Encoding, params PaddingParams) []Encoding {
 
 	return newEncodings
 }
+
+type Range []int
+
+func NewRange(start, end int) Range {
+	if start < 0 {
+		panic("Invalid 'start' for NewRange()")
+	}
+	if end < 0 || end <= start {
+		panic("Invalid 'end' for NewRange()")
+	}
+
+	var r []int
+	for i := start; i < end; i++ {
+		r = append(r, i)
+	}
+
+	return r
+}
+
+func (r Range) Len() int {
+	return len(r)
+}
+
+func (r Range) Contains(item int) bool {
+	for _, v := range r {
+		if v == item {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (r Range) IsEmpty() bool {
+	return len(r) == 0
+}
+
+// TODO. more methods of Range

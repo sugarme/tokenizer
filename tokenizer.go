@@ -72,6 +72,10 @@ type PostProcessor interface {
 // DefaultProcess is a helper function of PostProcessor's Process method
 // It helps to fast track by just merging encoding and its pair.
 func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *Encoding {
+	if pairEncoding == nil {
+		return encoding
+	}
+
 	if pairEncoding != nil {
 		return encoding.MergeWith(pairEncoding, false)
 	}

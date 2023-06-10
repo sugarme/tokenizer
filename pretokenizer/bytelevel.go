@@ -1,7 +1,6 @@
 package pretokenizer
 
 import (
-	// "fmt"
 	"regexp"
 	"strings"
 
@@ -250,39 +249,37 @@ func (bl *ByteLevel) AddedToken(isPair bool) int {
 }
 
 func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) *tokenizer.Encoding {
+	encodings := PreProcess(encoding, pairEncoding)
+	var newEncodings []tokenizer.Encoding
+	if bl.TrimOffsets {
+		for _, enc := range encodings {
+			processedEnc := processOffsets(&enc, bl.AddPrefixSpace)
+			var overflowing []tokenizer.Encoding
+			for _, of := range processedEnc.GetOverflowing() {
+				processedOF := processOffsets(&of, bl.AddPrefixSpace)
+				overflowing = append(overflowing, *processedOF)
+			}
+			processedEnc.Overflowing = overflowing
 
-	if !bl.TrimOffsets {
-		return tokenizer.DefaultProcess(encoding, pairEncoding, addSpecialTokens)
+			newEncodings = append(newEncodings, *processedEnc)
+		}
+	} else {
+		newEncodings = encodings
 	}
 
-	// fmt.Printf("trimming offsets.........\n")
-
-	var newEncoding *tokenizer.Encoding
-	newEncoding = processOffsets(encoding, bl.AddPrefixSpace)
-
-	overflowEncodings := newEncoding.GetOverflowing()
-	var newOverflowEncodings []tokenizer.Encoding
-	for _, e := range overflowEncodings {
-		newEn := processOffsets(&e, bl.AddPrefixSpace)
-		newOverflowEncodings = append(newOverflowEncodings, *newEn)
+	for i, enc := range newEncodings {
+		enc.SetSequenceIds(i)
 	}
-	newEncoding.Overflowing = newOverflowEncodings
-
-	var (
-		newPairEncoding         *tokenizer.Encoding
-		newOverflowPairEncoding []tokenizer.Encoding
-	)
 
 	if pairEncoding != nil {
-		newPairEncoding = processOffsets(pairEncoding, bl.AddPrefixSpace)
-		for _, en := range newPairEncoding.Overflowing {
-			newEn := processOffsets(&en, bl.AddPrefixSpace)
-			newOverflowPairEncoding = append(newOverflowPairEncoding, *newEn)
-		}
-		newPairEncoding.Overflowing = newOverflowPairEncoding
+		return newEncodings[0].MergeWith(&newEncodings[1], false)
+	} else {
+		return &newEncodings[0]
 	}
+}
 
-	return tokenizer.DefaultProcess(newEncoding, newPairEncoding, addSpecialTokens)
+func (bl *ByteLevel) ProcessEncodings(encodings []tokenizer.Encoding) *tokenizer.Encoding {
+	panic("NotImplementedError")
 }
 
 func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenizer.Encoding {
@@ -359,4 +356,30 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 
 func ProcessOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenizer.Encoding {
 	return processOffsets(encoding, addPrefixSpace)
+}
+
+func PreProcess(encoding, pairEncoding *tokenizer.Encoding) (out []tokenizer.Encoding) {
+	encodings := []tokenizer.Encoding{*encoding}
+	if pairEncoding != nil {
+		encodings = append(encodings, *pairEncoding)
+	}
+	for i, encoding := range encodings {
+		encoding.SetSequenceIds(i)
+		var overflowing []tokenizer.Encoding
+		for _, e := range encoding.GetOverflowing() {
+			e.SetSequenceIds(i)
+			overflowing = append(overflowing, e)
+		}
+		encoding.Overflowing = overflowing
+
+		typeIds := make([]int, encoding.Len())
+		for n := 0; n < encoding.Len(); n++ {
+			typeIds[n] = i
+		}
+		encoding.SetTypeIds(typeIds)
+
+		out = append(out, encoding)
+	}
+
+	return
 }

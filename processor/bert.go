@@ -111,7 +111,8 @@ func (bp *BertProcessing) addSpecialToken(encoding *tokenizer.Encoding) *tokeniz
 		attentionMask = append(attentionMask, 1)
 	}
 
-	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, words)
+	wordsOpt := tokenizer.WithWordsEncodingOpt(words)
+	return tokenizer.NewEncoding(ids, typeIds, tokens, offsets, specialTokens, attentionMask, []tokenizer.Encoding{}, wordsOpt)
 }
 
 // pairAddSpecialToken adds special token "[SEP]" to input encoding. It ignores
@@ -149,5 +150,7 @@ func (bp *BertProcessing) pairAddSpecialToken(pairEncoding *tokenizer.Encoding) 
 	}
 	pairAttentionMask = append(pairAttentionMask, 1)
 
-	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWords)
+	pairWordsOpt := tokenizer.WithWordsEncodingOpt(pairWords)
+
+	return tokenizer.NewEncoding(pairIds, pairTypeIds, pairTokens, pairOffsets, pairSpecialTokens, pairAttentionMask, []tokenizer.Encoding{}, pairWordsOpt)
 }
