@@ -8,6 +8,10 @@ type Sequence struct {
 
 var _ tokenizer.PostProcessor = new(Sequence)
 
+func NewSequence(processors []tokenizer.PostProcessor) *Sequence {
+	return &Sequence{processors}
+}
+
 // Implement tokenizer.PostProcessor for Sequence
 
 func (seq *Sequence) AddedTokens(isPair bool) (retVal int) {

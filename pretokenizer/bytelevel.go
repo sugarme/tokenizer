@@ -249,7 +249,7 @@ func (bl *ByteLevel) AddedToken(isPair bool) int {
 }
 
 func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) *tokenizer.Encoding {
-	encodings := PreProcess(encoding, pairEncoding)
+	encodings := tokenizer.PrepareEncodings(encoding, pairEncoding)
 	var newEncodings []tokenizer.Encoding
 	if bl.TrimOffsets {
 		for _, enc := range encodings {
@@ -272,7 +272,7 @@ func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpec
 	}
 
 	if pairEncoding != nil {
-		return newEncodings[0].MergeWith(&newEncodings[1], false)
+		return tokenizer.MergeEncodings(newEncodings, false)
 	} else {
 		return &newEncodings[0]
 	}
@@ -358,6 +358,7 @@ func ProcessOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 	return processOffsets(encoding, addPrefixSpace)
 }
 
+/*
 func PreProcess(encoding, pairEncoding *tokenizer.Encoding) (out []tokenizer.Encoding) {
 	encodings := []tokenizer.Encoding{*encoding}
 	if pairEncoding != nil {
@@ -383,3 +384,4 @@ func PreProcess(encoding, pairEncoding *tokenizer.Encoding) (out []tokenizer.Enc
 
 	return
 }
+*/

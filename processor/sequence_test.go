@@ -31,7 +31,10 @@ func TestSequence(t *testing.T) {
 	blPreTokenizer.TrimOffsets = true
 	bl := NewByteLevelProcessing(blPreTokenizer)
 
+	sequence := NewSequence([]tokenizer.PostProcessor{bl})
+
 	got := bl.Process(start, nil, false)
+	got2 := sequence.Process(start, nil, false)
 
 	wantOffsets := [][]int{
 		{0, 0},
@@ -48,6 +51,9 @@ func TestSequence(t *testing.T) {
 
 	if !reflect.DeepEqual(want, got) {
 		t.Errorf("want %+v, got %+v\n", want, got)
+	}
+	if !reflect.DeepEqual(want, got2) {
+		t.Errorf("want %+v, got %+v\n", want, got2)
 	}
 
 	pairIds := []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -100,8 +106,14 @@ func TestSequence(t *testing.T) {
 	}
 	pairStart := tokenizer.NewEncoding(idsPair, typeIdsPair, tokensPair, offsetsPair, nil, nil, nil)
 	gotPair := bl.Process(start, pairStart, false)
+	gotPair2 := sequence.Process(start, pairStart, false)
 
-	if !reflect.DeepEqual(wantPair.Overflowing, gotPair.Overflowing) {
+	if !reflect.DeepEqual(wantPair, gotPair) {
 		t.Errorf("want %#v\n, got %#v\n", wantPair, gotPair)
 	}
+
+	if !reflect.DeepEqual(wantPair, gotPair2) {
+		t.Errorf("want %#v\n, got %#v\n", wantPair, gotPair2)
+	}
+
 }

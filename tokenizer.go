@@ -83,6 +83,54 @@ func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *En
 	return encoding
 }
 
+// PrepareEncodings prepares encoding and pairEncoding if any before `ProcessEncodings` call.
+func PrepareEncodings(encoding, pairEncoding *Encoding) (out []Encoding) {
+	encodings := []Encoding{*encoding}
+	if pairEncoding != nil {
+		encodings = append(encodings, *pairEncoding)
+	}
+	for i, encoding := range encodings {
+		encoding.SetSequenceIds(i)
+		var overflowing []Encoding
+		for _, e := range encoding.GetOverflowing() {
+			e.SetSequenceIds(i)
+			overflowing = append(overflowing, e)
+		}
+		encoding.Overflowing = overflowing
+
+		typeIds := make([]int, encoding.Len())
+		for n := 0; n < encoding.Len(); n++ {
+			typeIds[n] = i
+		}
+		encoding.SetTypeIds(typeIds)
+
+		out = append(out, encoding)
+	}
+
+	return
+}
+
+// MergeEncodings merges slice of encodings together.
+func MergeEncodings(encodings []Encoding, growingOffsets bool) *Encoding {
+	var out *Encoding
+	switch len(encodings) {
+	case 0:
+		return nil
+	case 1:
+		out = &encodings[0]
+	case 2:
+		out = encodings[0].MergeWith(&encodings[1], growingOffsets)
+	default:
+		out = &encodings[0]
+		for i := 1; i < len(encodings); i++ {
+			encoding := &encodings[i]
+			out = out.MergeWith(encoding, growingOffsets)
+		}
+	}
+
+	return out
+}
+
 // Decoder takes care of (merges) the given slice of tokens to string
 type Decoder interface {
 	Decode(tokens []string) string

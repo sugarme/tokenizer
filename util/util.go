@@ -160,10 +160,10 @@ func ReadAllLn(filepath string, keepBreakLine bool) ([]string, error) {
 //
 // e := zip(a, b, &c)
 //
-// if e != nil {
-// 		fmt.Println(e)
-//  	return
-// }
+//	if e != nil {
+//			fmt.Println(e)
+//	 	return
+//	}
 //
 // fmt.Println(c)
 func Zip(a, b, c interface{}) error {
@@ -230,4 +230,25 @@ func MinMaxFloat64(array []float64) (float64, float64) {
 		}
 	}
 	return min, max
+}
+
+func Contains(items []string, item string) bool {
+	for _, v := range items {
+		if v == item {
+			return true
+		}
+	}
+
+	return false
+}
+
+type RepeatType interface{ int | string | []int }
+
+func Repeat[T RepeatType](item T, length int) []T {
+	var items []T
+	for i := 0; i < length; i++ {
+		items = append(items, item)
+	}
+
+	return items
 }
