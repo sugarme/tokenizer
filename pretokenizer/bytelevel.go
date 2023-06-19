@@ -278,10 +278,6 @@ func (bl *ByteLevel) Process(encoding, pairEncoding *tokenizer.Encoding, addSpec
 	}
 }
 
-func (bl *ByteLevel) ProcessEncodings(encodings []tokenizer.Encoding) *tokenizer.Encoding {
-	panic("NotImplementedError")
-}
-
 func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenizer.Encoding {
 	type Modif struct {
 		LeadingSpaces int
@@ -357,31 +353,3 @@ func processOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenize
 func ProcessOffsets(encoding *tokenizer.Encoding, addPrefixSpace bool) *tokenizer.Encoding {
 	return processOffsets(encoding, addPrefixSpace)
 }
-
-/*
-func PreProcess(encoding, pairEncoding *tokenizer.Encoding) (out []tokenizer.Encoding) {
-	encodings := []tokenizer.Encoding{*encoding}
-	if pairEncoding != nil {
-		encodings = append(encodings, *pairEncoding)
-	}
-	for i, encoding := range encodings {
-		encoding.SetSequenceIds(i)
-		var overflowing []tokenizer.Encoding
-		for _, e := range encoding.GetOverflowing() {
-			e.SetSequenceIds(i)
-			overflowing = append(overflowing, e)
-		}
-		encoding.Overflowing = overflowing
-
-		typeIds := make([]int, encoding.Len())
-		for n := 0; n < encoding.Len(); n++ {
-			typeIds[n] = i
-		}
-		encoding.SetTypeIds(typeIds)
-
-		out = append(out, encoding)
-	}
-
-	return
-}
-*/

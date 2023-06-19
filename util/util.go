@@ -2,6 +2,8 @@ package util
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"os"
@@ -251,4 +253,39 @@ func Repeat[T RepeatType](item T, length int) []T {
 	}
 
 	return items
+}
+
+// Merge merges 2 slices to a new slice.
+// It ensures that the return value is a new slice but not
+// an appended of slice `a` as in append(a, b...).
+func Merge[T any](a, b []T) []T {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	out := make([]T, len(a), len(a)+len(b))
+	copy(out, a)
+	out = append(out, b...)
+
+	if len(out) == 0 {
+		return nil
+	}
+
+	return out
+}
+
+func DeepCopy(src, dist interface{}) (err error) {
+	buf := bytes.Buffer{}
+	if err = gob.NewEncoder(&buf).Encode(src); err != nil {
+		return
+	}
+	return gob.NewDecoder(&buf).Decode(dist)
+}
+
+func GetType(myvar interface{}) string {
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		return "*" + t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }

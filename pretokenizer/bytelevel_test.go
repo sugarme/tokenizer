@@ -311,8 +311,8 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 
 	got := bytelevel.Process(start, nil, false)
 	if !reflect.DeepEqual(want, got) {
-		t.Errorf("Want: %v\n", want)
-		t.Errorf("Got: %v\n", got)
+		t.Errorf("Want: %#v\n", want)
+		t.Errorf("Got: %#v\n", got)
 	}
 
 	pairWant := want
@@ -324,7 +324,7 @@ func TestProcessorTrimsOffsets(t *testing.T) {
 	pairGot := bytelevel.Process(startClone, start1, false)
 
 	if !reflect.DeepEqual(pairWant, pairGot) {
-		t.Errorf("Want: %+v\n", pairWant)
-		t.Errorf("Got: %+v\n", pairGot)
+		t.Errorf("Want: %#v\n", pairWant)
+		t.Errorf("Got: %#v\n", pairGot)
 	}
 }

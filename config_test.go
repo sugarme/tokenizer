@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/sugarme/tokenizer/util"
 )
 
 func ExampleConfig() {
@@ -26,7 +28,9 @@ func ExampleConfig() {
 		panic(err)
 	}
 
-	modelType := config.Model.Type
+	modelConfig := util.NewParams(config.Model)
+
+	modelType := modelConfig.Get("type", "").(string)
 	fmt.Println(modelType)
 
 	// Output:

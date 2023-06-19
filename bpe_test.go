@@ -18,8 +18,17 @@ import (
 func getByteLevelBPE() (retVal *tokenizer.Tokenizer) {
 
 	util.CdToThis()
-	vocabFile := "data/gpt2-vocab.json"
-	mergeFile := "data/gpt2-merges.txt"
+	modelName := "gpt2"
+	// vocabFile := "data/gpt2-vocab.json"
+	vocabFile, err := tokenizer.CachedPath(modelName, "vocab.json")
+	if err != nil {
+		panic(err)
+	}
+	// mergeFile := "data/gpt2-merges.txt"
+	mergeFile, err := tokenizer.CachedPath(modelName, "merges.txt")
+	if err != nil {
+		panic(err)
+	}
 
 	model, err := bpe.NewBpeFromFiles(vocabFile, mergeFile)
 	if err != nil {

@@ -115,5 +115,4 @@ func TestSequence(t *testing.T) {
 	if !reflect.DeepEqual(wantPair, gotPair2) {
 		t.Errorf("want %#v\n, got %#v\n", wantPair, gotPair2)
 	}
-
 }

@@ -96,19 +96,34 @@ func PrepareEncodings(encoding, pairEncoding *Encoding) (out []Encoding) {
 			e.SetSequenceIds(i)
 			overflowing = append(overflowing, e)
 		}
+
 		encoding.Overflowing = overflowing
 
-		typeIds := make([]int, encoding.Len())
-		for n := 0; n < encoding.Len(); n++ {
-			typeIds[n] = i
+		if encoding.Len() > 0 {
+			typeIds := make([]int, encoding.Len())
+			for n := 0; n < encoding.Len(); n++ {
+				typeIds[n] = i
+			}
+			encoding.SetTypeIds(typeIds)
 		}
-		encoding.SetTypeIds(typeIds)
 
 		out = append(out, encoding)
 	}
 
 	return
 }
+
+/*
+
+   encodings.iter_mut().enumerate().for_each(|(i, encoding)| {
+       encoding.set_sequence_id(i);
+       encoding
+           .get_overflowing_mut()
+           .iter_mut()
+           .for_each(|encoding| encoding.set_sequence_id(i));
+       encoding.set_type_ids(vec![i as u32; encoding.len()]);
+   });
+*/
 
 // MergeEncodings merges slice of encodings together.
 func MergeEncodings(encodings []Encoding, growingOffsets bool) *Encoding {

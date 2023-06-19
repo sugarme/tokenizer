@@ -23,15 +23,15 @@ type Piece interface {
 }
 
 type SequencePiece struct {
-	Id     SequenceEnum
-	TypeId int
+	Id     SequenceEnum `json:"id"`
+	TypeId int          `json:"type_id"`
 }
 
 var _ Piece = new(SequencePiece)
 
 type SpecialTokenPiece struct {
-	Id     string
-	TypeId int
+	Id     string `json:"id"`
+	TypeId int    `json:"type_id"`
 }
 
 var _ Piece = new(SpecialTokenPiece)
@@ -77,6 +77,26 @@ func extractId(s string) (Piece, error) {
 	}
 
 	return p, nil
+}
+
+func NewSequencePiece(id string, typeId int) *SequencePiece {
+	var seqEnum SequenceEnum
+	if id == "A" {
+		seqEnum = A
+	} else {
+		seqEnum = B
+	}
+	return &SequencePiece{
+		Id:     seqEnum,
+		TypeId: typeId,
+	}
+}
+
+func NewSpecialTokenPiece(id string, typeId int) *SpecialTokenPiece {
+	return &SpecialTokenPiece{
+		Id:     id,
+		TypeId: typeId,
+	}
 }
 
 // Implement Piece for SequencePiece:
@@ -174,6 +194,18 @@ func NewTemplateFromMulti(parts []string) (Template, error) {
 	return tpl, nil
 }
 
+func NewTemplate(v interface{}) (Template, error) {
+	switch typ := v.(type) {
+	case string:
+		return NewTemplateFromOne(v.(string))
+	case []string:
+		return NewTemplateFromMulti(v.([]string))
+	default:
+		err := fmt.Errorf("Unsupported input type %v\n", typ)
+		return nil, err
+	}
+}
+
 // A bunch of [`SpecialToken`] represented by their ID.
 type Tokens struct {
 	TokenMap    map[string]SpecialToken // NOTE. HF is an ordered map
@@ -201,11 +233,26 @@ func NewTokensFrom(toks []SpecialToken) *Tokens {
 	}
 }
 
-func NewTokens(m map[string]SpecialToken) *Tokens {
+func NewTokensFromMap(m map[string]SpecialToken) *Tokens {
 	// TODO. How to sort this map to get ordered map?
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)
+	}
+
+	return &Tokens{
+		TokenMap:    m,
+		orderedKeys: keys,
+	}
+}
+
+func NewTokens(toks []tokenizer.Token) *Tokens {
+	m := make(map[string]SpecialToken)
+	var keys []string
+	for _, tok := range toks {
+		spt := NewSpecialTokenFrom(tok.Value, tok.Id)
+		keys = append(keys, tok.Value)
+		m[tok.Value] = *spt
 	}
 
 	return &Tokens{
@@ -270,6 +317,14 @@ func NewTemplateProcessingFrom(t *TemplateProcessingDeserializer) *TemplateProce
 	}
 }
 
+func NewTemplateProcessing(single, pair Template, specialTokens *Tokens) *TemplateProcessing {
+	return NewTemplateProcessingFrom(&TemplateProcessingDeserializer{
+		Single:        single,
+		Pair:          pair,
+		SpecialTokens: specialTokens,
+	})
+}
+
 // Count the number of added tokens in the given template
 func countAdded(container Template, specialTokens *Tokens) int {
 	var count int
@@ -304,6 +359,36 @@ func getType(myvar interface{}) string {
 
 type TemplateProcessingBuilder struct {
 	*TemplateProcessing
+}
+
+func (b *TemplateProcessingBuilder) updateAddedTokens() {
+	b.AddedSingle = countAdded(b.Single, b.SpecialTokens)
+	b.AddedPair = countAdded(b.Pair, b.SpecialTokens)
+}
+
+func (b *TemplateProcessingBuilder) NewSingle(v interface{}) {
+	tpl, err := NewTemplate(v)
+	if err != nil {
+		panic("err")
+	}
+
+	b.Single = tpl
+	b.updateAddedTokens()
+}
+
+func (b *TemplateProcessingBuilder) NewPair(v interface{}) {
+	tpl, err := NewTemplate(v)
+	if err != nil {
+		panic("err")
+	}
+
+	b.Pair = tpl
+	b.updateAddedTokens()
+}
+
+func (b *TemplateProcessingBuilder) NewSpecialTokens(tokens []tokenizer.Token) {
+	b.SpecialTokens = NewTokens(tokens)
+	b.updateAddedTokens()
 }
 
 func (b *TemplateProcessingBuilder) DefaultAdded(isSingle bool) int {
@@ -412,12 +497,16 @@ func (tp *TemplateProcessing) Builder() *TemplateProcessingBuilder {
 	return &TemplateProcessingBuilder{tp}
 }
 
+func (tp *TemplateProcessingBuilder) Build() *TemplateProcessing {
+	return tp.TemplateProcessing
+}
+
 func (tp *TemplateProcessing) ApplyTemplate(template []Piece, encodings []tokenizer.Encoding, addSpecialTokens bool) []tokenizer.Encoding {
-	panic("NotImplementedError")
 	var finalEncodings []tokenizer.Encoding
 
 	for _, piece := range template {
 		typ := getType(piece)
+
 		switch typ {
 		case "*SequencePiece":
 			sp := piece.(*SequencePiece)
@@ -428,7 +517,8 @@ func (tp *TemplateProcessing) ApplyTemplate(template []Piece, encodings []tokeni
 				i = 1
 			}
 			encoding := encodings[id]
-			encoding.SetTypeIds([]int{typeId, encoding.Len()})
+			typeIds := util.Repeat(typeId, encoding.Len())
+			encoding.SetTypeIds(typeIds)
 			encoding.SetSequenceIds(i)
 
 			finalEncodings = append(finalEncodings, encoding)
@@ -487,7 +577,7 @@ func (tp *TemplateProcessing) Process(encoding, pairEncoding *tokenizer.Encoding
 		panic("Shouldn't be here. 'encoding' must be != nil")
 	}
 
-	encodings = tp.ApplyTemplate(template, encodings, addSpecialTokens)
+	appliedEncodings := tp.ApplyTemplate(template, encodings, addSpecialTokens)
 
-	return tokenizer.MergeEncodings(encodings, false)
+	return tokenizer.MergeEncodings(appliedEncodings, false)
 }
