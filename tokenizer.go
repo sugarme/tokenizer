@@ -347,6 +347,16 @@ func (t *Tokenizer) GetVocabSize(withAddedTokens bool) int {
 	return t.model.GetVocabSize() + t.addedVocabulary.Len()
 }
 
+// GetSpecialTokens returns a slice of special tokens.
+func (t *Tokenizer) GetSpecialTokens() []string {
+	var tokens []string
+	for k := range t.addedVocabulary.specialTokensSet {
+		tokens = append(tokens, k)
+	}
+
+	return tokens
+}
+
 // TokenToId converts a token to a corresponding id
 func (t *Tokenizer) TokenToId(token string) (id int, ok bool) {
 	id, ok = t.addedVocabulary.TokenToId(token, t.model)

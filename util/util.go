@@ -289,3 +289,34 @@ func GetType(myvar interface{}) string {
 		return t.Name()
 	}
 }
+
+// CastSlice casts a slice of interface{} to specific type T.
+func CastSlice[T any](vals []interface{}) []T {
+	if len(vals) == 0 {
+		return nil
+	}
+
+	out := make([]T, len(vals))
+	for i, v := range vals {
+		out[i] = v.(T)
+	}
+
+	return out
+}
+
+type Convertable interface {
+	int | int64 | float64
+}
+
+func ConvertSlice[M, N Convertable](vals []M) []N {
+	if len(vals) == 0 {
+		return nil
+	}
+
+	out := make([]N, len(vals))
+	for i, v := range vals {
+		out[i] = N(v)
+	}
+
+	return out
+}

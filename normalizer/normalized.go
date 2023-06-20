@@ -22,6 +22,7 @@ import (
 //   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
 //   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
 //   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - Contiguous => `[ "the", "-", "final", "--", "countdown" ]`
 type SplitDelimiterBehavior int
 
 const (
@@ -29,6 +30,7 @@ const (
 	IsolatediBehavior
 	MergedWithPreviousBehavior
 	MergedWithNextBehavior
+	ContiguousBehavior
 )
 
 type OffsetsRemove struct {
@@ -1193,6 +1195,7 @@ func (n *NormalizedString) Clear() {
 //   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
 //   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
 //   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - Contiguous => `[ "the", "-", "final", "--", "countdown" ]`
 func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
 	// fmt.Printf("input normalized: %v\n", n)
@@ -1220,6 +1223,24 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		var acc []OffsetsMatch
 		for _, m := range matches {
 			if m.Match && !previousMatch {
+				if len(acc) > 0 {
+					// update last item of acc
+					acc[len(acc)-1].Offsets[1] = m.Offsets[1]
+				} else {
+					acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+				}
+			} else {
+				acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+			}
+
+			previousMatch = m.Match
+		}
+		splits = acc
+	case ContiguousBehavior:
+		previousMatch := false
+		var acc []OffsetsMatch
+		for _, m := range matches {
+			if m.Match == previousMatch {
 				if len(acc) > 0 {
 					// update last item of acc
 					acc[len(acc)-1].Offsets[1] = m.Offsets[1]

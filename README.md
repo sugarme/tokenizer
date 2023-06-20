@@ -36,8 +36,17 @@ import (
 )
 
 func main() {
+    // Download and cache pretrained tokenizer. In this case `bert-base-uncased` from Huggingface
+    // can be any model with `tokenizer.json` available. E.g. `openlm-research/open_llama_13b`
+	configFile, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
+	if err != nil {
+		panic(err)
+	}
 
-	tk := pretrained.BertBaseUncased()
+	tk, err := pretrained.FromFile(configFile)
+	if err != nil {
+		panic(err)
+	}
 
 	sentence := `The Gophers craft code using [MASK] language.`
 	en, err := tk.EncodeSingle(sentence)

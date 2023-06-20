@@ -64,12 +64,13 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	tk.WithDecoder(decoder)
 
 	// 6. AddedVocabulary
-	addedTokens, err := CreateAddedTokens(config.AddedTokens)
-	if err != nil {
-		err = fmt.Errorf("Creating AddedTokens failed: %v", err)
-		return nil, err
+	specialAddedTokens, addedTokens := CreateAddedTokens(config.AddedTokens)
+	if len(specialAddedTokens) > 0 {
+		tk.AddSpecialTokens(specialAddedTokens)
 	}
-	tk.AddSpecialTokens(addedTokens)
+	if len(addedTokens) > 0 {
+		tk.AddTokens(addedTokens)
+	}
 
 	// 7. TruncationParams
 	truncParams, err := CreateTruncationParams(config.Truncation)

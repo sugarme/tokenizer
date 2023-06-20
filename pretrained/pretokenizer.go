@@ -111,6 +111,18 @@ func createUnicodeScriptsPreTokenizer(params *util.Params) (tokenizer.PreTokeniz
 }
 
 func createSequencePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	var pretoks []tokenizer.PreTokenizer
+
+	data := params.Get("pretokenizers").([]interface{})
+	for _, d := range data {
+		pretok, err := CreatePreTokenizer(d.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		pretoks = append(pretoks, pretok)
+	}
+
+	out := pretokenizer.NewSequence(pretoks)
+
+	return out, nil
 }

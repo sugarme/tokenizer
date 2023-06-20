@@ -224,6 +224,8 @@ func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*t
 // Implement Decoder for `ByteLevel`:
 // ==================================
 
+var _ tokenizer.Decoder = new(ByteLevel)
+
 // Decode converts any byte-level characters to their unicode couterpart
 // before merging everything back into a single string
 func (bl *ByteLevel) Decode(tokens []string) string {
@@ -239,6 +241,23 @@ func (bl *ByteLevel) Decode(tokens []string) string {
 	}
 
 	return string(bytes)
+}
+
+func (bl *ByteLevel) DecodeChain(tokens []string) []string {
+	out := make([]string, len(tokens))
+	for i, s := range tokens {
+		chars := strings.Split(s, "")
+		var bytes []byte
+		for _, c := range chars {
+			b := CharBytes[c]
+
+			bytes = append(bytes, b)
+		}
+
+		out[i] = string(bytes)
+	}
+
+	return out
 }
 
 // Implement PostProcessor for ByteLevel

@@ -26,16 +26,16 @@ func CreatePostProcessor(config map[string]interface{}) (tokenizer.PostProcessor
 	typ := params.Get("type").(string)
 
 	switch typ {
-	case "RobertaProcessing":
+	case "RobertaProcessing": // Bart
 		return createRobertaProcessing(params), nil
-	case "BertProcessing":
+	case "BertProcessing": // Bert
 		return createBertProcessing(params), nil
 	case "ByteLevel":
 		return createByteLevel(params)
-	case "TemplateProcessing":
+	case "TemplateProcessing": // T5
 		return createTemplateProcessing(params), nil
 	case "Sequence":
-		return createSequence(params), nil
+		return createSequence(params)
 
 	default:
 		err := fmt.Errorf("Could not create tokenizer.PostProcessor from input data %#v\n", config)
@@ -198,12 +198,9 @@ func createTemplateProcessing(params *util.Params) tokenizer.PostProcessor {
 		for _, v := range data {
 			d := v.(map[string]interface{})
 			id := d["id"].(string)
-			vals := d["ids"].([]float64)
-			var ids []int
-			for _, val := range vals {
-				ids = append(ids, int(val))
-			}
-			tokens := d["tokens"].([]string)
+			ids := util.ConvertSlice[float64, int](util.CastSlice[float64](d["ids"].([]interface{})))
+
+			tokens := util.CastSlice[string](d["tokens"].([]interface{}))
 			tok := processor.NewSpecialToken(id, ids, tokens)
 			toks = append(toks, *tok)
 		}
@@ -214,7 +211,21 @@ func createTemplateProcessing(params *util.Params) tokenizer.PostProcessor {
 	return processor.NewTemplateProcessing(single, pair, specialTokens)
 }
 
-func createSequence(params *util.Params) tokenizer.PostProcessor {
-	// TODO
-	panic("NotImplementedError")
+func createSequence(params *util.Params) (tokenizer.PostProcessor, error) {
+	// TODO. check whether key is "processors" or "post_processors"
+	data := params.Get("processors").([]interface{})
+	var processors []tokenizer.PostProcessor
+	for _, v := range data {
+		d := v.(map[string]interface{})
+		processor, err := CreatePostProcessor(d)
+		if err != nil {
+			return nil, err
+		}
+
+		processors = append(processors, processor)
+	}
+
+	seqProcessor := processor.NewSequence(processors)
+
+	return seqProcessor, nil
 }
