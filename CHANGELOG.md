@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ###  Breaking Changes
-- `processor.NewRobertaProcessing` added 2 new parameters.
-- added `SequenceRanges` field to `Encoding` struct
-
 
 ### Fixed
 - [#...]: Fix a bug with...
@@ -18,7 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#...]: 
 
 ### Added
-- Completed list of pretokenizers, decoders, normalizers
+
+## [0.2.0]
+
+###  Breaking Changes
+
+- `processor.NewRobertaProcessing` added 2 new parameters.
+- added `SequenceRanges` field to `Encoding` struct
+
+### Added
+- Completed list of pretokenizers, decoders, normalizers, processors
 
 ## [0.1.16]
 - Fixed data race at `PostProcess` and `EncodeBatch`
