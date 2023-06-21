@@ -2,7 +2,6 @@ package normalizer
 
 import (
 	"bytes"
-	// "fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -27,7 +26,7 @@ type SplitDelimiterBehavior int
 
 const (
 	RemovedBehavior = iota
-	IsolatediBehavior
+	IsolatedBehavior
 	MergedWithPreviousBehavior
 	MergedWithNextBehavior
 	ContiguousBehavior
@@ -1211,7 +1210,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	// where `Match` field is `shouldRemove`
 	var splits []OffsetsMatch
 	switch behavior {
-	case IsolatediBehavior:
+	case IsolatedBehavior:
 		for _, m := range matches {
 			m.Match = false
 			splits = append(splits, m)

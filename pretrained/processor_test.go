@@ -77,10 +77,18 @@ func TestCreatePostProcessor(t *testing.T) {
 
 	log.Printf("processor: %#v\n", p)
 
-	got := p.AddedTokens(false)
-	want := 3
+	got := p.AddedTokens(true)
+	want := 2
 
 	if got != want {
 		t.Fatalf("Expected %v, got %v\n", want, got)
 	}
+
+	got = p.AddedTokens(false)
+	want = 1
+
+	if got != want {
+		t.Fatalf("Expected %v, got %v\n", want, got)
+	}
+
 }

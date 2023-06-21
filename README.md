@@ -37,7 +37,7 @@ import (
 
 func main() {
     // Download and cache pretrained tokenizer. In this case `bert-base-uncased` from Huggingface
-    // can be any model with `tokenizer.json` available. E.g. `openlm-research/open_llama_13b`
+    // can be any model with `tokenizer.json` available. E.g. `tiiuae/falcon-7b`
 	configFile, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
 	if err != nil {
 		panic(err)

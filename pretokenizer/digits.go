@@ -25,7 +25,7 @@ func (p *Digits) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*token
 	var pretok *tokenizer.PreTokenizedString
 	if p.IndividualDigits {
 		pretok = pretokenized.Split(func(noop int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
-			splits := normalized.Split(isNumeric, normalizer.IsolatediBehavior)
+			splits := normalized.Split(isNumeric, normalizer.IsolatedBehavior)
 			var splitIdxs []tokenizer.SplitIdx
 			for _, s := range splits {
 				normalized := s

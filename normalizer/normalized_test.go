@@ -537,7 +537,7 @@ func TestNormalized_Split(t *testing.T) {
 	testSplit(t, normalizer.RemovedBehavior, n, want1)
 
 	want2 := []string{"The", "-", "final", "-", "-", "countdown"}
-	testSplit(t, normalizer.IsolatediBehavior, n, want2)
+	testSplit(t, normalizer.IsolatedBehavior, n, want2)
 
 	want3 := []string{"The-", "final-", "-", "countdown"}
 	testSplit(t, normalizer.MergedWithPreviousBehavior, n, want3)

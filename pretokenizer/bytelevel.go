@@ -188,7 +188,7 @@ func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*t
 		}
 
 		splitPattern := normalizer.NewRegexpPattern(splitRegStr)
-		splits := newNormalized.Split(splitPattern, normalizer.IsolatediBehavior)
+		splits := newNormalized.Split(splitPattern, normalizer.IsolatedBehavior)
 
 		var splitIdx []tokenizer.SplitIdx
 		for _, s := range splits {

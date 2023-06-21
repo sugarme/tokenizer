@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/normalizer"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/util"
 )
@@ -50,6 +51,8 @@ func CreatePreTokenizer(config map[string]interface{}) (tokenizer.PreTokenizer, 
 		return createDigitsPreTokenizer(params)
 	case "UnicodeScripts":
 		return createUnicodeScriptsPreTokenizer(params)
+	case "Split":
+		return createSplitPreTokenizer(params)
 
 	default:
 		err := fmt.Errorf("Could not create PreTokenizer from input data: %#v\n", config)
@@ -72,7 +75,9 @@ func createByteLevelPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 }
 
 func createDelimiterPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	panic("NotImplementedError")
+	// TODO. verify key `delimiter`
+	delimiter := []rune(params.Get("delimiter").(string))[0]
+	return pretokenizer.NewCharDelimiterSplit(delimiter), nil
 }
 
 func createMetaspacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
@@ -87,27 +92,107 @@ func createMetaspacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 }
 
 func createWhitespacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	return pretokenizer.NewWhitespace(), nil
 }
 
 func createWhitespaceSplitPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	return pretokenizer.NewWhitespaceSplit(), nil
 }
 
+/*
+	{
+	       "type": "Punctuation",
+	       "behavior": "Contiguous"
+	     },
+*/
 func createPunctuationPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	behaviorVal := params.Get("behavior").(string)
+
+	var b normalizer.SplitDelimiterBehavior
+	switch behaviorVal {
+	case "Removed":
+		b = normalizer.RemovedBehavior
+	case "Isolated":
+		b = normalizer.IsolatedBehavior
+	case "MergedWithNext":
+		b = normalizer.MergedWithNextBehavior
+	case "MergedWithPrevious":
+		b = normalizer.MergedWithPreviousBehavior
+	case "Contiguous":
+		b = normalizer.ContiguousBehavior
+
+	default:
+		err := fmt.Errorf("Unsupported behavior: %#v\n", behaviorVal)
+		return nil, err
+	}
+
+	return pretokenizer.NewPunctuation(b), nil
 }
 
+/*
+	{
+	        "type": "Digits",
+	        "individual_digits": false
+	      },
+*/
 func createDigitsPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	individualDigits := params.Get("individual_digits").(bool)
+
+	return pretokenizer.NewDigits(individualDigits), nil
 }
 
 func createUnicodeScriptsPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
-	panic("NotImplementedError")
+	return pretokenizer.NewUnicodeScript(), nil
+}
+
+/*
+	{
+	    "type": "Split",
+	    "pattern": {
+	      "Regex": "[0-9][0-9][0-9]"
+	    },
+	    "behavior": "Isolated",
+	    "invert": false
+	  }
+*/
+func createSplitPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {
+	if params == nil {
+		return nil, nil
+	}
+
+	patternMap := params.Get("pattern").(map[string]interface{})
+	behaviorVal := params.Get("behavior").(string)
+	invert := params.Get("invert").(bool)
+
+	var pattern normalizer.Pattern
+	if v, ok := patternMap["Regex"]; ok {
+		pattern = normalizer.NewRegexpPattern(v.(string))
+	} else if v, ok := patternMap["String"]; ok {
+		pattern = normalizer.NewRegexpPattern(v.(string))
+	} else {
+		err := fmt.Errorf("Unsupported pattern: %#v\n", patternMap)
+		return nil, err
+	}
+
+	var b normalizer.SplitDelimiterBehavior
+	switch behaviorVal {
+	case "Removed":
+		b = normalizer.RemovedBehavior
+	case "Isolated":
+		b = normalizer.IsolatedBehavior
+	case "MergedWithNext":
+		b = normalizer.MergedWithNextBehavior
+	case "MergedWithPrevious":
+		b = normalizer.MergedWithPreviousBehavior
+	case "Contiguous":
+		b = normalizer.ContiguousBehavior
+
+	default:
+		err := fmt.Errorf("Unsupported behavior: %#v\n", behaviorVal)
+		return nil, err
+	}
+
+	return pretokenizer.NewSplit(pattern, b, invert), nil
 }
 
 func createSequencePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, error) {

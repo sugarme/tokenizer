@@ -32,7 +32,7 @@ type Punctuation struct {
 }
 
 func DefaultSplit() normalizer.SplitDelimiterBehavior {
-	return normalizer.IsolatediBehavior
+	return normalizer.IsolatedBehavior
 }
 
 func NewPunctuation(behavior normalizer.SplitDelimiterBehavior) *Punctuation {

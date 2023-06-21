@@ -79,7 +79,7 @@ func (bt *BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedStri
 		wsSubs := sub.Split(whitespace, normalizer.RemovedBehavior)
 
 		for _, sub := range wsSubs {
-			puncSubs := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatediBehavior)
+			puncSubs := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatedBehavior)
 			splits = append(splits, puncSubs...)
 		}
 
