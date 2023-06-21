@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#...]: 
 
 ### Added
-- [#...]: 
+- Completed list of pretokenizers, decoders, normalizers
 
 ## [0.1.16]
 - Fixed data race at `PostProcess` and `EncodeBatch`

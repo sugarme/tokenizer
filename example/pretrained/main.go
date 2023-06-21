@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	// any model with file `tokenizer.json` available. Eg. `"tiiuae/falcon-7b"`
+	// any model with file `tokenizer.json` available. Eg. `tiiuae/falcon-7b`, `TheBloke/guanaco-7B-HF`, `mosaicml/mpt-7b-instruct`
 	configFile, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
 	if err != nil {
 		panic(err)

@@ -928,7 +928,7 @@ func (n *NormalizedString) NFC() (retVal *NormalizedString) {
 
 	isNFC := norm.Form.IsNormalString(norm.NFC, s)
 	if isNFC {
-		return
+		return n
 	}
 
 	it.InitString(norm.NFD, s)
@@ -1004,7 +1004,7 @@ func (n *NormalizedString) NFKC() (retVal *NormalizedString) {
 	isNFKC := norm.Form.IsNormalString(norm.NFKC, s)
 
 	if isNFKC {
-		return
+		return n
 	}
 
 	it.InitString(norm.NFKD, n.normalized)
