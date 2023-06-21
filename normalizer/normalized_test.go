@@ -537,7 +537,7 @@ func TestNormalized_Split(t *testing.T) {
 	testSplit(t, normalizer.RemovedBehavior, n, want1)
 
 	want2 := []string{"The", "-", "final", "-", "-", "countdown"}
-	testSplit(t, normalizer.IsolatediBehavior, n, want2)
+	testSplit(t, normalizer.IsolatedBehavior, n, want2)
 
 	want3 := []string{"The-", "final-", "-", "countdown"}
 	testSplit(t, normalizer.MergedWithPreviousBehavior, n, want3)
@@ -560,6 +560,7 @@ func testSplit(t *testing.T, behavior normalizer.SplitDelimiterBehavior, n *norm
 		t.Errorf("Want: %v\n", want)
 		t.Errorf("Got: %v\n", got)
 	}
+
 }
 
 func TestNormalized_TransformRange_SingleBytes(t *testing.T) {

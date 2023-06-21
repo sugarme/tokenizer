@@ -2,8 +2,10 @@ package normalizer
 
 import (
 	"log"
-	"reflect"
+	// "reflect"
 	"regexp"
+
+	"github.com/sugarme/tokenizer/util"
 )
 
 // Pattern is used to split a NormalizedString
@@ -275,21 +277,26 @@ type Invert struct {
 	Pattern Pattern
 }
 
+func NewInvertPattern(p Pattern) *Invert {
+	return &Invert{p}
+}
+
 // FindMatches implement Pattern interface for Invert
 func (i *Invert) FindMatches(inside string) []OffsetsMatch {
-
 	var matches []OffsetsMatch
-
-	switch reflect.TypeOf(i.Pattern).Name() {
-	case "StringPattern":
+	typ := util.GetType(i.Pattern)
+	switch typ {
+	case "*StringPattern":
 		matches = i.Pattern.(*StringPattern).FindMatches(inside)
-	case "RunePattern":
+	case "*RunePattern":
 		matches = i.Pattern.(*RunePattern).FindMatches(inside)
-	case "FnPattern":
+	case "*FnPattern":
 		matches = i.Pattern.(*FnPattern).FindMatches(inside)
+	case "*RegexpPattern":
+		matches = i.Pattern.(*RegexpPattern).FindMatches(inside)
 
 	default:
-		log.Fatalf("Unsupported type - %v\n", reflect.TypeOf(i.Pattern).Name())
+		log.Fatalf("Unsupported type - %q\n", typ)
 	}
 
 	return invert(matches)

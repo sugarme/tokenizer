@@ -615,3 +615,81 @@ func makeFilePath(filename string) error {
 	}
 	return os.MkdirAll(dirName, os.ModePerm)
 }
+
+func CreateMerges(vocab map[string]int, mergesData []string) (*Merges, error) {
+	var (
+		lineNum int    = 0
+		merges  Merges = make(map[Pair]PairVal)
+	)
+	for _, line := range mergesData {
+		parts := strings.Split(line, " ")
+		if len(parts) != 2 {
+			err := fmt.Errorf("Read merges error: invalid data at line %d\n", lineNum)
+			return nil, err
+		}
+
+		a, ok := vocab[parts[0]]
+		if !ok {
+			// err = fmt.Errorf("Read merge file error: part a value for '%s' key not found.", parts[0])
+			continue
+			// return nil, nil, err
+		}
+
+		b, ok := vocab[parts[1]]
+		if !ok {
+			// err = fmt.Errorf("Read merge file error: part b value for '%s' key not found.", parts[1])
+			continue
+			// return nil, nil, err
+		}
+
+		pair := Pair{a, b}
+		// newToken := fmt.Sprintf("%v%v", parts[0], parts[1])
+		newToken := fmt.Sprintf("%v%v", parts[0], parts[1])
+		newId, ok := vocab[newToken]
+		if !ok {
+			err := fmt.Errorf("Read merges error: key value for token: \"%s\" not found.", newToken)
+			return nil, err
+		}
+
+		pairVal := PairVal{lineNum, newId}
+
+		merges[pair] = pairVal
+
+		lineNum += 1
+	}
+
+	return &merges, nil
+}
+
+// New create new BPE model.
+func New(
+	// vocab map[string]int,
+	vocab model.Vocab,
+	mergesData []string,
+	dropout *float32,
+	unkToken *string,
+	continuingSubwordPrefix *string,
+	endOfWordSuffix *string,
+) (*BPE, error) {
+	merges, err := CreateMerges(vocab, mergesData)
+	if err != nil {
+		return nil, err
+	}
+
+	// vc := interface{}(vocab).(model.Vocab)
+
+	builder := &BpeBuilder{
+		config: Config{
+			files:                   nil,
+			vocab:                   &vocab,
+			merges:                  merges,
+			cacheCapacity:           DefaultCacheCapacity,
+			dropout:                 dropout,
+			unkToken:                unkToken,
+			continuingSubwordPrefix: continuingSubwordPrefix,
+			endOfWordSuffix:         endOfWordSuffix,
+		},
+	}
+
+	return builder.Build()
+}

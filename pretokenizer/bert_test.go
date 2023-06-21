@@ -20,7 +20,7 @@ func TestBertPreTokenize(t *testing.T) {
 		t.Error(err)
 	}
 
-	pretoks := pretokenized.GetSplits(normalizer.OriginalTarget)
+	pretoks := pretokenized.GetSplits(normalizer.OriginalTarget, tokenizer.Byte)
 
 	var got []struct {
 		Value   string
@@ -82,7 +82,7 @@ func TestBertPreTokenize_ChineseChars(t *testing.T) {
 		t.Error(err)
 	}
 
-	pretoks := pretokenized.GetSplits(normalizer.OriginalTarget)
+	pretoks := pretokenized.GetSplits(normalizer.OriginalTarget, tokenizer.Byte)
 
 	var got []struct {
 		Value   string

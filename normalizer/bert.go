@@ -5,10 +5,10 @@ import (
 )
 
 type BertNormalizer struct {
-	CleanText          bool // Whether to remove Control characters and all sorts of whitespaces replaced with single ` ` space
-	Lowercase          bool // Whether to do lowercase
-	HandleChineseChars bool // Whether to put spaces around chinese characters so they get split
-	StripAccents       bool // whether to remove accents
+	CleanText          bool `json:"clean_text"`           // Whether to remove Control characters and all sorts of whitespaces replaced with single ` ` space
+	Lowercase          bool `json:"lowercase"`            // Whether to do lowercase
+	HandleChineseChars bool `json:"handle_chinese_chars"` // Whether to put spaces around chinese characters so they get split
+	StripAccents       bool `json:"strip_accents"`        // whether to remove accents
 }
 
 func NewBertNormalizer(cleanText, lowercase, handleChineseChars, stripAccents bool) *BertNormalizer {
@@ -61,7 +61,9 @@ func isPunctuation(c rune) bool {
 }
 
 // This defines a "chinese character" as anything in the CJK Unicode block:
-//   https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
+//
+//	https://en.wikipedia.org/wiki/CJK_Unified_Ideographs_(Unicode_block)
+//
 // Note that the CJK Unicode block is NOT all Japanese and Korean characters,
 // despite its name. The modern Korean Hangul alphabet is a different block,
 // as is Japanese Hiragana and Katakana. Those alphabets are used to write

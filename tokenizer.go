@@ -72,6 +72,10 @@ type PostProcessor interface {
 // DefaultProcess is a helper function of PostProcessor's Process method
 // It helps to fast track by just merging encoding and its pair.
 func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *Encoding {
+	if pairEncoding == nil {
+		return encoding
+	}
+
 	if pairEncoding != nil {
 		return encoding.MergeWith(pairEncoding, false)
 	}
@@ -79,9 +83,73 @@ func DefaultProcess(encoding, pairEncoding *Encoding, addSpecialTokens bool) *En
 	return encoding
 }
 
+// PrepareEncodings prepares encoding and pairEncoding if any before `ProcessEncodings` call.
+func PrepareEncodings(encoding, pairEncoding *Encoding) (out []Encoding) {
+	encodings := []Encoding{*encoding}
+	if pairEncoding != nil {
+		encodings = append(encodings, *pairEncoding)
+	}
+	for i, encoding := range encodings {
+		encoding.SetSequenceIds(i)
+		var overflowing []Encoding
+		for _, e := range encoding.GetOverflowing() {
+			e.SetSequenceIds(i)
+			overflowing = append(overflowing, e)
+		}
+
+		encoding.Overflowing = overflowing
+
+		if encoding.Len() > 0 {
+			typeIds := make([]int, encoding.Len())
+			for n := 0; n < encoding.Len(); n++ {
+				typeIds[n] = i
+			}
+			encoding.SetTypeIds(typeIds)
+		}
+
+		out = append(out, encoding)
+	}
+
+	return
+}
+
+/*
+
+   encodings.iter_mut().enumerate().for_each(|(i, encoding)| {
+       encoding.set_sequence_id(i);
+       encoding
+           .get_overflowing_mut()
+           .iter_mut()
+           .for_each(|encoding| encoding.set_sequence_id(i));
+       encoding.set_type_ids(vec![i as u32; encoding.len()]);
+   });
+*/
+
+// MergeEncodings merges slice of encodings together.
+func MergeEncodings(encodings []Encoding, growingOffsets bool) *Encoding {
+	var out *Encoding
+	switch len(encodings) {
+	case 0:
+		return nil
+	case 1:
+		out = &encodings[0]
+	case 2:
+		out = encodings[0].MergeWith(&encodings[1], growingOffsets)
+	default:
+		out = &encodings[0]
+		for i := 1; i < len(encodings); i++ {
+			encoding := &encodings[i]
+			out = out.MergeWith(encoding, growingOffsets)
+		}
+	}
+
+	return out
+}
+
 // Decoder takes care of (merges) the given slice of tokens to string
 type Decoder interface {
 	Decode(tokens []string) string
+	DecodeChain(tokens []string) []string
 }
 
 // Trainer is responsible for training a model. It takes lines/sentences
@@ -277,6 +345,16 @@ func (t *Tokenizer) GetVocabSize(withAddedTokens bool) int {
 	}
 
 	return t.model.GetVocabSize() + t.addedVocabulary.Len()
+}
+
+// GetSpecialTokens returns a slice of special tokens.
+func (t *Tokenizer) GetSpecialTokens() []string {
+	var tokens []string
+	for k := range t.addedVocabulary.specialTokensSet {
+		tokens = append(tokens, k)
+	}
+
+	return tokens
 }
 
 // TokenToId converts a token to a corresponding id
@@ -829,7 +907,8 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 			log.Fatalf("call 'doPreTokenize' method error: %v\n", err)
 		}
 
-		pretoks := pretokenized.GetSplits(normalizer.OriginalTarget)
+		// NOTE. should we get OffsetType as input parameter: either Byte or Char?
+		pretoks := pretokenized.GetSplits(normalizer.OriginalTarget, Byte)
 		var tokens []string
 		for _, pretok := range pretoks {
 			tokens = append(tokens, pretok.Value)

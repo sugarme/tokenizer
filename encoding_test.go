@@ -17,7 +17,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Offsets:          [][]int{{0, 6}},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      nil,
 		Words:            []int{0},
 	}
 
@@ -28,7 +28,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Offsets:          [][]int{{0, 6}},
 		SpecialTokenMask: []int{0},
 		AttentionMask:    []int{1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      nil,
 		Words:            []int{0},
 	}
 
@@ -41,7 +41,7 @@ func TestTokenizer_MergeWith(t *testing.T) {
 		Offsets:          [][]int{{0, 6}, {6, 12}},
 		SpecialTokenMask: []int{0, 0},
 		AttentionMask:    []int{1, 1},
-		Overflowing:      make([]tokenizer.Encoding, 0),
+		Overflowing:      nil,
 		Words:            []int{0, 0},
 	}
 

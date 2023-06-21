@@ -2,6 +2,8 @@ package util
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"os"
@@ -160,10 +162,10 @@ func ReadAllLn(filepath string, keepBreakLine bool) ([]string, error) {
 //
 // e := zip(a, b, &c)
 //
-// if e != nil {
-// 		fmt.Println(e)
-//  	return
-// }
+//	if e != nil {
+//			fmt.Println(e)
+//	 	return
+//	}
 //
 // fmt.Println(c)
 func Zip(a, b, c interface{}) error {
@@ -230,4 +232,91 @@ func MinMaxFloat64(array []float64) (float64, float64) {
 		}
 	}
 	return min, max
+}
+
+func Contains(items []string, item string) bool {
+	for _, v := range items {
+		if v == item {
+			return true
+		}
+	}
+
+	return false
+}
+
+type RepeatType interface{ int | string | []int }
+
+func Repeat[T RepeatType](item T, length int) []T {
+	var items []T
+	for i := 0; i < length; i++ {
+		items = append(items, item)
+	}
+
+	return items
+}
+
+// Merge merges 2 slices to a new slice.
+// It ensures that the return value is a new slice but not
+// an appended of slice `a` as in append(a, b...).
+func Merge[T any](a, b []T) []T {
+	if a == nil && b == nil {
+		return nil
+	}
+
+	out := make([]T, len(a), len(a)+len(b))
+	copy(out, a)
+	out = append(out, b...)
+
+	if len(out) == 0 {
+		return nil
+	}
+
+	return out
+}
+
+func DeepCopy(src, dist interface{}) (err error) {
+	buf := bytes.Buffer{}
+	if err = gob.NewEncoder(&buf).Encode(src); err != nil {
+		return
+	}
+	return gob.NewDecoder(&buf).Decode(dist)
+}
+
+func GetType(myvar interface{}) string {
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		return "*" + t.Elem().Name()
+	} else {
+		return t.Name()
+	}
+}
+
+// CastSlice casts a slice of interface{} to specific type T.
+func CastSlice[T any](vals []interface{}) []T {
+	if len(vals) == 0 {
+		return nil
+	}
+
+	out := make([]T, len(vals))
+	for i, v := range vals {
+		out[i] = v.(T)
+	}
+
+	return out
+}
+
+type Convertable interface {
+	int | int64 | float64
+}
+
+func ConvertSlice[M, N Convertable](vals []M) []N {
+	if len(vals) == 0 {
+		return nil
+	}
+
+	out := make([]N, len(vals))
+	for i, v := range vals {
+		out[i] = N(v)
+	}
+
+	return out
 }

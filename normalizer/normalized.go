@@ -2,7 +2,6 @@ package normalizer
 
 import (
 	"bytes"
-	// "fmt"
 	"log"
 	"reflect"
 	"strings"
@@ -18,17 +17,19 @@ import (
 // SplitDelimiterBehavior is a enum-like type . It defines the expected behavior
 // for the delimiter of a Split Pattern
 // When splitting on `'-'` for example, with input `the-final--countdown`:
-//  - RemovedBehavior => `[ "the", "final", "countdown" ]`
-//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
-//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
-//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - RemovedBehavior => `[ "the", "final", "countdown" ]`
+//   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - Contiguous => `[ "the", "-", "final", "--", "countdown" ]`
 type SplitDelimiterBehavior int
 
 const (
 	RemovedBehavior = iota
-	IsolatediBehavior
+	IsolatedBehavior
 	MergedWithPreviousBehavior
 	MergedWithNextBehavior
+	ContiguousBehavior
 )
 
 type OffsetsRemove struct {
@@ -449,6 +450,7 @@ type ChangeMap struct {
 //   - `1` if this is a new char
 //   - `-N` if the char is right before N removed chars
 //   - `0` if the char is replacing the existing one
+//
 // Since it is possible that the normalized string doesn't include some of the characters at
 // the beginning of the original one, we need an `initialOffset` which represents the number
 // of removed chars at the very beginning.
@@ -839,6 +841,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 //   - `1` if this is a new rune
 //   - `-N` if the char is right before N removed runes
 //   - `0` if this rune represents the old one (even if changed)
+//
 // Since it is possible that the normalized string doesn't include some of the `characters` (runes) at
 // the beginning of the original one, we need an `initial_offset` which represents the number
 // of removed runes at the very beginning.
@@ -925,7 +928,7 @@ func (n *NormalizedString) NFC() (retVal *NormalizedString) {
 
 	isNFC := norm.Form.IsNormalString(norm.NFC, s)
 	if isNFC {
-		return
+		return n
 	}
 
 	it.InitString(norm.NFD, s)
@@ -1001,7 +1004,7 @@ func (n *NormalizedString) NFKC() (retVal *NormalizedString) {
 	isNFKC := norm.Form.IsNormalString(norm.NFKC, s)
 
 	if isNFKC {
-		return
+		return n
 	}
 
 	it.InitString(norm.NFKD, n.normalized)
@@ -1187,10 +1190,11 @@ func (n *NormalizedString) Clear() {
 //
 // The behavior can be one of the followings:
 // When splitting on `'-'` for example, with input `the-final--countdown`:
-//  - RemovedBehavior => `[ "the", "", "final", "", "", "countdown" ]`
-//  - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
-//  - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
-//  - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - RemovedBehavior => `[ "the", "", "final", "", "", "countdown" ]`
+//   - IsolatedBehavior => `[ "the", "-", "final", "-", "-", "countdown" ]`
+//   - MergedWithPreviousBehavior => `[ "the-", "final-", "-", "countdown" ]`
+//   - MergedWithNextBehavior => `[ "the", "-final", "-", "-countdown" ]`
+//   - Contiguous => `[ "the", "-", "final", "--", "countdown" ]`
 func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavior) (retVal []NormalizedString) {
 
 	// fmt.Printf("input normalized: %v\n", n)
@@ -1206,7 +1210,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	// where `Match` field is `shouldRemove`
 	var splits []OffsetsMatch
 	switch behavior {
-	case IsolatediBehavior:
+	case IsolatedBehavior:
 		for _, m := range matches {
 			m.Match = false
 			splits = append(splits, m)
@@ -1218,6 +1222,24 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		var acc []OffsetsMatch
 		for _, m := range matches {
 			if m.Match && !previousMatch {
+				if len(acc) > 0 {
+					// update last item of acc
+					acc[len(acc)-1].Offsets[1] = m.Offsets[1]
+				} else {
+					acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+				}
+			} else {
+				acc = append(acc, OffsetsMatch{Offsets: m.Offsets, Match: false})
+			}
+
+			previousMatch = m.Match
+		}
+		splits = acc
+	case ContiguousBehavior:
+		previousMatch := false
+		var acc []OffsetsMatch
+		for _, m := range matches {
+			if m.Match == previousMatch {
 				if len(acc) > 0 {
 					// update last item of acc
 					acc[len(acc)-1].Offsets[1] = m.Offsets[1]
@@ -1269,7 +1291,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		}
 	}
 
-	// fmt.Printf("output: %v\n", slices)
+	// log.Printf("output: %+v\n", slices)
 
 	return slices
 }

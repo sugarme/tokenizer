@@ -257,19 +257,33 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 // GetSplits returns a list of splits, each of them being a slice of the normalized
 // string, the associated offsets either in original or normalized
 // referential, as well as the potention tokens
-func (pt *PreTokenizedString) GetSplits(offsetType normalizer.IndexOn) []PreToken {
-	offset := 0
+func (pt *PreTokenizedString) GetSplits(offsetRef normalizer.IndexOn, offsetType OffsetType) []PreToken {
 	var preToks []PreToken
 
+	var offsetConverter OffsetConverter
+	if offsetType == Char {
+		offsetConverter = NewBytesToCharOffsetConverter(pt.original)
+	}
+
+	offset := 0
 	for _, s := range pt.splits {
 		var offsets []int
 		switch {
-		case offsetType == normalizer.OriginalTarget:
+		case offsetRef == normalizer.OriginalTarget:
 			offsets = s.normalized.OffsetsOriginal()
-		case offsetType == normalizer.NormalizedTarget:
+		case offsetRef == normalizer.NormalizedTarget:
 			length := s.normalized.Len()
 			offset += length
 			offsets = []int{offset - length, offset}
+		}
+
+		// Convert to char offsets if relevant
+		if offsetConverter != nil {
+			var err error
+			offsets, err = offsetConverter.Convert(offsets)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		preToks = append(preToks, PreToken{s.normalized.GetNormalized(), offsets, s.tokens})
@@ -292,4 +306,47 @@ func NewPreTokenizedStringFromNS(n *normalizer.NormalizedString) *PreTokenizedSt
 func NewPreTokenizedString(s string) *PreTokenizedString {
 	n := normalizer.NewNormalizedFrom(s)
 	return NewPreTokenizedStringFromNS(n)
+}
+
+type OffsetConverter interface {
+	Convert(offsets []int) ([]int, error)
+}
+
+type BytesToCharOffsetConverter struct {
+	b2c map[int]int // map of byteIndex to character(rune) index
+}
+
+func NewBytesToCharOffsetConverter(sequence string) *BytesToCharOffsetConverter {
+	chars := []rune(sequence) // utf-8
+
+	b2c := make(map[int]int)
+	n := 0
+	for charIdx, char := range chars {
+		nbytes := len([]byte(string(char)))
+		for i := 0; i < nbytes; i++ {
+			byteIdx := n + i
+			b2c[byteIdx] = charIdx
+		}
+
+		n += nbytes
+	}
+
+	return &BytesToCharOffsetConverter{b2c}
+}
+
+// Convert converts byte-indexed offsets to character-index offsets.
+func (c *BytesToCharOffsetConverter) Convert(offsets []int) ([]int, error) {
+	start, ok := c.b2c[offsets[0]]
+	if !ok {
+		err := fmt.Errorf("Invalid offsets start %v\n", offsets[0])
+		return nil, err
+	}
+
+	end, ok := c.b2c[offsets[1]]
+	if !ok {
+		err := fmt.Errorf("Invalid offsets end %v\n", offsets[1])
+		return nil, err
+	}
+
+	return []int{start, end}, nil
 }
