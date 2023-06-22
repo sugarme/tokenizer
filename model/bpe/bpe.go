@@ -2,14 +2,17 @@ package bpe
 
 import (
 	"bufio"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+
 	// "strconv"
 	"log"
 	"strings"
@@ -35,6 +38,7 @@ type Config struct {
 	unkToken                *string
 	continuingSubwordPrefix *string
 	endOfWordSuffix         *string
+	fs                      *embed.FS
 }
 
 // BpeBuilder can be used to create a `BPE` model with
@@ -58,6 +62,7 @@ func NewBpeBuilder() *BpeBuilder {
 			unkToken:                nil,
 			continuingSubwordPrefix: nil,
 			endOfWordSuffix:         nil,
+			fs:                      nil,
 		},
 	}
 }
@@ -65,6 +70,11 @@ func NewBpeBuilder() *BpeBuilder {
 // Files sets input files for the model
 func (bb *BpeBuilder) Files(vocab string, merges string) {
 	bb.config.files = &configFiles{vocab, merges}
+}
+
+// FS sets the fs to use to load embedded vocab and merges files.
+func (bb *BpeBuilder) FS(fs embed.FS) {
+	bb.config.fs = &fs
 }
 
 // VocabAndMerges sets vocab and merges
@@ -121,6 +131,11 @@ func (bb *BpeBuilder) Build() (*BPE, error) {
 			err = errors.New("Error: Invalid dropout.")
 			return nil, err
 		}
+	}
+
+	// Have the BPE read the files from |bb.config.fs| if set.
+	if bb.config.fs != nil {
+		bpe.fs = bb.config.fs
 	}
 
 	// Read files if provided
@@ -190,6 +205,10 @@ type BPE struct {
 	// EndOfWordSuffix is an optional suffix
 	// to caracterize and end-of-word subword
 	EndOfWordSuffix *string
+
+	// fs is an embedded file system. It allows you to import vocab/merges files using go:embed.
+	// If |fs| is not nil, it is preferred over the local filesystem.
+	fs *embed.FS
 }
 
 func (b *BPE) builder() *BpeBuilder {
@@ -230,6 +249,14 @@ func NewBpeFromFiles(vocab, merges string) (*BPE, error) {
 	return b.Build()
 }
 
+// NewBPEFromFS create BPE model from |vocab| and |merges| files in |fs|.
+func NewBPEFromFS(fs embed.FS, vocab, merges string) (*BPE, error) {
+	b := NewBpeBuilder()
+	b.FS(fs)
+	b.Files(vocab, merges)
+	return b.Build()
+}
+
 // NewBPE creates new BPE model with given vocab and merges
 func NewBPE(vocab model.Vocab, merges Merges) *BPE {
 	b, err := newBPE()
@@ -260,7 +287,15 @@ func (b *BPE) FromFiles(vocab string, merges string) *BpeBuilder {
 func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, error) {
 	var err error
 	// read json file
-	vocabBytes, err := ioutil.ReadFile(vocabF)
+
+	var vocabBytes []byte
+
+	if b.fs != nil {
+		vocabBytes, err = b.fs.ReadFile(vocabF)
+	} else {
+		vocabBytes, err = ioutil.ReadFile(vocabF)
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}
@@ -275,9 +310,15 @@ func (b *BPE) ReadFiles(vocabF string, mergesF string) (*model.Vocab, *Merges, e
 		return nil, nil, err
 	}
 
+	var mFile io.ReadCloser
 	// Read merges file. Each line contains a Merges object(rank, )
 	// Recall: Merges is map[Pair]PairVal (rank int, newId int)
-	mFile, err := os.Open(mergesF)
+	if b.fs != nil {
+		mFile, err = b.fs.Open(mergesF)
+	} else {
+		mFile, err = os.Open(mergesF)
+	}
+
 	if err != nil {
 		return nil, nil, err
 	}

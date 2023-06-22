@@ -1,15 +1,14 @@
 package pretrained
 
 import (
+	"embed"
 	"log"
-	"os"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/decoder"
 	"github.com/sugarme/tokenizer/model/bpe"
 	"github.com/sugarme/tokenizer/pretokenizer"
 	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/util"
 )
 
 // GPT2 loads GPT2 (small) tokenizer from vocab and merges files.
@@ -29,19 +28,18 @@ import (
 // Source:
 // "https://cdn.huggingface.co/gpt2-merges.txt"
 // "https://cdn.huggingface.co/gpt2-vocab.json"
+
+//go:embed model/gpt2-merges.txt
+//go:embed model/gpt2-vocab.json
+var fs embed.FS
+
+const (
+	vocabFilename = "model/gpt2-vocab.json"
+	mergeFilename = "model/gpt2-merges.txt"
+)
+
 func GPT2(addPrefixSpace bool, trimOffsets bool) *tokenizer.Tokenizer {
-
-	currDir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	util.CdToThis()
-	defer util.CdBack(currDir)
-
-	vocabFile := "model/gpt2-vocab.json"
-	mergeFile := "model/gpt2-merges.txt"
-
-	model, err := bpe.NewBpeFromFiles(vocabFile, mergeFile)
+	var model, err = bpe.NewBPEFromFS(fs, vocabFilename, mergeFilename)
 	if err != nil {
 		log.Fatal(err)
 	}
