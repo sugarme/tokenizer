@@ -1,5 +1,7 @@
 package normalizer
 
+import ()
+
 // Sequence wraps a slice of normalizers to normalize
 // string in sequence.
 type Sequence struct {

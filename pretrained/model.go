@@ -14,19 +14,38 @@ import (
 
 // This file provides functions to create tokenizer.Model from input data.
 
-func CreateModel(config map[string]interface{}) (tokenizer.Model, error) {
+func CreateModel(config *tokenizer.Config) (tokenizer.Model, error) {
 	if config == nil {
 		return nil, nil
 	}
 
-	params := util.NewParams(config)
+	params := util.NewParams(config.Model)
 
 	var typ string
 	if params.Has("type") {
 		typ = params.Get("type").(string)
 	} else {
-		log.Printf("INFO: there is no field 'type' in model json data, a default 'WordPiece' model will be trying to create...\n")
-		typ = "WordPiece" // Default to `WordPiece` model as in BERT "tokenizer.json", there's not field "type"
+		// Guessing from `decoder.type`
+		dparams := util.NewParams(config.Decoder)
+		if dparams.Has("type") {
+			dtyp := dparams.Get("type").(string)
+			switch dtyp {
+			case "ByteLevel":
+				typ = "BPE"
+			case "WordPiece":
+				typ = "WordPiece"
+			case "WordLevel":
+				typ = "WordLevel"
+			case "Unigram":
+				typ = "Unigram"
+			default: // default to "BPE"
+			}
+		}
+		if typ == "" {
+			log.Printf("INFO: there is no field 'type' in model json data, a default 'BPE' model will be trying to create...\n")
+			// typ = "WordPiece" // Default to `WordPiece` model as in BERT "tokenizer.json", there's not field "type"
+			typ = "BPE" // Default to `WordPiece` model as in BERT "tokenizer.json", there's not field "type"
+		}
 	}
 
 	switch typ {
@@ -98,33 +117,31 @@ func createBPE(params *util.Params) (tokenizer.Model, error) {
 // "decoder":{"type":"WordPiece","prefix":"##","cleanup":true},
 
 func createWordPiece(params *util.Params) (tokenizer.Model, error) {
-	var unkToken *string
+	opts := util.NewParams(nil)
 	if params.Has("unk_token") {
 		v := params.Get("unk_token").(string)
-		unkToken = &v
+		opts.Set("unk_token", v)
 	}
-	var continuingSubwordPrefix *string
 	if params.Has("continuing_subword_prefix") {
 		v := params.Get("continuing_subword_prefix").(string)
-		continuingSubwordPrefix = &v
+		opts.Get("continuing_subword_prefix", v)
 	}
 
-	var maxInputCharsPerWord *int
 	if params.Has("max_input_chars_per_word") {
 		v := int(params.Get("max_input_chars_per_word").(float64))
-		maxInputCharsPerWord = &v
+		opts.Set("max_input_chars_per_word", v)
 	}
 
 	vocab := castVocab(params.Get("vocab").(map[string]interface{}))
 
-	return wordpiece.New(vocab, unkToken, continuingSubwordPrefix, maxInputCharsPerWord)
+	return wordpiece.New(vocab, opts)
 }
 
 func createWordLevel(params *util.Params) (tokenizer.Model, error) {
-	var unkToken *string
+	var unkToken string
 	if params.Has("unk_token") {
 		v := params.Get("unk_token").(string)
-		unkToken = &v
+		unkToken = v
 	}
 
 	vocab := castVocab(params.Get("vocab").(map[string]interface{}))

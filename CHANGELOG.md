@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ###  Breaking Changes
 
 ### Fixed
-- [#...]: Fix a bug with...
+- [#26]: load pretrained Roberta tokenizer failure
+- Fixed errors at pretained.FromFile
 
 ### Changed
-- [#...]: 
+- upgrade "golang.org/x/text" to fix github warning.
 
 ### Added
 

@@ -11,9 +11,8 @@ import (
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/model"
 	"github.com/sugarme/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/util"
 )
-
-var MissingUnkToken = fmt.Errorf("WordPiece error: Missing [UNK] token from the vocabulary\n")
 
 type config struct {
 	files                   string
@@ -90,6 +89,12 @@ func (wpb WordPieceBuilder) Build() (retVal WordPiece) {
 	}
 
 	vocab := *wpb.config.vocab
+
+	// update `unk_token`
+	// if _, ok := vocab[wpb.config.unkToken]; !ok {
+	// vocab[wpb.config.unkToken] = len(vocab)
+	// }
+
 	var vocabR model.VocabR = make(map[int]string)
 	for k, v := range vocab {
 		vocabR[v] = k
@@ -257,7 +262,8 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 	if charLen > wp.maxInputCharsPerWord {
 		id, ok := (*wp.vocab)[wp.unkToken]
 		if !ok {
-			return retVal, MissingUnkToken
+			err := fmt.Errorf("WordPiece error: Missing [UNK] token. Unknown token value %q not found in the vocab\n", wp.unkToken)
+			return retVal, err
 		}
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
@@ -291,6 +297,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 					Value:   substr,
 					Offsets: []int{start, end},
 				}
+
 				break
 			}
 			end -= 1
@@ -307,7 +314,8 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 	if isBad {
 		id, ok := (*wp.vocab)[wp.unkToken]
 		if !ok {
-			return retVal, MissingUnkToken
+			err := fmt.Errorf("WordPiece error: Missing [UNK] token. Unknown token value %q not found in the vocab\n", wp.unkToken)
+			return retVal, err
 		}
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
@@ -401,18 +409,29 @@ func makeFilePath(filename string) error {
 // New creates WordPiece model from input data.
 func New(
 	vocab model.Vocab,
-	unkToken *string,
-	continuingSubwordPrefix *string,
-	maxInputCharsPerWord *int,
+	opts *util.Params,
 ) (*WordPiece, error) {
+	// Default values:
+	unkToken := "[UNK]"
+	continuingSubwordPrefix := "##"
+	maxInputCharsPerWord := 100
+	if opts.Has("unk_token") {
+		unkToken = opts.Get("unk_token").(string)
+	}
+	if opts.Has("continuingSubwordPrefix") {
+		continuingSubwordPrefix = opts.Get("continuing_subword_prefix").(string)
+	}
+	if opts.Has("max_input_chars_per_word") {
+		maxInputCharsPerWord = opts.Get("max_input_chars_per_word").(int)
+	}
 
 	builder := WordPieceBuilder{
 		config: config{
 			files:                   "",
 			vocab:                   &vocab,
-			unkToken:                *unkToken,
-			continuingSubwordPrefix: *continuingSubwordPrefix,
-			maxInputCharsPerWord:    *maxInputCharsPerWord,
+			unkToken:                unkToken,
+			continuingSubwordPrefix: continuingSubwordPrefix,
+			maxInputCharsPerWord:    maxInputCharsPerWord,
 		},
 	}
 

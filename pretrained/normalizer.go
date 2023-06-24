@@ -102,13 +102,15 @@ func createReplaceNormalizer(params *util.Params) (normalizer.Normalizer, error)
 
 	var pattern string
 	var patternType normalizer.ReplacePattern
+	patternParams := params.Get("pattern").(map[string]interface{})
+	pparams := util.NewParams(patternParams)
 	switch {
-	case params.Has("String"):
-		pattern = params.Get("String").(string)
+	case pparams.Has("String"):
+		pattern = pparams.Get("String").(string)
 		patternType = normalizer.String
 
 	case params.Has("Regex"):
-		pattern = params.Get("Regex").(string)
+		pattern = pparams.Get("Regex").(string)
 		patternType = normalizer.String
 	}
 

@@ -108,6 +108,7 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 	}
 
 	quoted := regexp.QuoteMeta(s.string)
+
 	re := regexp.MustCompile(quoted)
 
 	return findMatches(re, inside)
