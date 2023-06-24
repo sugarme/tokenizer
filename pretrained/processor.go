@@ -58,16 +58,13 @@ func createRobertaProcessing(params *util.Params) tokenizer.PostProcessor {
 }
 
 func getPostToken(params *util.Params, name string) processor.PostToken {
-	sepData := params.Get(name).([]interface{})[0].(map[string]float64)
+	val := params.Get(name).([]interface{})[0].(string)
+	id := params.Get(name).([]interface{})[1].(float64)
 	var tok processor.PostToken
-	for k, v := range sepData {
-		tok = processor.PostToken{
-			Value: k,
-			Id:    int(v),
-		}
-		break
+	tok = processor.PostToken{
+		Value: val,
+		Id:    int(id),
 	}
-
 	return tok
 }
 

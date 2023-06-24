@@ -56,7 +56,7 @@ func TestCreateModel(t *testing.T) {
 		panic(err)
 	}
 
-	m, err := CreateModel(config.Model)
+	m, err := CreateModel(config)
 	if err != nil {
 		panic(err)
 	}

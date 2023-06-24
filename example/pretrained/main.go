@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 
@@ -8,9 +9,20 @@ import (
 	"github.com/sugarme/tokenizer/pretrained"
 )
 
+var (
+	modelName string
+)
+
+func init() {
+	flag.StringVar(&modelName, "model", "bert-base-uncased", "model name as at Huggingface model hub e.g. 'tiiuae/falcon-7b'. Default='bert-base-uncased'")
+}
+
 func main() {
+	flag.Parse()
+
 	// any model with file `tokenizer.json` available. Eg. `tiiuae/falcon-7b`, `TheBloke/guanaco-7B-HF`, `mosaicml/mpt-7b-instruct`
-	configFile, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
+	// configFile, err := tokenizer.CachedPath("bert-base-uncased", "tokenizer.json")
+	configFile, err := tokenizer.CachedPath(modelName, "tokenizer.json")
 	if err != nil {
 		panic(err)
 	}
@@ -21,14 +33,12 @@ func main() {
 	}
 
 	sentence := `The Gophers craft code using [MASK] language.`
-	en, err := tk.EncodeSingle(sentence)
+	en, err := tk.EncodeSingle(sentence, true)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("tokens: %q\n", en.Tokens)
-	fmt.Printf("offsets: %v\n", en.Offsets)
+	fmt.Printf("%-10s: %q\n", "Tokens", en.Tokens)
+	fmt.Printf("%-10s: %v\n", "Ids", en.Ids)
+	fmt.Printf("%-10s: %v\n", "Offsets", en.Offsets)
 }
-
-// tokens: ["the" "go" "##pher" "##s" "craft" "code" "using" "[MASK]" "language" "."]
-// offsets: [[0 3] [4 6] [6 10] [10 11] [12 17] [18 22] [23 28] [29 35] [36 44] [44 45]]

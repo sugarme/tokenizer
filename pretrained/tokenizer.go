@@ -23,7 +23,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 		return nil, err
 	}
 
-	model, err := CreateModel(config.Model)
+	model, err := CreateModel(config)
 	if err != nil {
 		err := fmt.Errorf("Creating Model failed: %v", err)
 		return nil, err

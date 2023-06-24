@@ -1,6 +1,8 @@
 package pretokenizer
 
-import "github.com/sugarme/tokenizer"
+import (
+	"github.com/sugarme/tokenizer"
+)
 
 type Sequence struct {
 	pretokenizers []tokenizer.PreTokenizer

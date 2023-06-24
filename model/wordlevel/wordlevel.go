@@ -245,11 +245,15 @@ func makeFilePath(filename string) error {
 }
 
 // New creates new WordLevel from input data.
-func New(vocab map[string]int, unkToken *string) (*WordLevel, error) {
+func New(vocab map[string]int, unkToken string) (*WordLevel, error) {
+	if unkToken == "" {
+		unkToken = "<unk>" // set default
+	}
+
 	builder := &WordLevelBuilder{
 		config: &config{
 			vocab:    vocab,
-			unkToken: *unkToken,
+			unkToken: unkToken,
 		},
 	}
 
