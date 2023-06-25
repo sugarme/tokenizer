@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-## [0.2.1]
+## [0.2.2]
 
 - Fixed incorrect parsing at `pretrained/createReplaceDecoder()` function
 
