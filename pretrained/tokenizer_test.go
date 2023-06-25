@@ -346,3 +346,28 @@ func TestLlama(t *testing.T) {
 		t.Errorf("\nwant %v,\ngot  %v\n", wantOffsets, gotOffsets)
 	}
 }
+
+func TestLlamaDecode(t *testing.T) {
+	configFile, err := tokenizer.CachedPath("HuggingFaceH4/tiny-random-LlamaForCausalLM", "tokenizer.json")
+	if err != nil {
+		panic(err)
+	}
+
+	tk, err := FromFile(configFile)
+	if err != nil {
+		panic(err)
+	}
+
+	generateIds := []int{
+		1, 18637, 29892, 526, 366, 1136, 455, 2470, 29973, 1815,
+		366, 5193, 304, 592, 29973, 11240, 5919, 12794, 18055, 19519,
+		21315, 22401, 31302, 799, 127, 22164, 22410, 4839, 213, 23512,
+	}
+
+	got := tk.Decode(generateIds, true)
+	want := "Hey, are you consciours? Can you talk to me? Monte:(illon entering MY рос championship提ear|)):compos header� тя"
+
+	if !reflect.DeepEqual(want, got) {
+		t.Errorf("\nwant %q\ngot  %q\n", want, got)
+	}
+}

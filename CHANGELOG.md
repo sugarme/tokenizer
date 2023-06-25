@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.1]
 
+- Fixed incorrect parsing at `pretrained/createReplaceDecoder()` function
+
+## [0.2.1]
+
 - [#26]: load pretrained Roberta tokenizer failure
 - Fixed errors at pretained.FromFile
 - upgrade "golang.org/x/text" to fix github warning.
