@@ -37,7 +37,7 @@ func (pt *customPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedSt
 		// split on punctuation
 		for _, sub := range wsSubs {
 			// puncSubs := sub.Split(normalizer.NewFnPattern(normalizer.IsPunctuation), normalizer.IsolatediBehavior)
-			puncSubs := sub.Split(normalizer.NewFnPattern(unicode.IsPunct), normalizer.IsolatediBehavior)
+			puncSubs := sub.Split(normalizer.NewFnPattern(unicode.IsPunct), normalizer.IsolatedBehavior)
 			splits = append(splits, puncSubs...)
 		}
 
