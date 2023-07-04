@@ -371,3 +371,21 @@ func TestLlamaDecode(t *testing.T) {
 		t.Errorf("\nwant %q\ngot  %q\n", want, got)
 	}
 }
+
+func TestSBert(t *testing.T) {
+	configFile, err := tokenizer.CachedPath("sentence-transformers/all-MiniLM-L12-v2", "tokenizer.json")
+	if err != nil {
+		panic(err)
+	}
+
+	tk, err := FromFile(configFile)
+	if err != nil {
+		panic(err)
+	}
+
+	sentence := `The Gophers craft code using [MASK] language.`
+	_, err = tk.EncodeSingle(sentence, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
