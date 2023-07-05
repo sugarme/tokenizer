@@ -384,8 +384,21 @@ func TestSBert(t *testing.T) {
 	}
 
 	sentence := `The Gophers craft code using [MASK] language.`
-	_, err = tk.EncodeSingle(sentence, true)
+
+	en, err := tk.EncodeSingle(sentence, true)
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
+	}
+
+	if len(en.Ids) != 128 {
+		t.Errorf("Ids should be padded to 128, got %d", len(en.Ids))
+	}
+
+	if len(en.AttentionMask) != 128 {
+		t.Errorf("AttentionMask should be padded to 128, got %d", len(en.Tokens))
+	}
+
+	if len(en.TypeIds) != 128 {
+		t.Errorf("TypeIds should be padded to 128, got %d", len(en.TypeIds))
 	}
 }
