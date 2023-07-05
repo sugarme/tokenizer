@@ -32,9 +32,9 @@ func CreatePaddingParams(config map[string]interface{}) (*tokenizer.PaddingParam
 	directionName := params.Get("direction").(string)
 	var direction tokenizer.PaddingDirection
 	switch directionName {
-	case "left":
+	case "left", "Left":
 		direction = tokenizer.Left
-	case "right":
+	case "right", "Right":
 		direction = tokenizer.Right
 	}
 
