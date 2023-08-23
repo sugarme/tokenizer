@@ -181,6 +181,10 @@ func (e *Encoding) SetWord(index int, val int) {
 // SetSequenceIds set the given sequence id for the whole range of tokens contained in this Encoding
 func (e *Encoding) SetSequenceIds(sequenceId int) {
 	if e.Len() > 0 {
+		if e.SequenceRanges == nil {
+			e.SequenceRanges = make(map[int]Range)
+		}
+
 		e.SequenceRanges[sequenceId] = NewRange(0, e.Len())
 	}
 }
