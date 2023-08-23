@@ -371,3 +371,34 @@ func TestLlamaDecode(t *testing.T) {
 		t.Errorf("\nwant %q\ngot  %q\n", want, got)
 	}
 }
+
+func TestSBert(t *testing.T) {
+	configFile, err := tokenizer.CachedPath("sentence-transformers/all-MiniLM-L12-v2", "tokenizer.json")
+	if err != nil {
+		panic(err)
+	}
+
+	tk, err := FromFile(configFile)
+	if err != nil {
+		panic(err)
+	}
+
+	sentence := `The Gophers craft code using [MASK] language.`
+
+	en, err := tk.EncodeSingle(sentence, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(en.Ids) != 128 {
+		t.Errorf("Ids should be padded to 128, got %d", len(en.Ids))
+	}
+
+	if len(en.AttentionMask) != 128 {
+		t.Errorf("AttentionMask should be padded to 128, got %d", len(en.Tokens))
+	}
+
+	if len(en.TypeIds) != 128 {
+		t.Errorf("TypeIds should be padded to 128, got %d", len(en.TypeIds))
+	}
+}
