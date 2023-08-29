@@ -81,7 +81,7 @@ func (wd *WordPieceDecoder) Cleanup(tok string) string {
 func (wd *WordPieceDecoder) DecodeChain(tokens []string) []string {
 	var toks []string
 	for i, token := range tokens {
-		var tok string
+		var tok string = token
 		if i != 0 {
 			if strings.HasPrefix(token, wd.prefix) {
 				tok = strings.Replace(token, wd.prefix, "", 1)
