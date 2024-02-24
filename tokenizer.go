@@ -21,8 +21,10 @@ import (
 	"github.com/sugarme/tokenizer/util"
 )
 
-const mb = 1024 * 1024
-const gb = 1024 * mb
+const (
+	mb = 1024 * 1024
+	gb = 1024 * mb
+)
 
 type Token struct {
 	Id      int
@@ -195,7 +197,6 @@ type InputSequence struct {
 // NewInputSequence creates a new InputSequence from input
 // A valid input can be a string type (RawInput) or slice of string (PretokenizedInput)
 func NewInputSequence(input interface{}) (retVal InputSequence) {
-
 	switch reflect.TypeOf(input).Kind().String() {
 	case "string":
 		return InputSequence{
@@ -220,12 +221,19 @@ func NewInputSequence(input interface{}) (retVal InputSequence) {
 type Single struct {
 	Sentence InputSequence
 }
+
+func (Single) private() {}
+
 type Dual struct {
 	Sentence InputSequence
 	Pair     InputSequence
 }
 
-type EncodeInput interface{}
+func (Dual) private() {}
+
+type EncodeInput interface {
+	private()
+}
 
 func NewSingleEncodeInput(sentence InputSequence) (retVal EncodeInput) {
 	return Single{sentence}
@@ -371,7 +379,6 @@ func (t *Tokenizer) IdToToken(id int) (token string, ok bool) {
 
 // EncodeSingleSequence encodes a single sequence
 func (t *Tokenizer) EncodeSingleSequence(sequence InputSequence, typeId int, offsetType OffsetType) (*Encoding, error) {
-
 	encode := func(isPreTokenized bool, subseqIdx int, subseq string) (*Encoding, error) {
 		normalized := t.addedVocabulary.ExtractAndNormalize(subseq, t.normalizer)
 		var (
@@ -503,7 +510,6 @@ func (t *Tokenizer) EncodeCharOffsets(input EncodeInput, addSpecialTokens bool) 
 
 // Decode decodes the given ids, back to a String
 func (t *Tokenizer) Decode(ids []int, skipSpecialTokens bool) (retVal string) {
-
 	var tokens []string
 	for _, id := range ids {
 		if tok, ok := t.addedVocabulary.IdToToken(id, t.model); ok {
@@ -533,7 +539,6 @@ func (t *Tokenizer) AddTokens(tokens []AddedToken) (retVal int) {
 
 // doNormalize does Normalization logic, go through all normalizers
 func (t *Tokenizer) doNormalize(s string) (retVal *normalizer.NormalizedString, err error) {
-
 	normalized := normalizer.NewNormalizedFrom(s)
 	if t.normalizer != nil {
 		normalized, err = (t.normalizer).Normalize(normalized)
@@ -557,7 +562,6 @@ func (t *Tokenizer) doPreTokenize(pretokenized *PreTokenizedString) (*PreTokeniz
 // doTokenize does Tokenization logic, makes the bridge between the pre-tokenization phase and the real
 // tokenization phase, and converting offsets back to the original referential.
 func (t *Tokenizer) doTokenize(pretokenized *PreTokenizedString, typeId int, wordIdx int, offsetType OffsetType) (*Encoding, error) {
-
 	pretok, err := pretokenized.Tokenize(func(normalized *normalizer.NormalizedString) ([]Token, error) {
 		if t.model == nil {
 			err := fmt.Errorf("Tokenizer.doTokenize() failed: there's no 'Tokenizer Model' setup. You have to include a 'Tokenizer Model' at the time of creating 'Tokenizer'.")
@@ -651,7 +655,6 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 			mu.Lock()
 			encodings[i] = *e
 			mu.Unlock()
-
 		}(i)
 	}
 
@@ -679,7 +682,6 @@ func (t *Tokenizer) DecodeBatch(sentences [][]int, skipSpecialTokens bool) []str
 
 			s := t.Decode(sentences[i], skipSpecialTokens)
 			decodings = append(decodings, s)
-
 		}(i)
 	}
 
@@ -690,7 +692,6 @@ func (t *Tokenizer) DecodeBatch(sentences [][]int, skipSpecialTokens bool) []str
 
 // wordCount returns a map of word and its count
 func (t *Tokenizer) wordCount(trainer Model, files []string) (retVal map[string]int) {
-
 	// TODO: implement
 	return
 }
@@ -707,28 +708,24 @@ func (t *Tokenizer) wordCount(trainer Model, files []string) (retVal map[string]
 
 // Train a model and replace our current Model, using the given Trainer
 func (t *Tokenizer) TrainAndReplace(trainer Model, files []string) (err error) {
-
 	// TODO: implement
 	return
 }
 
 // NewTokenizerFromFile instantiates a new Tokenizer from the given file
 func NewTokenizerFromFile(file string) (retVal *Tokenizer) {
-
 	// TODO: implement
 	return
 }
 
 // Serialize serializes current Tokenizer to string
 func (t *Tokenizer) Serialize(pretty bool) (retVal string) {
-
 	// TODO: implement
 	return
 }
 
 // Save saves the current tokenizer at the given path
 func (t *Tokenizer) Save(path string, pretty bool) (err error) {
-
 	// TODO: implement
 	return
 }
@@ -937,7 +934,6 @@ func (t *Tokenizer) processChunk(offset int64, limit int64, filename string, cha
 	}
 
 	return cummulativeSize
-
 }
 
 /*
@@ -1074,7 +1070,6 @@ func (t *Tokenizer) CTrain(trainer Trainer, files []string) error {
 // - addSpecialTokensOpt: optional (default = false) whether adding special tokens
 // e.g. in BERT model `[CLS]` `[UNK]` or `[SEP]`
 func (t *Tokenizer) EncodeSingle(input string, addSpecialTokensOpt ...bool) (*Encoding, error) {
-
 	addSpecialTokens := false
 	if len(addSpecialTokensOpt) > 0 {
 		addSpecialTokens = addSpecialTokensOpt[0]
@@ -1093,7 +1088,6 @@ func (t *Tokenizer) EncodeSingle(input string, addSpecialTokensOpt ...bool) (*En
 // - addSpecialTokensOpt: optional (default = false) whether adding special tokens
 // e.g. in BERT model `[CLS]` `[UNK]` or `[SEP]`
 func (t *Tokenizer) EncodePair(input, pair string, addSpecialTokensOpt ...bool) (*Encoding, error) {
-
 	addSpecialTokens := false
 	if len(addSpecialTokensOpt) > 0 {
 		addSpecialTokens = addSpecialTokensOpt[0]
