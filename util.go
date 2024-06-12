@@ -105,7 +105,10 @@ func TruncateEncodings(encoding, pairEncoding *Encoding, params *TruncationParam
 	switch params.Strategy {
 	case LongestFirst:
 		nFirst := len(encoding.GetIds())
-		nSecond := len(pairEncoding.GetIds())
+		nSecond := 0
+		if pairEncoding != nil {
+			nSecond = len(pairEncoding.GetIds())
+		}
 
 		for i := 0; i < toRemove; i++ {
 			if nFirst > nSecond {
