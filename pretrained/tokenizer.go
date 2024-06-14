@@ -3,6 +3,7 @@ package pretrained
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/sugarme/tokenizer"
@@ -14,18 +15,25 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	dec := json.NewDecoder(f)
-
-	var config *tokenizer.Config
-	err = dec.Decode(&config)
+	defer f.Close()
+	tk, err := FromReader(f)
 	if err != nil {
+		err := fmt.Errorf("FromReader: %w", err)
+		return nil, err
+	}
+	return tk, nil
+}
+
+// FromReader constructs a new Tokenizer from json data reader.
+func FromReader(r io.Reader) (*tokenizer.Tokenizer, error) {
+	var config *tokenizer.Config
+	if err := json.NewDecoder(r).Decode(&config); err != nil {
 		return nil, err
 	}
 
 	model, err := CreateModel(config)
 	if err != nil {
-		err := fmt.Errorf("Creating Model failed: %v", err)
+		err = fmt.Errorf("CreateModel: %w", err)
 		return nil, err
 	}
 
@@ -34,7 +42,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 2. Normalizer
 	n, err := CreateNormalizer(config.Normalizer)
 	if err != nil {
-		err = fmt.Errorf("Creating Normalizer failed: %v", err)
+		err = fmt.Errorf("CreateNormalizer: %v", err)
 		return nil, err
 	}
 	tk.WithNormalizer(n)
@@ -42,7 +50,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 3. PreTokenizer
 	preTok, err := CreatePreTokenizer(config.PreTokenizer)
 	if err != nil {
-		err = fmt.Errorf("Creating PreTokenizer failed: %v", err)
+		err = fmt.Errorf("CreatePreTokenizer: %v", err)
 		return nil, err
 	}
 	tk.WithPreTokenizer(preTok)
@@ -50,7 +58,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 4. PostProcessor
 	postProcessor, err := CreatePostProcessor(config.PostProcessor)
 	if err != nil {
-		err = fmt.Errorf("Creating PostProcessor failed: %v", err)
+		err = fmt.Errorf("CreatePostProcessor: %v", err)
 		return nil, err
 	}
 	tk.WithPostProcessor(postProcessor)
@@ -58,7 +66,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 5. Decoder
 	decoder, err := CreateDecoder(config.Decoder)
 	if err != nil {
-		err = fmt.Errorf("Creating Decoder failed: %v", err)
+		err = fmt.Errorf("CreateDecoder: %v", err)
 		return nil, err
 	}
 	tk.WithDecoder(decoder)
@@ -75,7 +83,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 7. TruncationParams
 	truncParams, err := CreateTruncationParams(config.Truncation)
 	if err != nil {
-		err = fmt.Errorf("Creating TruncationParams failed: %v", err)
+		err = fmt.Errorf("CreatingTruncationParams: %v", err)
 		return nil, err
 	}
 	tk.WithTruncation(truncParams)
@@ -83,7 +91,7 @@ func FromFile(file string) (*tokenizer.Tokenizer, error) {
 	// 8. PaddingParams
 	paddingParams, err := CreatePaddingParams(config.Padding)
 	if err != nil {
-		err = fmt.Errorf("Creating PaddingParams failed: %v", err)
+		err = fmt.Errorf("CreatePaddingParams: %v", err)
 		return nil, err
 	}
 	tk.WithPadding(paddingParams)
