@@ -3,11 +3,12 @@ module github.com/sugarme/tokenizer
 go 1.18
 
 require (
+	github.com/dlclark/regexp2 v1.11.4
 	github.com/emirpasic/gods v1.12.0
-	github.com/rivo/uniseg v0.1.0
+	github.com/rivo/uniseg v0.4.7
 	github.com/schollz/progressbar/v2 v2.15.0
 	github.com/sugarme/regexpset v0.0.0-20200920021344-4d4ec8eaf93c
-	golang.org/x/text v0.10.0
+	golang.org/x/text v0.17.0
 )
 
 require (

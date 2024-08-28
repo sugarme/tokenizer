@@ -1,11 +1,10 @@
 package normalizer
 
 import (
-	"log"
-	// "reflect"
-	"regexp"
-
+	re2 "github.com/dlclark/regexp2"
 	"github.com/sugarme/tokenizer/util"
+	"log"
+	"regexp"
 )
 
 // Pattern is used to split a NormalizedString
@@ -49,8 +48,8 @@ func (r *RunePattern) FindMatches(inside string) []OffsetsMatch {
 
 	var (
 		subs        []OffsetsMatch
-		prevStart   int  = 0
-		hasPrevious bool = false
+		prevStart   = 0
+		hasPrevious = false
 	)
 
 	for byteIdx, char := range inside {
@@ -109,14 +108,25 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 
 	quoted := regexp.QuoteMeta(s.string)
 
-	re := regexp.MustCompile(quoted)
+	re := re2.MustCompile(quoted, 0)
 
 	return findMatches(re, inside)
 }
 
-func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
+func FindAllStringIndex(re *re2.Regexp, s string, n int) [][]int {
+	var matches [][]int
+	for m, err := re.FindStringMatch(s); m != nil && err == nil; m, err = re.FindNextMatch(m) {
+		matches = append(matches, []int{m.Index, m.Index + m.Length})
+		if n > 0 && len(matches) >= n {
+			break
+		}
+	}
+	return matches
+}
 
-	matches := re.FindAllStringIndex(inside, -1)
+func findMatches(re *re2.Regexp, inside string) []OffsetsMatch {
+
+	matches := FindAllStringIndex(re, inside, -1)
 
 	// 0. If no matches, just return
 	if len(matches) == 0 {
@@ -129,7 +139,7 @@ func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 	}
 
 	var (
-		currIndex int = 0
+		currIndex = 0
 		subs      []OffsetsMatch
 	)
 
@@ -185,11 +195,11 @@ func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 }
 
 type RegexpPattern struct {
-	re *regexp.Regexp
+	re *re2.Regexp
 }
 
 func NewRegexpPattern(s string) *RegexpPattern {
-	re := regexp.MustCompile(s)
+	re := re2.MustCompile(s, re2.None)
 	return &RegexpPattern{
 		re: re,
 	}
@@ -233,8 +243,8 @@ func (fp *FnPattern) FindMatches(inside string) []OffsetsMatch {
 
 	var (
 		subs        []OffsetsMatch
-		prevStart   int  = 0
-		hasPrevious bool = false
+		prevStart   = 0
+		hasPrevious = false
 	)
 
 	for byteIdx, char := range inside {
