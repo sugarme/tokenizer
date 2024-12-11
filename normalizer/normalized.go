@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/sugarme/tokenizer/util"
 	slice "github.com/sugarme/tokenizer/util/slice"
@@ -322,7 +323,7 @@ func (n *NormalizedString) RangeOriginal(r *Range) (retVal string) {
 
 // validateRange validates the given range, to make sure it is on char boundaries
 // if range on boundaries, return `nil`, otherwise, just return the input.
-func (n *NormalizedString) validateRange(inputRange *Range) (retVal *Range) {
+func (n *NormalizedString) validateRange(inputRange *Range) *Range {
 	var (
 		r *Range
 		s string
@@ -330,56 +331,40 @@ func (n *NormalizedString) validateRange(inputRange *Range) (retVal *Range) {
 
 	switch inputRange.indexOn {
 	case OriginalTarget:
-		r = inputRange.IntoFullRange(len(n.original)) // len in bytes
+		r = inputRange.IntoFullRange(len(n.original)) // Ensure the range is within the original string length
 		s = n.original
 	case NormalizedTarget:
 		r = inputRange.IntoFullRange(len(n.normalized))
 		s = n.normalized
 	default:
-		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
+		log.Fatalf("Invalid Range type: %v\n", inputRange.indexOn)
 	}
 
-	type runeIdx struct {
-		rune    rune
-		byteIdx int
-		runeIdx int
-	}
-
-	var (
-		start, end  int = -1, -1 // `None` value
-		currRuneIdx int = 0
-		chars       []runeIdx
-	)
-
-	if r.start == 0 && r.end == 0 {
-		start = 0
-		end = 0
-	}
-
-	// NOTE. range over string is special. It iterates index on byte and unicode
-	// code point (rune). See more: https://blog.golang.org/strings
-	for i, char := range s {
-		// select indexes of bytes in range
-		if i < r.end && i >= r.start {
-			chars = append(chars, runeIdx{char, i, currRuneIdx})
-		}
-		currRuneIdx++
-	}
-
-	for _, char := range chars {
-		if char.byteIdx == r.start {
-			start = char.runeIdx
-		}
-		if char.byteIdx+len(string(char.rune)) == r.end {
-			end = char.runeIdx + 1
-		}
-	}
-
-	if start == -1 || end == -1 { // splitting on `char`
+	// Basic bounds check
+	if r.start < 0 || r.end < 0 || r.start > len(s) || r.end > len(s) {
 		return nil
 	}
 
-	// all good, just return the inputRange
+	// If both start and end are zero, it's valid.
+	if r.start == 0 && r.end == 0 {
+		return inputRange
+	}
+
+	// Check if r.start is on a rune boundary
+	if r.start != 0 {
+		// If not the very start, verify it's a valid rune boundary
+		if !utf8.RuneStart(s[r.start]) {
+			return nil
+		}
+	}
+
+	// Check if r.end is on a rune boundary
+	if r.end != len(s) {
+		if !utf8.RuneStart(s[r.end]) {
+			return nil
+		}
+	}
+
 	return inputRange
 }
 
