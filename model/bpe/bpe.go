@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+
 	// "strconv"
 	"log"
 	"strings"
@@ -194,23 +195,6 @@ type BPE struct {
 
 func (b *BPE) builder() *BpeBuilder {
 	return NewBpeBuilder()
-}
-
-// new create a BPE with default values
-func (b *BPE) new() {
-	var err error
-	b, err = b.builder().Build()
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-// `Clone` can't be derive because it's not implemented for `Cache`.
-// To keep things simple when we clone, the new BPE will start with a fresh cache.
-func (b *BPE) clone() {
-	newBpe := b
-	newBpe.Cache.Fresh()
-	b = newBpe
 }
 
 // newBPE create a default BPE from sratch using its pbeBuilder
