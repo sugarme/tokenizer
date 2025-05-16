@@ -40,6 +40,15 @@ func (c *Cache) Clear() {
 	c.cmap = make(map[string]Word, c.Capacity)
 }
 
+// Get returns the value associated with the given key
+func (c *Cache) Get(key string) (Word, bool) {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+	word, ok := c.cmap[key]
+
+	return word, ok
+}
+
 // GetValues returns slices of values associated with input keys
 func (c *Cache) GetValues(keys []string) []Word {
 	c.mux.RLock() // Use read lock for concurrent reads

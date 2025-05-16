@@ -478,7 +478,7 @@ func (b BPE) Tokenize(sequence string) (retVal []tokenizer.Token, err error) {
 
 func (b BPE) TokenizeWithCache(sequence string) (retVal []tokenizer.Token) {
 
-	if hit, ok := b.Cache.cmap[sequence]; ok {
+	if hit, ok := b.Cache.Get(sequence); ok {
 		return b.WordToTokens(hit)
 	} else {
 		word := b.MergeWord(sequence)
