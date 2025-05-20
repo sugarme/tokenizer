@@ -31,50 +31,74 @@ func NewCache(capacity int) *Cache {
 	}
 }
 
-// Fresh create a fresh `Cache` with the same configuration
-func (c *Cache) Fresh() {
-	c = NewCache(c.Capacity)
-}
-
 // Clear clears the cache
 func (c *Cache) Clear() {
-	// NOTE:Should we just make a new map instead of use `for` loop
-	// Ref. https://stackoverflow.com/questions/13812121
-	for k := range c.cmap {
-		delete(c.cmap, k)
-	}
+	c.mux.Lock()
+	defer c.mux.Unlock()
+
+	// Create a new map instead of using delete loop
+	c.cmap = make(map[string]Word, c.Capacity)
+}
+
+// Get returns the value associated with the given key
+func (c *Cache) Get(key string) (Word, bool) {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+	word, ok := c.cmap[key]
+
+	return word, ok
 }
 
 // GetValues returns slices of values associated with input keys
 func (c *Cache) GetValues(keys []string) []Word {
-	c.mux.Lock() // Lock so only one goroutine at a time can access
-	defer c.mux.Unlock()
+	c.mux.RLock() // Use read lock for concurrent reads
+	defer c.mux.RUnlock()
 
 	var res []Word
+	res = make([]Word, len(keys)) // Pre-allocate slice for better performance
 
-	for _, k := range keys {
-		res = append(res, c.cmap[k])
+	for i, k := range keys {
+		res[i] = c.cmap[k]
 	}
 
 	return res
 }
 
+// SetValues sets values in the cache, respecting capacity limits
 func (c *Cache) SetValues(values []CacheItem) {
-
-	// Before trying to acquire a write lock, we check if we are already at
-	// capacity with a read handler.
 	c.mux.Lock()
 	defer c.mux.Unlock()
 
-	if len(c.cmap) == c.Capacity {
+	// Check if we're already at capacity
+	if len(c.cmap) >= c.Capacity {
 		return
 	}
 
-	for _, v := range values {
-		if len(c.cmap) == c.Capacity {
+	// Calculate how many items we can add
+	remaining := c.Capacity - len(c.cmap)
+	if remaining <= 0 {
+		return
+	}
+
+	// Add items up to capacity
+	for i, v := range values {
+		if i >= remaining {
 			break
 		}
-
 		c.cmap[v.Key] = v.Value
 	}
+}
+
+// GetSize returns the current number of items in the cache
+func (c *Cache) GetSize() int {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+	return len(c.cmap)
+}
+
+// IsFull returns true if the cache has reached its capacity
+func (c *Cache) IsFull() bool {
+	c.mux.RLock()
+	defer c.mux.RUnlock()
+	return len(c.cmap) >= c.Capacity
 }
