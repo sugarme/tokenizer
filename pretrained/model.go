@@ -103,7 +103,10 @@ func createBPE(params *util.Params) (tokenizer.Model, error) {
 	// byteFallback := params.Get("byte_fallback").(bool)
 
 	vocab := castVocab(params.Get("vocab").(map[string]interface{}))
-	merges := castMerge(params.Get("merges").([]interface{}))
+	merges, err := castMerge(params.Get("merges").([]interface{}))
+	if err != nil {
+		return nil, err
+	}
 
 	return bpe.New(vocab, merges, dropout, unkToken, continuingSubwordPrefix, endOfWordSuffix)
 }
@@ -162,11 +165,24 @@ func castVocab(input map[string]interface{}) model.Vocab {
 	return out
 }
 
-func castMerge(input []interface{}) []string {
+func castMerge(input []interface{}) ([]string, error) {
 	out := make([]string, len(input))
 	for i, v := range input {
-		out[i] = v.(string)
+		switch vTyped := v.(type) {
+		case []interface{}:
+			if len(vTyped) != 2 {
+				return nil, fmt.Errorf("invalid merge format: %#v should be of length 2", vTyped)
+			}
+			out[i] = vTyped[0].(string) + " " + vTyped[1].(string)
+		case []string:
+			if len(vTyped) != 2 {
+				return nil, fmt.Errorf("invalid merge format: %#v should be of length 2", vTyped)
+			}
+			out[i] = vTyped[0] + " " + vTyped[1]
+		case string:
+			out[i] = vTyped
+		}
 	}
 
-	return out
+	return out, nil
 }
