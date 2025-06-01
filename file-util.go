@@ -46,6 +46,10 @@ var (
 // Custom `CachedDir` can be changed by setting with environment `GO_TRANSFORMER`
 func CachedPath(modelNameOrPath, fileName string) (resolvedPath string, err error) {
 
+	if CachedDir == "NOT_SETTING" {
+		initCachePath()
+	}
+
 	// Resolves to "candidate" filename at `CacheDir`
 	cachedFileCandidate := fmt.Sprintf("%s/%s/%s", CachedDir, modelNameOrPath, fileName)
 

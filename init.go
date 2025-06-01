@@ -11,7 +11,7 @@ var (
 	tokenizerEnvKey string = "GO_TOKENIZER"
 )
 
-func init() {
+func initCachePath() {
 	// default path: {$HOME}/.cache/tokenizer
 	homeDir := os.Getenv("HOME")
 	CachedDir = fmt.Sprintf("%s/.cache/tokenizer", homeDir)
