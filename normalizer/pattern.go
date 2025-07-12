@@ -107,7 +107,8 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 		}
 	}
 
-	re := regexp2.MustCompile(s.string, regexp2.RE2)
+	escaped := regexp2.Escape(s.string)
+	re := regexp2.MustCompile(escaped, regexp2.RE2)
 
 	return findMatches(re, inside)
 }
