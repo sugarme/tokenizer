@@ -1,9 +1,9 @@
 package normalizer
 
 import (
+	"github.com/dlclark/regexp2"
 	"log"
-	// "reflect"
-	"regexp"
+	"unicode/utf8"
 
 	"github.com/sugarme/tokenizer/util"
 )
@@ -107,16 +107,47 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 		}
 	}
 
-	quoted := regexp.QuoteMeta(s.string)
-
-	re := regexp.MustCompile(quoted)
+	re := regexp2.MustCompile(s.string, regexp2.RE2)
 
 	return findMatches(re, inside)
 }
 
-func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
+// convertRuneIndexToStringIndex The internals of regexp2 always operate on []rune
+// so Index and Length data in a Match always reference a position in runes rather than bytes (even if the input was given as a string).
+// This is a dramatic difference between regexp and regexp2. It's advisable to use the provided String() methods to avoid having to work with indices.
+// Ref: https://github.com/dlclark/regexp2/issues/78#issuecomment-2131313788
+func convertRuneIndexToStringIndex(r []rune, runeIndex, runeLength int) (stringIndex, stringLength int) {
+	var curStrIdx, startIdx int
 
-	matches := re.FindAllStringIndex(inside, -1)
+	// first get the start index
+	for i := 0; i < runeIndex; i++ {
+		curStrIdx += utf8.RuneLen(r[i])
+	}
+	startIdx = curStrIdx
+
+	// now get the length
+	for i := runeIndex; i < runeIndex+runeLength; i++ {
+		curStrIdx += utf8.RuneLen(r[i])
+	}
+	return startIdx, curStrIdx - startIdx
+}
+
+func regexp2FindAllStringIndex(re *regexp2.Regexp, s string) (matches [][]int) {
+	r := []rune(s)
+	// The only error that the *Match* methods should return is a Timeout if you set the re.MatchTimeout field.
+	// Any other error is a bug in the regexp2 package.
+	m, _ := re.FindRunesMatch(r)
+	for m != nil {
+		stringIndex, stringLength := convertRuneIndexToStringIndex(r, m.Index, m.Length)
+		matches = append(matches, []int{stringIndex, stringIndex + stringLength})
+		m, _ = re.FindNextMatch(m)
+	}
+	return matches
+}
+
+func findMatches(re *regexp2.Regexp, inside string) []OffsetsMatch {
+
+	matches := regexp2FindAllStringIndex(re, inside)
 
 	// 0. If no matches, just return
 	if len(matches) == 0 {
@@ -185,11 +216,11 @@ func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 }
 
 type RegexpPattern struct {
-	re *regexp.Regexp
+	re *regexp2.Regexp
 }
 
 func NewRegexpPattern(s string) *RegexpPattern {
-	re := regexp.MustCompile(s)
+	re := regexp2.MustCompile(s, regexp2.RE2)
 	return &RegexpPattern{
 		re: re,
 	}
