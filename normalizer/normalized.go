@@ -552,7 +552,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	// oShift is the shift to be applied to all original alignments along the way
 	// NOTE. `oShift` and `offset` here are different from ones inside previous block
 	oShift := -(initialRemoved)
-	offset := initialRemoved + nRange.start
+	runeIndex := 0
 	var normalizedAlignments [][]int
 
 	// log.Printf("Applying transformations...\n")
@@ -578,19 +578,18 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		 *     // log.Printf("### '%v' with size %v : %v with offset %v ###\n", item.RuneVal, len(item.RuneVal), changeType, offset)
 		 *     fmt.Printf("'%v' - changes: %v\n", item.RuneVal, item.Changes)
 		 *  */
-		idx := offset
 		// fmt.Printf("idx: %v\n", idx)
 		var align []int
 		if item.Changes > 0 {
-			if idx < 1 {
+			if runeIndex < 1 {
 				align = []int{0, 0}
 			} else {
 				// This is a newly inserted character, so it shares the same alignment
 				// as the previous one
-				align = n.alignments[idx-1]
+				align = n.alignments[runeIndex-1]
 			}
 		} else {
-			align = n.alignments[idx]
+			align = n.alignments[runeIndex]
 		}
 
 		// If we are replacing a character, find it and compute the change in size
@@ -639,8 +638,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 
 		var removingFromOriginal, removingFromNormalized int = 0, 0
 		if totalBytesToRemove > 0 {
-			start := n.alignments[idx][1]
-			end := n.alignments[idx+totalBytesToRemove][1]
+			start := n.alignments[runeIndex][1]
+			end := n.alignments[runeIndex+totalBytesToRemove][1]
 			originalRange := util.MakeRange(start, end)
 			// fmt.Printf("start: %v - end: %v; range: (%+v)\n", start, end, originalRange)
 			removingFromOriginal = len(originalRange)
@@ -715,8 +714,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 
 		// If some were removed, we need to zero them out in the original alignments
 		if removingFromOriginal > 0 {
-			start := n.alignments[idx][1]
-			end := n.alignments[idx+totalBytesToRemove][1]
+			start := n.alignments[runeIndex][1]
+			end := n.alignments[runeIndex+totalBytesToRemove][1]
 			// They should use the original alignment of the current character
 			newIdx := n.alignmentsOriginal[align[0]][1]
 			alignments := n.alignmentsOriginal[start:end]
@@ -736,8 +735,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 
 		// Keep track of the changes for next offsets
-		offset += replacedCharSize
-		offset += totalBytesToRemove
+		runeIndex++
+		
 		// For the original only the real modifications count
 		oShift += replacedCharSizeChange
 		oShift -= totalBytesToRemove
