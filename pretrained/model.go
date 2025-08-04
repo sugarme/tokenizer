@@ -7,6 +7,7 @@ import (
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/model"
 	"github.com/sugarme/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/model/unigram"
 	"github.com/sugarme/tokenizer/model/wordlevel"
 	"github.com/sugarme/tokenizer/model/wordpiece"
 	"github.com/sugarme/tokenizer/util"
@@ -153,7 +154,51 @@ func createWordLevel(params *util.Params) (tokenizer.Model, error) {
 }
 
 func createUnigram(params *util.Params) (tokenizer.Model, error) {
-	panic("NotImplementedError")
+	// Extract parameters from the JSON configuration
+	var unkID *int
+	if params.Has("unk_id") {
+		id := int(params.Get("unk_id").(float64))
+		unkID = &id
+	}
+
+	bytesFallback := false
+	if params.Has("byte_fallback") {
+		bytesFallback = params.Get("byte_fallback").(bool)
+	}
+
+	// Extract the vocabulary
+	var vocab []unigram.TokenScore
+	if params.Has("vocab") {
+		vocabData := params.Get("vocab").([]interface{})
+		vocab = make([]unigram.TokenScore, len(vocabData))
+
+		for i, entry := range vocabData {
+			pair := entry.([]interface{})
+			if len(pair) != 2 {
+				return nil, fmt.Errorf("invalid vocabulary entry format: %v", pair)
+			}
+
+			token := pair[0].(string)
+			score := pair[1].(float64)
+
+			vocab[i] = unigram.TokenScore{
+				Token: token,
+				Score: score,
+			}
+		}
+	} else {
+		return nil, fmt.Errorf("unigram model requires a vocabulary")
+	}
+
+	// Create options for the Unigram model
+	opts := util.NewParams(nil)
+	if unkID != nil {
+		opts.Set("unk_id", *unkID)
+	}
+	opts.Set("byte_fallback", bytesFallback)
+
+	// Create and return the Unigram model
+	return unigram.New(vocab, opts)
 }
 
 func castVocab(input map[string]interface{}) model.Vocab {

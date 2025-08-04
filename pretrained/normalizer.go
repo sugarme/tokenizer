@@ -36,7 +36,7 @@ func CreateNormalizer(config map[string]interface{}) (normalizer.Normalizer, err
 	switch typ {
 	case "BertNormalizer":
 		return createBertNormalizer(params)
-	case "StripNormalizer":
+	case "StripNormalizer", "Strip":
 		return createStripNormalizer(params)
 	case "StripAccents":
 		return createStripAccents(params)
