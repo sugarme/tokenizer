@@ -15,6 +15,7 @@ package pretrained
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sugarme/tokenizer"
 	"github.com/sugarme/tokenizer/normalizer"
@@ -86,8 +87,27 @@ func createMetaspacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 	}
 
 	replacement := params.Get("replacement", "").(string)
+	
+	// Check for prepend_scheme parameter
+	var scheme pretokenizer.PrependScheme
+	if params.Has("prepend_scheme") {
+		schemeStr := params.Get("prepend_scheme").(string)
+		switch strings.ToLower(schemeStr) {
+		case "always":
+			scheme = pretokenizer.Always
+		case "first":
+			scheme = pretokenizer.First
+		case "never":
+			scheme = pretokenizer.Never
+		default:
+			return nil, fmt.Errorf("unknown prepend_scheme: %s", schemeStr)
+		}
+		
+		return pretokenizer.NewMetaspaceWithScheme(replacement, scheme), nil
+	}
+	
+	// Fallback to add_prefix_space for backward compatibility
 	addPrefixSpace := params.Get("add_prefix_space", false).(bool)
-
 	return pretokenizer.NewMetaspace(replacement, addPrefixSpace), nil
 }
 
