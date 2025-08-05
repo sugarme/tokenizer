@@ -55,3 +55,16 @@ func TestNullNormalizer(t *testing.T) {
 		panic(err)
 	}
 }
+
+func TestCreatePrecompiledNormalizer(t *testing.T) {
+	modelName := "MoritzLaurer/deberta-v3-base-zeroshot-v1"
+	config, err := loadConfig(modelName)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = CreateNormalizer(config.Normalizer)
+	if err != nil {
+		panic(err)
+	}
+}

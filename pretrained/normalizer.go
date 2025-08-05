@@ -11,7 +11,7 @@ package pretrained
 // 8. Sequence
 // 9. Lowercase
 // 10. Nmt (TODO)
-// 11. Precompiled (TODO)
+// 11. Precompiled
 // 12. Replace
 // 13. Prepend
 
@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/spm"
 	"github.com/sugarme/tokenizer/util"
 )
 
@@ -140,8 +141,34 @@ func createStripAccents(params *util.Params) (normalizer.Normalizer, error) {
 }
 
 func createPrecompiledNormalizer(params *util.Params) (normalizer.Normalizer, error) {
-	// TODO
-	panic("NotImplementedError")
+	if params == nil {
+		return nil, nil
+	}
+
+	// Get the precompiled data from the parameters
+	var precompiledData []byte
+	if params.Has("precompiled_charsmap") {
+		// The data could be in base64 format
+		dataStr := params.Get("precompiled_charsmap").(string)
+		var err error
+		precompiledData, err = spm.FromBase64(dataStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode precompiled_charsmap from base64: %v", err)
+		}
+	} else {
+		return nil, fmt.Errorf("precompiled_charsmap parameter is required for Precompiled normalizer")
+	}
+
+	// Create the spm.Precompiled instance
+	spmPrecompiled, err := spm.NewPrecompiledFrom(precompiledData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create precompiled normalizer: %v", err)
+	}
+
+	// Create and return the normalizer.Precompiled wrapper
+	return &normalizer.Precompiled{
+		Precompiled: spmPrecompiled,
+	}, nil
 }
 
 func createNmtNormalizer(params *util.Params) (normalizer.Normalizer, error) {
