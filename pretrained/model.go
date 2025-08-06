@@ -166,6 +166,11 @@ func createUnigram(params *util.Params) (tokenizer.Model, error) {
 		bytesFallback = params.Get("byte_fallback").(bool)
 	}
 
+	fuseUnk := true
+	if params.Has("fuse_unk") {
+		fuseUnk = params.Get("fuse_unk").(bool)
+	}
+
 	// Extract the vocabulary
 	var vocab []unigram.TokenScore
 	if params.Has("vocab") {
@@ -196,6 +201,7 @@ func createUnigram(params *util.Params) (tokenizer.Model, error) {
 		opts.Set("unk_id", *unkID)
 	}
 	opts.Set("byte_fallback", bytesFallback)
+	opts.Set("fuse_unk", fuseUnk)
 
 	// Create and return the Unigram model
 	return unigram.New(vocab, opts)
