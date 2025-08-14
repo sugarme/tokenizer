@@ -18,9 +18,7 @@ const (
 	WeightName    = "pytorch_model.gt"
 	ConfigName    = "config.json"
 	TokenizerName = "tokenizer.json"
-
-	// NOTE. URL form := `$HFpath/ModelName/resolve/main/WeightName`
-	HFpath = "https://huggingface.co"
+	HFEndpoint    = "HF_ENDPOINT"
 )
 
 var (
@@ -29,6 +27,8 @@ var (
 		{1, 2, 3, 0, 0},
 		{0, 0, 0, 4, 5},
 	}
+	// NOTE. URL form := `$HFpath/ModelName/resolve/main/WeightName`
+	HFpath = "https://huggingface.co"
 )
 
 // CachedPath resolves and caches data based on input string, then returns fullpath to the cached data.
@@ -70,7 +70,7 @@ func CachedPath(modelNameOrPath, fileName string) (resolvedPath string, err erro
 	}
 
 	// 3. Cached candidate file NOT exist. Try to download it and save to `CachedDir`
-	url := fmt.Sprintf("%s/%s/resolve/main/%s", HFpath, modelNameOrPath, fileName)
+	url := fmt.Sprintf("%s/%s/resolve/main/%s", initHFpath(), modelNameOrPath, fileName)
 	// url := fmt.Sprintf("%s/%s/raw/main/%s", HFpath, modelNameOrPath, fileName)
 	if isValidURL(url) {
 		if _, err := http.Get(url); err == nil {
@@ -247,4 +247,12 @@ func CleanCache() error {
 	}
 
 	return nil
+}
+
+func initHFpath() string {
+	val := os.Getenv(HFEndpoint)
+	if val != "" {
+		HFpath = val
+	}
+	return HFpath
 }
