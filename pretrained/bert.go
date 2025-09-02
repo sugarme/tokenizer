@@ -4,13 +4,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/decoder"
-	"github.com/sugarme/tokenizer/model/wordpiece"
-	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/decoder"
+	"github.com/season-studio/tokenizer/model/wordpiece"
+	"github.com/season-studio/tokenizer/normalizer"
+	"github.com/season-studio/tokenizer/pretokenizer"
+	"github.com/season-studio/tokenizer/processor"
+	"github.com/season-studio/tokenizer/util"
 )
 
 // BertBaseUncase loads pretrained BERT tokenizer.

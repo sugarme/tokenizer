@@ -15,9 +15,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/model"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/model"
+	"github.com/season-studio/tokenizer/util"
 )
 
 type Merges map[Pair]PairVal

@@ -8,8 +8,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/sugarme/tokenizer/util"
-	slice "github.com/sugarme/tokenizer/util/slice"
+	"github.com/season-studio/tokenizer/util"
+	slice "github.com/season-studio/tokenizer/util/slice"
 
 	// "golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"

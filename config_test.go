@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer/util"
 )
 
 func ExampleConfig() {

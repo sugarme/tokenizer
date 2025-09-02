@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/pretokenizer"
 )
 
 func TestSequence(t *testing.T) {

@@ -1,8 +1,8 @@
 package processor
 
 import (
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/pretokenizer"
 )
 
 type ByteLevelProcessing struct {

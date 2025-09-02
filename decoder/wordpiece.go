@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sugarme/tokenizer"
+	"github.com/season-studio/tokenizer"
 )
 
 // WordPieceDecoder takes care of decoding a list of wordpiece tokens

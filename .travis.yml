@@ -14,8 +14,8 @@ dist: bionic
 
 script:
   - go get -u ./...
-  - go test -v github.com/sugarme/tokenizer/normalizer
-  - go test -v github.com/sugarme/tokenizer/model/bpe
-  - go test -v github.com/sugarme/tokenizer/model/wordpiece
-  - go test -v github.com/sugarme/tokenizer/pretokenizer
-  - go test -v github.com/sugarme/tokenizer
+  - go test -v github.com/season-studio/tokenizer/normalizer
+  - go test -v github.com/season-studio/tokenizer/model/bpe
+  - go test -v github.com/season-studio/tokenizer/model/wordpiece
+  - go test -v github.com/season-studio/tokenizer/pretokenizer
+  - go test -v github.com/season-studio/tokenizer

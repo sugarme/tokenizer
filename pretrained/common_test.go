@@ -4,7 +4,7 @@ package pretrained
 
 import (
 	"encoding/json"
-	"github.com/sugarme/tokenizer"
+	"github.com/season-studio/tokenizer"
 	"os"
 )
 

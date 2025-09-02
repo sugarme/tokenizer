@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/normalizer"
 )
 
 func TestWhitespace(t *testing.T) {

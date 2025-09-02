@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"github.com/sugarme/regexpset"
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/season-studio/tokenizer/normalizer"
 )
 
 // AddedToken represents a token added by the user on top of the

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/util"
 )
 
 // TokenScore represents a token and its score in the Unigram model

@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/model"
-	"github.com/sugarme/tokenizer/model/bpe"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/model"
+	"github.com/season-studio/tokenizer/model/bpe"
+	"github.com/season-studio/tokenizer/util"
 )
 
 type config struct {

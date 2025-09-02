@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/model"
-	"github.com/sugarme/tokenizer/model/bpe"
-	"github.com/sugarme/tokenizer/model/unigram"
-	"github.com/sugarme/tokenizer/model/wordlevel"
-	"github.com/sugarme/tokenizer/model/wordpiece"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/model"
+	"github.com/season-studio/tokenizer/model/bpe"
+	"github.com/season-studio/tokenizer/model/unigram"
+	"github.com/season-studio/tokenizer/model/wordlevel"
+	"github.com/season-studio/tokenizer/model/wordpiece"
+	"github.com/season-studio/tokenizer/util"
 )
 
 // This file provides functions to create tokenizer.Model from input data.

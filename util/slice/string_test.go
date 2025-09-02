@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	slice "github.com/sugarme/tokenizer/util/slice"
+	slice "github.com/season-studio/tokenizer/util/slice"
 )
 
 func TestInsertStr(t *testing.T) {

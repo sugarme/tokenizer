@@ -1,8 +1,8 @@
 package pretrained
 
 import (
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/util"
 )
 
 func CreateTruncationParams(config map[string]interface{}) (*tokenizer.TruncationParams, error) {

@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/decoder"
-	"github.com/sugarme/tokenizer/model/bpe"
-	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/processor"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/decoder"
+	"github.com/season-studio/tokenizer/model/bpe"
+	"github.com/season-studio/tokenizer/pretokenizer"
+	"github.com/season-studio/tokenizer/processor"
+	"github.com/season-studio/tokenizer/util"
 )
 
 // RobertaBase loads pretrained RoBERTa tokenizer.

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/normalizer"
+	"github.com/season-studio/tokenizer/pretokenizer"
 )
 
 type charidx struct {

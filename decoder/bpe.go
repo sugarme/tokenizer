@@ -3,7 +3,7 @@ package decoder
 import (
 	"strings"
 
-	"github.com/sugarme/tokenizer"
+	"github.com/season-studio/tokenizer"
 )
 
 // Allows decoding Original BPE by joining all the tokens and then replacing

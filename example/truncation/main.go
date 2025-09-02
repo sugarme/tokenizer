@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/pretrained"
+	"github.com/season-studio/tokenizer"
+	"github.com/season-studio/tokenizer/pretrained"
 )
 
 func main() {
