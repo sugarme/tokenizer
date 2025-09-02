@@ -1,4 +1,4 @@
-module github.com/sugarme/tokenizer
+module github.com/season-studio/tokenizer
 
 go 1.23
 
