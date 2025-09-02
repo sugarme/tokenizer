@@ -385,14 +385,14 @@ func (b *BPE) MergeWord(w string) *Word {
 		byteLen = len(string(r))
 
 		// if first rune, add prefix
-		if byteIdx == 0 {
-			s = fmt.Sprintf("%v%v", prefix, string(r))
-		} else if currRuneIdx == len(chars) { // last rune, add suffix
+		currRuneIdx++
+		if currRuneIdx == len(chars) { // last rune, add suffix
 			s = fmt.Sprintf("%v%v", string(r), suffix)
+		} else if byteIdx == 0 {
+			s = fmt.Sprintf("%v%v", prefix, string(r))
 		} else { // the rest
 			s = string(r)
 		}
-		currRuneIdx++
 
 		// If `s` exists in vocab, add its id, otherwise add id of `unk`
 		vocab := *b.Vocab

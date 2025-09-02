@@ -86,6 +86,9 @@ func (rp *RobertaProcessing) Process(encoding, pairEncoding *tokenizer.Encoding,
 			newPairEncoding.Overflowing = newOverflowPairEncoding
 		}
 
+	} else {
+		newEncoding = encoding
+		newPairEncoding = pairEncoding
 	}
 
 	if !addSpecialTokens {
