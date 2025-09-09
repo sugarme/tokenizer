@@ -1,7 +1,7 @@
 .directory
 *.swp
 *.swo
-
+.idea
 input/
 data/
 example/testdata/

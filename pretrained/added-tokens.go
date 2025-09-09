@@ -1,7 +1,7 @@
 package pretrained
 
 import (
-	"github.com/sugarme/tokenizer"
+	"github.com/gengzongjie/tokenizer"
 )
 
 func CreateAddedTokens(data []tokenizer.TokenConfig) (specialToks, toks []tokenizer.AddedToken) {

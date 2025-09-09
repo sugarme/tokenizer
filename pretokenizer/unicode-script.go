@@ -4,8 +4,8 @@ import (
 	"log"
 	"unicode"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/gengzongjie/tokenizer"
+	"github.com/gengzongjie/tokenizer/normalizer"
 )
 
 // GetScript returns key to script in `unicode.Scripts`.

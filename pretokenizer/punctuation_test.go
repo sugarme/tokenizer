@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/gengzongjie/tokenizer"
+	"github.com/gengzongjie/tokenizer/normalizer"
 )
 
 func TestPunctuation(t *testing.T) {

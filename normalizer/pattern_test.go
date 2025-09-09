@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sugarme/tokenizer/normalizer"
+	"github.com/gengzongjie/tokenizer/normalizer"
 )
 
 func doTest(t *testing.T, p normalizer.Pattern, inside string, want []normalizer.OffsetsMatch) {

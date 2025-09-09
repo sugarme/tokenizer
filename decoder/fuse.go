@@ -3,7 +3,7 @@ package decoder
 import (
 	"strings"
 
-	"github.com/sugarme/tokenizer"
+	"github.com/gengzongjie/tokenizer"
 )
 
 // Fuse constructs Fuse decoder

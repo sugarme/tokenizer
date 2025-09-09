@@ -1,6 +1,8 @@
-module github.com/sugarme/tokenizer
+module github.com/gengzongjie/tokenizer
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.4
 
 require (
 	github.com/emirpasic/gods v1.18.1

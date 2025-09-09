@@ -3,8 +3,8 @@ package pretrained
 import (
 	"reflect"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/gengzongjie/tokenizer"
+	"github.com/gengzongjie/tokenizer/util"
 )
 
 func CreatePaddingParams(config map[string]interface{}) (*tokenizer.PaddingParams, error) {
@@ -95,19 +95,19 @@ func CreatePaddingParams(config map[string]interface{}) (*tokenizer.PaddingParam
 	// Get other parameters with fallbacks
 	var id, typeId int
 	var token string
-	
+
 	if idVal := params.Get("pad_id"); idVal != nil {
 		if fVal, ok := idVal.(float64); ok {
 			id = int(fVal)
 		}
 	}
-	
+
 	if typeIdVal := params.Get("pad_type_id"); typeIdVal != nil {
 		if fVal, ok := typeIdVal.(float64); ok {
 			typeId = int(fVal)
 		}
 	}
-	
+
 	if tokenVal := params.Get("pad_token"); tokenVal != nil {
 		if sVal, ok := tokenVal.(string); ok {
 			token = sVal

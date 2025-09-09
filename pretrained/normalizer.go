@@ -18,9 +18,9 @@ package pretrained
 import (
 	"fmt"
 
-	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/spm"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/gengzongjie/tokenizer/normalizer"
+	"github.com/gengzongjie/tokenizer/spm"
+	"github.com/gengzongjie/tokenizer/util"
 )
 
 // CreateNormalizer creates Normalizer from config data.

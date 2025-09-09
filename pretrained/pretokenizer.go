@@ -17,10 +17,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sugarme/tokenizer"
-	"github.com/sugarme/tokenizer/normalizer"
-	"github.com/sugarme/tokenizer/pretokenizer"
-	"github.com/sugarme/tokenizer/util"
+	"github.com/gengzongjie/tokenizer"
+	"github.com/gengzongjie/tokenizer/normalizer"
+	"github.com/gengzongjie/tokenizer/pretokenizer"
+	"github.com/gengzongjie/tokenizer/util"
 )
 
 func CreatePreTokenizer(config map[string]interface{}) (tokenizer.PreTokenizer, error) {
@@ -87,7 +87,7 @@ func createMetaspacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 	}
 
 	replacement := params.Get("replacement", "").(string)
-	
+
 	// Check for prepend_scheme parameter
 	var scheme pretokenizer.PrependScheme
 	if params.Has("prepend_scheme") {
@@ -102,10 +102,10 @@ func createMetaspacePreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 		default:
 			return nil, fmt.Errorf("unknown prepend_scheme: %s", schemeStr)
 		}
-		
+
 		return pretokenizer.NewMetaspaceWithScheme(replacement, scheme), nil
 	}
-	
+
 	// Fallback to add_prefix_space for backward compatibility
 	addPrefixSpace := params.Get("add_prefix_space", false).(bool)
 	return pretokenizer.NewMetaspace(replacement, addPrefixSpace), nil
