@@ -38,6 +38,7 @@ type Unigram struct {
 	fuseUnk       bool
 	// Cache for tokenization
 	cache map[string][]string
+	cacheMutex sync.RWMutex
 }
 
 // UnigramBuilder can be used to create a Unigram model with a custom configuration
@@ -104,6 +105,7 @@ func (ub *UnigramBuilder) Build() (*Unigram, error) {
 		bytesFallback: ub.config.bytesFallback,
 		fuseUnk:       ub.config.fuseUnk,
 		cache:         make(map[string][]string),
+		cacheMutex:    sync.RWMutex{},
 	}, nil
 }
 
@@ -239,14 +241,22 @@ func (u *Unigram) Save(dir string, prefixOpt ...string) error {
 // Tokenize tokenizes the given sequence into multiple tokens
 func (u *Unigram) Tokenize(sequence string) ([]tokenizer.Token, error) {
 	// Check cache first
-	if tokens, ok := u.cache[sequence]; ok {
+	u.cacheMutex.RLock()
+	tokens, ok := u.cache[sequence]
+	u.cacheMutex.RUnlock()
+	
+	if ok {
 		return u.tokensToTokenizer(tokens, sequence), nil
 	}
 
 	// If byte fallback is enabled, always use it
 	if u.bytesFallback {
 		tokens := u.tokenizeWithByteFallback(sequence)
+		
+		u.cacheMutex.Lock()
 		u.cache[sequence] = tokens
+		u.cacheMutex.Unlock()
+		
 		return u.tokensToTokenizer(tokens, sequence), nil
 	}
 
@@ -256,8 +266,9 @@ func (u *Unigram) Tokenize(sequence string) ([]tokenizer.Token, error) {
 		return nil, err
 	}
 
-	// Cache the result
+	u.cacheMutex.Lock()
 	u.cache[sequence] = tokens
+	u.cacheMutex.Unlock()
 
 	return u.tokensToTokenizer(tokens, sequence), nil
 }
