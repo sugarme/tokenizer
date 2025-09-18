@@ -42,13 +42,13 @@ func main() {
 
 func testTokenization(model tokenizer.Model, text string) {
 	fmt.Printf("Tokenizing: %q\n", text)
-	
+
 	tokens, err := model.Tokenize(text)
 	if err != nil {
 		fmt.Printf("Error tokenizing: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("Tokens (%d):\n", len(tokens))
 	for i, token := range tokens {
 		fmt.Printf("  %d. ID=%d, Value=%q, Offsets=%v\n", i, token.Id, token.Value, token.Offsets)

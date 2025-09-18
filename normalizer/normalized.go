@@ -590,7 +590,11 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 				align = n.alignments[idx-1]
 			}
 		} else {
-			align = n.alignments[idx]
+			if idx >= len(n.alignments) {
+				align = n.alignments[len(n.alignments)-1]
+			} else {
+				align = n.alignments[idx]
+			}
 		}
 
 		// If we are replacing a character, find it and compute the change in size

@@ -85,7 +85,7 @@ func (btb *BpeTrainerBuilder) SpecialTokens(tokens []tokenizer.AddedToken) {
 	btb.Config.SpecialTokens = tokens
 }
 
-//LimitAlphabet set the alphabet limit
+// LimitAlphabet set the alphabet limit
 func (btb *BpeTrainerBuilder) LimitAlphabet(limit int) {
 	btb.Config.LimitAlphabet = &limit
 }
@@ -123,10 +123,12 @@ func (btb *BpeTrainerBuilder) Build() *BpeTrainer {
 // mapping of words to word counts.
 //
 // Example:
-// wordCounts := map[string]int = {
-// 	{"Hello", 1},
-// 	{"World", 1},
-// }
+//
+//	wordCounts := map[string]int = {
+//		{"Hello", 1},
+//		{"World", 1},
+//	}
+//
 // trainer := NewBPETrainer()
 // model, specialTokens := trainer.Train(wordCounts)
 type BpeTrainer struct {

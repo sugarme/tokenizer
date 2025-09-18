@@ -15,10 +15,10 @@ import (
 // GPT2 loads GPT2 (small) tokenizer from vocab and merges files.
 //
 // Params:
-// - addPrefixSpace: set whether to add a leading space to the first word.
-//   It allows to treat the leading word just as any other words.
-// - trimOffsets: set Whether the post processing step should trim offsets
-//   to avoid including whitespaces.
+//   - addPrefixSpace: set whether to add a leading space to the first word.
+//     It allows to treat the leading word just as any other words.
+//   - trimOffsets: set Whether the post processing step should trim offsets
+//     to avoid including whitespaces.
 //
 // Special tokens:
 // - cls-token: "<s>"

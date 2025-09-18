@@ -36,7 +36,7 @@ func NewMetaspace(replacement string, addPrefixSpace bool) *Metaspace {
 	if addPrefixSpace {
 		scheme = Always
 	}
-	
+
 	return &Metaspace{
 		Replacement:    replacement,
 		PrependScheme:  scheme,
@@ -49,7 +49,7 @@ func NewMetaspace(replacement string, addPrefixSpace bool) *Metaspace {
 func NewMetaspaceWithScheme(replacement string, scheme PrependScheme) *Metaspace {
 	// Set AddPrefixSpace for backward compatibility
 	addPrefixSpace := scheme != Never
-	
+
 	return &Metaspace{
 		Replacement:    replacement,
 		PrependScheme:  scheme,

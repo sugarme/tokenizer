@@ -1,8 +1,8 @@
 package unigram
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 
 	"github.com/sugarme/tokenizer/util"
 )
