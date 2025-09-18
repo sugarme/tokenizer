@@ -93,9 +93,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [#8]: Fixed `encoding.MergeWith` merge overflowing incorrectly. 
 
-[#8]: https://github.com/gengzongjie/tokenizer/pull/8
-[#10]: https://github.com/gengzongjie/tokenizer/pull/10
-[#11]: https://github.com/gengzongjie/tokenizer/issues/11
-[#12]: https://github.com/gengzongjie/tokenizer/issues/12
-[#13]: https://github.com/gengzongjie/tokenizer/issues/13
-[#14]: https://github.com/gengzongjie/tokenizer/issues/14
+[#8]: https://github.com/sugarme/tokenizer/pull/8
+[#10]: https://github.com/sugarme/tokenizer/pull/10
+[#11]: https://github.com/sugarme/tokenizer/issues/11
+[#12]: https://github.com/sugarme/tokenizer/issues/12
+[#13]: https://github.com/sugarme/tokenizer/issues/13
+[#14]: https://github.com/sugarme/tokenizer/issues/14

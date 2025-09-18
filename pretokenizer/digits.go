@@ -3,8 +3,8 @@ package pretokenizer
 import (
 	"unicode"
 
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/normalizer"
 )
 
 type Digits struct {

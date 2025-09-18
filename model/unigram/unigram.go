@@ -3,9 +3,9 @@ package unigram
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/util"
 	Catch "github.com/patrickmn/go-cache"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/util"
 	"math"
 	"os"
 	"path/filepath"

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/model/unigram"
-	"github.com/gengzongjie/tokenizer/util"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/model/unigram"
+	"github.com/sugarme/tokenizer/util"
 )
 
 func main() {

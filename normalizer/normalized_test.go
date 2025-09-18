@@ -11,8 +11,8 @@ import (
 	// "golang.org/x/text/transform"
 	// "golang.org/x/text/unicode/norm"
 
-	"github.com/gengzongjie/tokenizer/normalizer"
-	// "github.com/gengzongjie/tokenizer/util"
+	"github.com/sugarme/tokenizer/normalizer"
+	// "github.com/sugarme/tokenizer/util"
 )
 
 func TestNormalized_NFDAddsNewChars(t *testing.T) {

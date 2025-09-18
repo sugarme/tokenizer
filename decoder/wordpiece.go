@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 // WordPieceDecoder takes care of decoding a list of wordpiece tokens

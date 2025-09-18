@@ -15,7 +15,7 @@ import (
 	// 2.2 stars
 	// progressbar "github.com/cheggaaa/pb/v3"
 
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 // Map with no value

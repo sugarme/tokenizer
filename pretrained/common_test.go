@@ -4,7 +4,7 @@ package pretrained
 
 import (
 	"encoding/json"
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 	"os"
 )
 

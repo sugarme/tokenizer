@@ -1,4 +1,4 @@
-# Tokenizer [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0)[![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/gengzongjie/tokenizer?tab=doc)[![Travis CI](https://api.travis-ci.org/gengzongjie/tokenizer.svg?branch=master)](https://travis-ci.org/gengzongjie/tokenizer)[![Go Report Card](https://goreportcard.com/badge/github.com/gengzongjie/tokenizer)](https://goreportcard.com/report/github.com/gengzongjie/tokenizer) 
+# Tokenizer [![License](https://img.shields.io/:license-apache-blue.svg)](https://opensource.org/licenses/Apache-2.0)[![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/github.com/sugarme/tokenizer?tab=doc)[![Travis CI](https://api.travis-ci.org/sugarme/tokenizer.svg?branch=master)](https://travis-ci.org/sugarme/tokenizer)[![Go Report Card](https://goreportcard.com/badge/github.com/sugarme/tokenizer)](https://goreportcard.com/report/github.com/sugarme/tokenizer) 
 
 ## Overview
 
@@ -32,7 +32,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gengzongjie/tokenizer/pretrained"
+	"github.com/sugarme/tokenizer/pretrained"
 )
 
 func main() {
@@ -63,12 +63,12 @@ func main() {
 }
 ```
 
-All models can be loaded from files manually. [pkg.go.dev](https://pkg.go.dev/github.com/gengzongjie/tokenizer?tab=doc) for detail APIs.
+All models can be loaded from files manually. [pkg.go.dev](https://pkg.go.dev/github.com/sugarme/tokenizer?tab=doc) for detail APIs.
 
 
 ## Getting Started
 
-- See [pkg.go.dev](https://pkg.go.dev/github.com/gengzongjie/tokenizer?tab=doc) for detail APIs 
+- See [pkg.go.dev](https://pkg.go.dev/github.com/sugarme/tokenizer?tab=doc) for detail APIs 
 
 
 ## License

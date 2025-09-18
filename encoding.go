@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/gengzongjie/tokenizer/util"
+	"github.com/sugarme/tokenizer/util"
 )
 
 type PaddingDirection int

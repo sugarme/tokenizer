@@ -4,7 +4,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 // e.g. `hf-internal-testing/llama-tokenizer`

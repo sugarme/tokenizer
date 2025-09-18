@@ -3,7 +3,7 @@ package decoder
 import (
 	"strings"
 
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 // Allows decoding Original BPE by joining all the tokens and then replacing

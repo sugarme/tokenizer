@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	bpe "github.com/gengzongjie/tokenizer/model/bpe"
+	bpe "github.com/sugarme/tokenizer/model/bpe"
 )
 
 func TestMerge_Merge(t *testing.T) {

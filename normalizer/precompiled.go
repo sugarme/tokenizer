@@ -3,7 +3,7 @@ package normalizer
 import (
 	"strings"
 
-	"github.com/gengzongjie/tokenizer/spm"
+	"github.com/sugarme/tokenizer/spm"
 
 	"github.com/rivo/uniseg"
 )

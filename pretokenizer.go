@@ -7,7 +7,7 @@ import (
 	"log"
 	// "reflect"
 
-	"github.com/gengzongjie/tokenizer/normalizer"
+	"github.com/sugarme/tokenizer/normalizer"
 )
 
 type PreToken struct {

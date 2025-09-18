@@ -3,7 +3,7 @@ package decoder
 import (
 	"strings"
 
-	"github.com/gengzongjie/tokenizer"
+	"github.com/sugarme/tokenizer"
 )
 
 type CTC struct {

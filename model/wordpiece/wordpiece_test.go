@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/model/wordpiece"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/model/wordpiece"
 )
 
 func TestWordpieceBuilder(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/model/bpe"
-	"github.com/gengzongjie/tokenizer/pretokenizer"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/model/bpe"
+	"github.com/sugarme/tokenizer/pretokenizer"
 )
 
 func runTrain() {
