@@ -3,14 +3,20 @@ package unigram
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gengzongjie/tokenizer"
+	"github.com/gengzongjie/tokenizer/util"
+	Catch "github.com/patrickmn/go-cache"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode/utf8"
+)
 
-	"github.com/gengzongjie/tokenizer"
-	"github.com/gengzongjie/tokenizer/util"
+const (
+	CacheExpiredTime = 5
+	CacheCleanTime   = 10
 )
 
 // TokenScore represents a token and its score in the Unigram model
@@ -37,8 +43,7 @@ type Unigram struct {
 	bytesFallback bool
 	fuseUnk       bool
 	// Cache for tokenization
-	cache map[string][]string
-	cacheMutex sync.RWMutex
+	cache *Catch.Cache
 }
 
 // UnigramBuilder can be used to create a Unigram model with a custom configuration
@@ -104,8 +109,7 @@ func (ub *UnigramBuilder) Build() (*Unigram, error) {
 		unkID:         ub.config.unkID,
 		bytesFallback: ub.config.bytesFallback,
 		fuseUnk:       ub.config.fuseUnk,
-		cache:         make(map[string][]string),
-		cacheMutex:    sync.RWMutex{},
+		cache:         Catch.New(CacheExpiredTime*time.Minute, CacheCleanTime*time.Minute),
 	}, nil
 }
 
@@ -241,22 +245,17 @@ func (u *Unigram) Save(dir string, prefixOpt ...string) error {
 // Tokenize tokenizes the given sequence into multiple tokens
 func (u *Unigram) Tokenize(sequence string) ([]tokenizer.Token, error) {
 	// Check cache first
-	u.cacheMutex.RLock()
-	tokens, ok := u.cache[sequence]
-	u.cacheMutex.RUnlock()
-	
+	data, ok := u.cache.Get(sequence)
 	if ok {
+		tokens := data.([]string)
 		return u.tokensToTokenizer(tokens, sequence), nil
 	}
 
 	// If byte fallback is enabled, always use it
 	if u.bytesFallback {
 		tokens := u.tokenizeWithByteFallback(sequence)
-		
-		u.cacheMutex.Lock()
-		u.cache[sequence] = tokens
-		u.cacheMutex.Unlock()
-		
+		u.cache.Set(sequence, tokens, CacheExpiredTime*time.Minute)
+
 		return u.tokensToTokenizer(tokens, sequence), nil
 	}
 
@@ -265,10 +264,7 @@ func (u *Unigram) Tokenize(sequence string) ([]tokenizer.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	u.cacheMutex.Lock()
-	u.cache[sequence] = tokens
-	u.cacheMutex.Unlock()
+	u.cache.Set(sequence, tokens, CacheExpiredTime)
 
 	return u.tokensToTokenizer(tokens, sequence), nil
 }
