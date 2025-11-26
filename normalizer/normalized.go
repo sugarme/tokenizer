@@ -3,7 +3,6 @@ package normalizer
 import (
 	"bytes"
 	"log"
-	"reflect"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -11,7 +10,6 @@ import (
 	"github.com/sugarme/tokenizer/util"
 	slice "github.com/sugarme/tokenizer/util/slice"
 
-	// "golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -267,11 +265,11 @@ func (n *NormalizedString) ConvertOffset(inputRange *Range) (retVal *Range) {
 	}
 
 	// If we target 0..0 on an empty string, we want to expand to the entire equivalent
-	if isOriginal && len(n.alignmentsOriginal) == 0 && reflect.DeepEqual(target.Values(), []int{0, 0}) {
+	if isOriginal && len(n.alignmentsOriginal) == 0 && equalIntSlice(target.Values(), []int{0, 0}) {
 		return NewRange(0, lenNormalized, indexOn)
 	}
 
-	if !isOriginal && len(n.alignments) == 0 && reflect.DeepEqual(target.Values, []int{0, 0}) {
+	if !isOriginal && len(n.alignments) == 0 && equalIntSlice(target.Values(), []int{0, 0}) {
 		return NewRange(0, lenOriginal, indexOn)
 	}
 
@@ -1030,7 +1028,7 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 		runes = append(runes, r)
 	}
 
-	revRunes := slice.Reverse(runes).([]rune)
+	revRunes := slice.Reverse(runes)
 
 	for _, r := range revRunes {
 		if fn(r) {
@@ -1051,7 +1049,7 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 		}
 	}
 
-	revChangeMap := slice.Reverse(changeMap).([]ChangeMap)
+	revChangeMap := slice.Reverse(changeMap)
 
 	// fmt.Printf("Alignments: %+v\n", n.alignments)
 	// fmt.Printf("changeMap: %+v\n", revChangeMap)
@@ -1472,7 +1470,7 @@ type byteIdxRune struct {
 // BytesToChar converts a given range from bytes to `char`
 func BytesToChar(s string, byteRange []int) (retVal []int) {
 	var start, end int
-	if reflect.DeepEqual(byteRange, []int{0, 0}) {
+	if equalIntSlice(byteRange, []int{0, 0}) {
 		start = 0
 		end = 0
 	} else {
@@ -1513,7 +1511,7 @@ func BytesToChar(s string, byteRange []int) (retVal []int) {
 // CharToBytes converts a given range from `char` to bytes
 func CharToBytes(s string, charRange []int) (retVal []int) {
 	var start, end int
-	if reflect.DeepEqual(charRange, []int{0, 0}) {
+	if equalIntSlice(charRange, []int{0, 0}) {
 		start = 0
 		end = 0
 	} else {
@@ -1557,4 +1555,16 @@ func CharToBytes(s string, charRange []int) (retVal []int) {
 	}
 
 	return []int{start, end}
+}
+
+func equalIntSlice(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
