@@ -385,13 +385,13 @@ func (e *Encoding) Truncate(maxLen int, stride int) (retVal *Encoding, err error
 	// while loop
 	for int(partSize)*partId < len(oIds) {
 		o := Encoding{
-			Ids:              getCurrentPartInt(prevEncoding.Ids, oIds, partSize, partId, stride),
-			TypeIds:          getCurrentPartInt(prevEncoding.TypeIds, oTypeIds, partSize, partId, stride),
-			Tokens:           getCurrentPartString(prevEncoding.Tokens, oTokens, partSize, partId, stride),
-			Offsets:          getCurrentPartOffsets(prevEncoding.Offsets, oOffsets, partSize, partId, stride),
-			SpecialTokenMask: getCurrentPartInt(prevEncoding.SpecialTokenMask, oSpeToks, partSize, partId, stride),
-			AttentionMask:    getCurrentPartInt(prevEncoding.AttentionMask, oAttent, partSize, partId, stride),
-			Words:            getCurrentPartInt(prevEncoding.Words, oWords, partSize, partId, stride),
+			Ids:              getCurrentPart(prevEncoding.Ids, oIds, partSize, partId, stride),
+			TypeIds:          getCurrentPart(prevEncoding.TypeIds, oTypeIds, partSize, partId, stride),
+			Tokens:           getCurrentPart(prevEncoding.Tokens, oTokens, partSize, partId, stride),
+			Offsets:          getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, partId, stride),
+			SpecialTokenMask: getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, partId, stride),
+			AttentionMask:    getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, partId, stride),
+			Words:            getCurrentPart(prevEncoding.Words, oWords, partSize, partId, stride),
 			Overflowing:      make([]Encoding, 0),
 		}
 
@@ -668,35 +668,27 @@ func (e *Encoding) SequenceRange(sequencId int) (Range, error) {
 	return r[0:e.Len()], nil
 }
 
-func getCurrentPartInt(previous, current []int, size, idx, stride int) []int {
-	var curr, prev []int
-	if (idx+1)*size > len(current) {
-		curr = current[(idx * size):]
-	} else {
-		curr = current[(idx * size) : (idx+1)*size]
+func getCurrentPart[T any](previous, current []T, size, idx, stride int) []T {
+	if size <= 0 || idx < 0 || stride < 0 {
+		return nil
 	}
-	prev = previous[len(previous)-stride:]
-	return append(prev, curr...)
-}
 
-func getCurrentPartString(previous, current []string, size, idx, stride int) []string {
-	var curr, prev []string
-	if (idx+1)*size > len(current) {
-		curr = current[(idx * size):]
-	} else {
-		curr = current[(idx * size) : (idx+1)*size]
+	if len(previous) < stride {
+		stride = len(previous)
 	}
-	prev = previous[len(previous)-stride:]
-	return append(prev, curr...)
-}
 
-func getCurrentPartOffsets(previous, current [][]int, size, idx, stride int) [][]int {
-	var curr, prev [][]int
-	if (idx+1)*size > len(current) {
-		curr = current[(idx * size):]
-	} else {
-		curr = current[(idx * size) : (idx+1)*size]
+	start := idx * size
+	if start >= len(current) {
+		return previous[len(previous)-stride:]
 	}
-	prev = previous[len(previous)-stride:]
+
+	end := (idx + 1) * size
+	if end > len(current) {
+		end = len(current)
+	}
+
+	curr := current[start:end]
+	prev := previous[len(previous)-stride:]
+
 	return append(prev, curr...)
 }
