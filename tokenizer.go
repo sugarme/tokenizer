@@ -199,10 +199,7 @@ type InputSequence struct {
 func NewInputSequence(input interface{}) (retVal InputSequence) {
 	switch reflect.TypeOf(input).Kind().String() {
 	case "string":
-		return InputSequence{
-			input:     []string{input.(string)},
-			inputType: RawInput,
-		}
+		return NewRawInputSequence(input.(string))
 	case "slice":
 		if reflect.TypeOf(input).Elem().Name() != "string" {
 			log.Fatalf("Invalid input type: Expected type of 'string' or '[]string', got %v\n", reflect.TypeOf(input).Kind().String())
@@ -216,6 +213,17 @@ func NewInputSequence(input interface{}) (retVal InputSequence) {
 	}
 
 	return
+}
+
+// NewRawInputSequence creates a new InputSequence from a raw string input.
+// Using this method instead of NewInputSequence avoids calling the reflect library
+// to inspect the type of the input when the caller knows exactly what the input is.
+// It is a performance optimization because inspecting the type is not needed in most cases.
+func NewRawInputSequence(input string) InputSequence {
+	return InputSequence{
+		input:     []string{input},
+		inputType: RawInput,
+	}
 }
 
 type Single struct {
