@@ -3,7 +3,6 @@ package tokenizer
 import (
 	"fmt"
 	"log"
-	"reflect"
 
 	"github.com/sugarme/tokenizer/util"
 )
@@ -386,13 +385,13 @@ func (e *Encoding) Truncate(maxLen int, stride int) (retVal *Encoding, err error
 	// while loop
 	for int(partSize)*partId < len(oIds) {
 		o := Encoding{
-			Ids:              reflect.ValueOf(getCurrentPart(prevEncoding.Ids, oIds, partSize, partId, stride)).Interface().([]int),
-			TypeIds:          reflect.ValueOf(getCurrentPart(prevEncoding.TypeIds, oTypeIds, partSize, partId, stride)).Interface().([]int),
-			Tokens:           reflect.ValueOf(getCurrentPart(prevEncoding.Tokens, oTokens, partSize, partId, stride)).Interface().([]string),
-			Offsets:          reflect.ValueOf(getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, partId, stride)).Interface().([][]int),
-			SpecialTokenMask: reflect.ValueOf(getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, partId, stride)).Interface().([]int),
-			AttentionMask:    reflect.ValueOf(getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, partId, stride)).Interface().([]int),
-			Words:            reflect.ValueOf(getCurrentPart(prevEncoding.Words, oWords, partSize, partId, stride)).Interface().([]int),
+			Ids:              getCurrentPart(prevEncoding.Ids, oIds, partSize, partId, stride),
+			TypeIds:          getCurrentPart(prevEncoding.TypeIds, oTypeIds, partSize, partId, stride),
+			Tokens:           getCurrentPart(prevEncoding.Tokens, oTokens, partSize, partId, stride),
+			Offsets:          getCurrentPart(prevEncoding.Offsets, oOffsets, partSize, partId, stride),
+			SpecialTokenMask: getCurrentPart(prevEncoding.SpecialTokenMask, oSpeToks, partSize, partId, stride),
+			AttentionMask:    getCurrentPart(prevEncoding.AttentionMask, oAttent, partSize, partId, stride),
+			Words:            getCurrentPart(prevEncoding.Words, oWords, partSize, partId, stride),
 			Overflowing:      make([]Encoding, 0),
 		}
 
@@ -640,43 +639,6 @@ func (e *Encoding) pad(targetLength, padId, padTypeId int, padToken string, dire
 	return e
 }
 
-func getCurrentPart(previous, current interface{}, size, idx, stride int) interface{} {
-
-	switch current.(type) {
-	case []int:
-		var curr, prev []int
-		if int((idx+1)*size) > reflect.ValueOf(current).Len() {
-			curr = current.([]int)[(idx * size):]
-		} else {
-			curr = current.([]int)[(idx * size) : (idx+1)*size]
-		}
-		prev = previous.([]int)[len(previous.([]int))-stride:]
-		return append(prev, curr...)
-	case []string:
-		var curr, prev []string
-		if (idx+1)*size > reflect.ValueOf(current).Len() {
-			curr = current.([]string)[(idx * size):]
-		} else {
-			curr = current.([]string)[(idx * size) : (idx+1)*size]
-		}
-		prev = previous.([]string)[len(previous.([]string))-stride:]
-		return append(prev, curr...)
-	case [][]int:
-		var curr, prev [][]int
-		if (idx+1)*size > reflect.ValueOf(current).Len() {
-			curr = current.([][]int)[(idx * size):]
-		} else {
-			curr = current.([][]int)[(idx * size) : (idx+1)*size]
-		}
-		prev = previous.([][]int)[len(previous.([][]int))-stride:]
-		return append(prev, curr...)
-	default:
-		log.Fatalf("getCurrentPart method call: invalid type\n")
-	}
-
-	return nil
-}
-
 // Token2Sequence returns the index of the sequence containing the given token.
 func (e *Encoding) Token2Sequence(token int) (int, bool) {
 	if token > e.Len() {
@@ -704,4 +666,29 @@ func (e *Encoding) SequenceRange(sequencId int) (Range, error) {
 	}
 
 	return r[0:e.Len()], nil
+}
+
+func getCurrentPart[T any](previous, current []T, size, idx, stride int) []T {
+	if size <= 0 || idx < 0 || stride < 0 {
+		return nil
+	}
+
+	if len(previous) < stride {
+		stride = len(previous)
+	}
+
+	start := idx * size
+	if start >= len(current) {
+		return previous[len(previous)-stride:]
+	}
+
+	end := (idx + 1) * size
+	if end > len(current) {
+		end = len(current)
+	}
+
+	curr := current[start:end]
+	prev := previous[len(previous)-stride:]
+
+	return append(prev, curr...)
 }

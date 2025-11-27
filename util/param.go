@@ -110,13 +110,11 @@ func (p *Params) deepCopy(key string) interface{} {
 		return nil
 	}
 
-	typ := reflect.TypeOf(v).String()
-	switch typ {
-	case "*util.Params":
-		vals := v.(*Params)
+	switch val := v.(type) {
+	case *Params:
 		out := NewParams(nil)
-		for key := range vals.Values() {
-			newVal := vals.deepCopy(key)
+		for key := range val.Values() {
+			newVal := val.deepCopy(key)
 			out.Set(key, newVal)
 		}
 		return out

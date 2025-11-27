@@ -1,9 +1,5 @@
 package util
 
-import (
-	"reflect"
-)
-
 // RuneIter is rune iterator with Next() method.
 type RuneIter struct {
 	items []rune
@@ -63,43 +59,33 @@ func (it *RuneIter) Reset() {
 	}
 }
 
-// Iter contains data and methods for an interator
-type Iter struct {
-	items []interface{}
+// Iter contains data and methods for an iterator
+type Iter[T any] struct {
+	items []T
 	next  int
 }
 
-// NewIter creates a Iter from an input slice. Otherwise
-// it will panic.
-func NewIter(data interface{}) *Iter {
-	if reflect.TypeOf(data).Name() != "slice" {
-		panic("Invalid input 'data'. It must be a slice.")
-	}
-
+// NewIter creates an Iter from an input slice.
+func NewIter[T any](data []T) *Iter[T] {
 	next := -1
-	if len(data.([]interface{})) > 0 {
+	if len(data) > 0 {
 		next = 0
 	}
 
-	return &Iter{
-		items: data.([]interface{}),
+	return &Iter[T]{
+		items: data,
 		next:  next,
 	}
 }
 
-// Next implements a iterator functionality for Iter
-func (it *Iter) Next() (retVal interface{}, ok bool) {
-	if it.next == -1 {
+// Next implements iterator functionality for Iter
+func (it *Iter[T]) Next() (retVal T, ok bool) {
+	if it.next == -1 || it.next >= len(it.items) {
 		return retVal, false
 	}
 
 	retVal = it.items[it.next]
-
-	if it.next+1 > len(it.items) {
-		it.next = -1
-	} else {
-		it.next += 1
-	}
+	it.next++
 
 	return retVal, true
 }

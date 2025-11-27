@@ -8,13 +8,14 @@ import (
 	"log"
 	"math"
 	"os"
-	"reflect"
 	"strings"
 
 	// "regexp"
 	"sync"
 
 	progressbar "github.com/schollz/progressbar/v2"
+	"golang.org/x/sync/errgroup"
+
 	// "golang.org/x/sync/errgroup"
 
 	"github.com/sugarme/tokenizer/normalizer"
@@ -197,19 +198,19 @@ type InputSequence struct {
 // NewInputSequence creates a new InputSequence from input
 // A valid input can be a string type (RawInput) or slice of string (PretokenizedInput)
 func NewInputSequence(input interface{}) (retVal InputSequence) {
-	switch reflect.TypeOf(input).Kind().String() {
-	case "string":
-		return NewRawInputSequence(input.(string))
-	case "slice":
-		if reflect.TypeOf(input).Elem().Name() != "string" {
-			log.Fatalf("Invalid input type: Expected type of 'string' or '[]string', got %v\n", reflect.TypeOf(input).Kind().String())
-		}
+	switch v := input.(type) {
+	case string:
 		return InputSequence{
-			input:     input.([]string),
+			input:     []string{v},
+			inputType: RawInput,
+		}
+	case []string:
+		return InputSequence{
+			input:     v,
 			inputType: PretokenizedInput,
 		}
 	default:
-		log.Fatalf("Invalid input type: Expected type of 'string' or '[]string'. Got %v\n", reflect.TypeOf(input).Kind().String())
+		log.Fatalf("Invalid input type: Expected type of 'string' or '[]string'. Got %T\n", input)
 	}
 
 	return
@@ -452,28 +453,25 @@ func (t *Tokenizer) Encode(input EncodeInput, addSpecialTokens bool) (retVal *En
 	var encoding, pairEncoding *Encoding
 
 	// Encode and Postprocess
-	switch reflect.TypeOf(input).Name() {
-	case "Single":
-		seq := input.(Single).Sentence
-		encoding, err = t.EncodeSingleSequence(seq, 0, Byte)
+	switch v := input.(type) {
+	case Single:
+		encoding, err = t.EncodeSingleSequence(v.Sentence, 0, Byte)
 		if err != nil {
 			return retVal, err
 		}
 
-	case "Dual":
-		seq := input.(Dual).Sentence
-		encoding, err = t.EncodeSingleSequence(seq, 0, Byte)
+	case Dual:
+		encoding, err = t.EncodeSingleSequence(v.Sentence, 0, Byte)
 		if err != nil {
 			return retVal, err
 		}
-		pairSeq := input.(Dual).Pair
-		pairEncoding, err = t.EncodeSingleSequence(pairSeq, 1, Byte)
+		pairEncoding, err = t.EncodeSingleSequence(v.Pair, 1, Byte)
 		if err != nil {
 			return retVal, err
 		}
 
 	default:
-		log.Fatalf("Invalid input type - '%v'. \n", reflect.TypeOf(input).Name())
+		log.Fatalf("Invalid input type - '%T'. \n", input)
 	}
 
 	return t.PostProcess(encoding, pairEncoding, addSpecialTokens), nil
@@ -489,28 +487,25 @@ func (t *Tokenizer) EncodeCharOffsets(input EncodeInput, addSpecialTokens bool) 
 	)
 
 	// Encode and Postprocess
-	switch reflect.TypeOf(input).Name() {
-	case "Single":
-		seq := input.(Single).Sentence
-		encoding, err = t.EncodeSingleSequence(seq, 0, Char)
+	switch v := input.(type) {
+	case Single:
+		encoding, err = t.EncodeSingleSequence(v.Sentence, 0, Char)
 		if err != nil {
 			return nil, err
 		}
 
-	case "Dual":
-		seq := input.(Dual).Sentence
-		encoding, err = t.EncodeSingleSequence(seq, 0, Char)
+	case Dual:
+		encoding, err = t.EncodeSingleSequence(v.Sentence, 0, Char)
 		if err != nil {
 			return nil, err
 		}
-		pairSeq := input.(Dual).Pair
-		pairEncoding, err = t.EncodeSingleSequence(pairSeq, 1, Char)
+		pairEncoding, err = t.EncodeSingleSequence(v.Pair, 1, Char)
 		if err != nil {
 			return nil, err
 		}
 
 	default:
-		log.Fatalf("Invalid input type - '%v'. \n", reflect.TypeOf(input).Name())
+		log.Fatalf("Invalid input type - '%T'. \n", input)
 	}
 
 	return t.PostProcess(encoding, pairEncoding, addSpecialTokens), nil
@@ -645,28 +640,27 @@ func (t *Tokenizer) PostProcess(encoding, pairEncoding *Encoding, addSpecialToke
 func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (retVal []Encoding, err error) {
 	var (
 		encodings []Encoding = make([]Encoding, len(inputs))
-		wg        sync.WaitGroup
+		eg        errgroup.Group
 		mu        = &sync.Mutex{}
 	)
 
-	wg.Add(len(inputs))
-
 	// Encoding concurrently
-	for i := 0; i < len(inputs); i++ {
-		go func(i int) {
-			defer wg.Done()
-
+	for i := range inputs {
+		eg.Go(func() error {
 			e, err := t.Encode(inputs[i], addSpecialTokens)
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			mu.Lock()
 			encodings[i] = *e
 			mu.Unlock()
-		}(i)
+			return nil
+		})
 	}
 
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
 
 	// Do padding if included
 	if t.padding != nil {

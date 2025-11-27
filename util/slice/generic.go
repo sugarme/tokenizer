@@ -1,34 +1,24 @@
 package util
 
-import (
-	"reflect"
-)
-
 // Contain checks whether a element is in a slice (same type)
-func Contain(item interface{}, slice interface{}) bool {
-	s := reflect.ValueOf(slice)
-
-	if s.Kind() != reflect.Slice {
-		panic("Invalid data-type: item and slice are not with the same type.")
-	}
-
-	for i := 0; i < s.Len(); i++ {
-		if s.Index(i).Interface() == item {
+func Contain[T comparable](item T, slice []T) bool {
+	for _, v := range slice {
+		if v == item {
 			return true
 		}
 	}
-
 	return false
 }
 
 // Reverse reverses any slice
 // Source: https://stackoverflow.com/questions/28058278
-func Reverse(s interface{}) (retVal interface{}) {
-	n := reflect.ValueOf(s).Len()
-	swap := reflect.Swapper(s)
-	for i, j := 0, n-1; i < j; i, j = i+1, j-1 {
-		swap(i, j)
+func Reverse[T any](s []T) []T {
+	result := make([]T, len(s))
+	copy(result, s)
+
+	for i, j := 0, len(result)-1; i < j; i, j = i+1, j-1 {
+		result[i], result[j] = result[j], result[i]
 	}
 
-	return s
+	return result
 }
