@@ -642,7 +642,12 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		var removingFromOriginal, removingFromNormalized int = 0, 0
 		if totalBytesToRemove > 0 {
 			start := n.alignments[idx][1]
-			end := n.alignments[idx+totalBytesToRemove][1]
+			// Bounds check to prevent index out of range panic
+			endIdx := idx + totalBytesToRemove
+			if endIdx >= len(n.alignments) {
+				endIdx = len(n.alignments) - 1
+			}
+			end := n.alignments[endIdx][1]
 			originalRange := util.MakeRange(start, end)
 			// fmt.Printf("start: %v - end: %v; range: (%+v)\n", start, end, originalRange)
 			removingFromOriginal = len(originalRange)
