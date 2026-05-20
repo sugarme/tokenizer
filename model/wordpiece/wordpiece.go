@@ -152,10 +152,10 @@ func (wp WordPiece) ReadFiles(filename string) (retVal model.Vocab) {
 	defer file.Close()
 
 	var (
-		vocab model.Vocab
-		line  string
-		idx   int = 0
+		line string
+		idx  int = 0
 	)
+	vocab := make(model.Vocab)
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
