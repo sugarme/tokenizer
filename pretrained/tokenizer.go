@@ -71,13 +71,11 @@ func FromReader(r io.Reader) (*tokenizer.Tokenizer, error) {
 	}
 	tk.WithDecoder(decoder)
 
-	// 6. AddedVocabulary
-	specialAddedTokens, addedTokens := CreateAddedTokens(config.AddedTokens)
-	if len(specialAddedTokens) > 0 {
-		tk.AddSpecialTokens(specialAddedTokens)
-	}
-	if len(addedTokens) > 0 {
-		tk.AddTokens(addedTokens)
+	// 6. AddedVocabulary — use ID-preserving path so that compacted
+	//    tokenizers keep the exact added-token IDs from tokenizer.json.
+	addedTokensWithIds := CreateAddedTokensWithIds(config.AddedTokens)
+	if len(addedTokensWithIds) > 0 {
+		tk.AddTokensWithIds(addedTokensWithIds)
 	}
 
 	// 7. TruncationParams

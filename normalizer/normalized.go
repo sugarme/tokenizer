@@ -149,6 +149,11 @@ type NormalizedString struct {
 	// of the missing part, so that we can still give offsets from this original
 	// string.
 	originalShift int
+	// When true, skip all alignment tracking for performance. The resulting
+	// NormalizedString cannot convert offsets between original and normalized
+	// referentials, but all other operations (Split, Transform, etc.) work
+	// correctly. Use NewNormalizedFromFast to create such instances.
+	skipOffsets bool
 }
 
 // NewNormalizedFrom creates a Normalized instance from string input
@@ -165,6 +170,21 @@ func NewNormalizedFrom(s string) (retVal *NormalizedString) {
 		alignments:         createAligns(s),
 		alignmentsOriginal: createAligns(s),
 		originalShift:      0,
+	}
+}
+
+// NewNormalizedFromFast creates a NormalizedString without alignment tracking.
+// This is significantly faster than NewNormalizedFrom because it skips the
+// allocation of per-byte alignment arrays. The resulting NormalizedString
+// cannot convert offsets between original and normalized referentials, but
+// all mutation operations (Split, Transform, Prepend, etc.) still produce
+// correct normalized text. Use this when you only need token IDs and do not
+// need character-level offset mappings back to the original input.
+func NewNormalizedFromFast(s string) *NormalizedString {
+	return &NormalizedString{
+		original:    s,
+		normalized:  s,
+		skipOffsets: true,
 	}
 }
 
@@ -374,6 +394,15 @@ func (n *NormalizedString) Slice(inputRange *Range) (retVal *NormalizedString) {
 		return nil
 	}
 
+	if n.skipOffsets {
+		r := fullRange.IntoFullRange(len(n.normalized))
+		return &NormalizedString{
+			original:    n.normalized[r.start:r.end],
+			normalized:  n.normalized[r.start:r.end],
+			skipOffsets: true,
+		}
+	}
+
 	// 1. Find range on normalized (nRange) and original string (oRange)
 	var nRange, oRange *Range
 	switch fullRange.indexOn {
@@ -401,6 +430,9 @@ func (n *NormalizedString) Slice(inputRange *Range) (retVal *NormalizedString) {
 		sAlignments, sAlignmentsOriginal [][]int
 		sOriginalShift                   int
 	)
+
+	sAlignments = make([][]int, 0, nRange.end-nRange.start)
+	sAlignmentsOriginal = make([][]int, 0, oRange.end-oRange.start)
 
 	sOriginal = n.RangeOriginal(fullRange)
 	sNormalized = n.Range(fullRange)
@@ -438,6 +470,23 @@ type ChangeMap struct {
 // the beginning of the original one, we need an `initialOffset` which represents the number
 // of removed chars at the very beginning.
 func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeMap, initialOffset int) (retVal *NormalizedString) {
+
+	if n.skipOffsets {
+		var nStart, nEnd int
+		switch inputRange.indexOn {
+		case NormalizedTarget:
+			r := inputRange.IntoFullRange(n.Len())
+			nStart, nEnd = r.start, r.end
+		default: // OriginalTarget — only from Transform() which uses the full range
+			nStart, nEnd = 0, len(n.normalized)
+		}
+		var buf strings.Builder
+		for _, item := range changeMap {
+			buf.WriteString(item.RuneVal)
+		}
+		n.normalized = n.normalized[:nStart] + buf.String() + n.normalized[nEnd:]
+		return n
+	}
 
 	// fmt.Printf("normalized: %+v\n", n)
 	// fmt.Printf("inputRange: %v\n", inputRange)
@@ -1071,6 +1120,10 @@ func (n *NormalizedString) Filter(fn func(rune) bool) (retVal *NormalizedString)
 
 // Prepend adds given string to the begining of NormalizedString
 func (n *NormalizedString) Prepend(s string) (retVal *NormalizedString) {
+	if n.skipOffsets {
+		n.normalized = s + n.normalized
+		return n
+	}
 	chars := []rune(n.normalized)
 	var changeMap []ChangeMap
 	if len(chars) == 0 {
@@ -1095,6 +1148,10 @@ func (n *NormalizedString) Prepend(s string) (retVal *NormalizedString) {
 
 // Append adds given string to the end of NormalizedString
 func (n *NormalizedString) Append(s string) (retVal *NormalizedString) {
+	if n.skipOffsets {
+		n.normalized = n.normalized + s
+		return n
+	}
 
 	if n.normalized == "" {
 		return n
@@ -1202,6 +1259,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	// Process the matches according to the selected behavior: []OfssetsMatch
 	// where `Match` field is `shouldRemove`
 	var splits []OffsetsMatch
+	splits = make([]OffsetsMatch, 0, len(matches))
 	switch behavior {
 	case IsolatedBehavior:
 		for _, m := range matches {
@@ -1212,7 +1270,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		splits = matches
 	case MergedWithPreviousBehavior:
 		previousMatch := false
-		var acc []OffsetsMatch
+		acc := make([]OffsetsMatch, 0, len(matches))
 		for _, m := range matches {
 			if m.Match && !previousMatch {
 				if len(acc) > 0 {
@@ -1230,7 +1288,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 		splits = acc
 	case ContiguousBehavior:
 		previousMatch := false
-		var acc []OffsetsMatch
+		acc := make([]OffsetsMatch, 0, len(matches))
 		for _, m := range matches {
 			if m.Match == previousMatch {
 				if len(acc) > 0 {
@@ -1249,7 +1307,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 
 	case MergedWithNextBehavior:
 		previousMatch := false
-		var acc []OffsetsMatch
+		acc := make([]OffsetsMatch, 0, len(matches))
 		// iterate reversively
 		for i := len(matches) - 1; i >= 0; i-- {
 			m := matches[i]
@@ -1274,7 +1332,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	}
 
 	// Then split according to the computed splits
-	var slices []NormalizedString
+	slices := make([]NormalizedString, 0, len(splits))
 	for _, split := range splits {
 		if !split.Match {
 			slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))

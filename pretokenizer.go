@@ -5,6 +5,7 @@ package tokenizer
 import (
 	"fmt"
 	"log"
+	"unicode/utf8"
 	// "reflect"
 
 	"github.com/sugarme/tokenizer/normalizer"
@@ -71,14 +72,24 @@ type SplitFn func(int, *normalizer.NormalizedString) []SplitIdx
 // func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 
-	var newSplits []Split
+	newSplits := make([]Split, 0, len(pt.splits))
 	for i, originalSplit := range pt.splits {
 		if originalSplit.tokens != nil {
 			newSplits = append(newSplits, originalSplit)
 			continue
 		}
 
-		for _, splitIdx := range splitFn(i, originalSplit.normalized) {
+		splitIdxs := splitFn(i, originalSplit.normalized)
+		if cap(newSplits)-len(newSplits) < len(splitIdxs) {
+			grow := len(splitIdxs)
+			if grow < len(pt.splits) {
+				grow = len(pt.splits)
+			}
+			tmp := make([]Split, len(newSplits), len(newSplits)+grow)
+			copy(tmp, newSplits)
+			newSplits = tmp
+		}
+		for _, splitIdx := range splitIdxs {
 			if splitIdx.Normalized.GetNormalized() != "" {
 				// split := NewSplit(splitIdx.Normalized, splitIdx.Tokens)
 				split := Split{
@@ -98,7 +109,7 @@ func (pt *PreTokenizedString) Split(splitFn SplitFn) *PreTokenizedString {
 // using the provided `normalize` function.
 func (pt *PreTokenizedString) Normalize(nFn func(*normalizer.NormalizedString) *normalizer.NormalizedString) *PreTokenizedString {
 
-	var nSplits []Split
+	nSplits := make([]Split, 0, len(pt.splits))
 
 	for _, split := range pt.splits {
 		if split.tokens == nil {
@@ -115,7 +126,7 @@ func (pt *PreTokenizedString) Normalize(nFn func(*normalizer.NormalizedString) *
 // Tokenize tokenizes all the splits that do not have attached `Tokens`, using the provided
 // `tokenize` function
 func (pt *PreTokenizedString) Tokenize(tokFn func(*normalizer.NormalizedString) ([]Token, error)) (*PreTokenizedString, error) {
-	var nSplits []Split
+	nSplits := make([]Split, 0, len(pt.splits))
 
 	for _, split := range pt.splits {
 		newSplit := split
@@ -160,7 +171,8 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 		currRuneIdx := 0
 		for byteIdx, r := range pt.original {
 			n := 0
-			for i := 0; i < len([]byte(string(r))); i++ {
+			runeLen := utf8.RuneLen(r)
+			for i := 0; i < runeLen; i++ {
 				charMap[byteIdx+n] = currRuneIdx
 				n += 1
 			}
@@ -254,6 +266,32 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 	return en, nil
 }
 
+// IntoIDs extracts just the token IDs from a tokenized PreTokenizedString.
+// This is a faster alternative to IntoEncoding when only IDs are needed,
+// as it skips offset conversion and Encoding struct construction.
+// This method will fail if some splits do not have associated Tokens.
+func (pt *PreTokenizedString) IntoIDs() ([]int, error) {
+	if len(pt.splits) == 0 {
+		return nil, nil
+	}
+
+	n := 0
+	for _, s := range pt.splits {
+		if s.tokens == nil {
+			return nil, fmt.Errorf("Split has not been tokenized. Call 'PreTokenizedString.Tokenize()' method first.\n")
+		}
+		n += len(s.tokens)
+	}
+
+	ids := make([]int, 0, n)
+	for _, s := range pt.splits {
+		for _, tok := range s.tokens {
+			ids = append(ids, tok.Id)
+		}
+	}
+	return ids, nil
+}
+
 // GetSplits returns a list of splits, each of them being a slice of the normalized
 // string, the associated offsets either in original or normalized
 // referential, as well as the potention tokens
@@ -308,6 +346,13 @@ func NewPreTokenizedString(s string) *PreTokenizedString {
 	return NewPreTokenizedStringFromNS(n)
 }
 
+// NewPreTokenizedStringFast creates a PreTokenizedString without offset tracking.
+// See normalizer.NewNormalizedFromFast for details on the performance trade-off.
+func NewPreTokenizedStringFast(s string) *PreTokenizedString {
+	n := normalizer.NewNormalizedFromFast(s)
+	return NewPreTokenizedStringFromNS(n)
+}
+
 type OffsetConverter interface {
 	Convert(offsets []int) ([]int, error)
 }
@@ -322,7 +367,7 @@ func NewBytesToCharOffsetConverter(sequence string) *BytesToCharOffsetConverter 
 	b2c := make(map[int]int)
 	n := 0
 	for charIdx, char := range chars {
-		nbytes := len([]byte(string(char)))
+		nbytes := utf8.RuneLen(char)
 		for i := 0; i < nbytes; i++ {
 			byteIdx := n + i
 			b2c[byteIdx] = charIdx

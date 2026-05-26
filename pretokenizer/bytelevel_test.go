@@ -186,6 +186,34 @@ func TestHandlingOfNewLines(t *testing.T) {
 	}
 }
 
+func TestNoRegexSplitKeepsSingleSpan(t *testing.T) {
+	bytelevel := pretokenizer.NewByteLevel()
+	bytelevel.SetAddPrefixSpace(false)
+	bytelevel.SetUseRegex(false)
+
+	input := "Hello there\nfriend!"
+	pretokenized := tokenizer.NewPreTokenizedString(input)
+
+	pretok, err := bytelevel.PreTokenize(pretokenized)
+	if err != nil {
+		t.Error(err)
+	}
+
+	splits := pretok.GetSplits(normalizer.OriginalTarget, tokenizer.Byte)
+	if len(splits) != 1 {
+		t.Fatalf("want 1 split when use_regex=false, got %d", len(splits))
+	}
+
+	if !reflect.DeepEqual([]int{0, len(input)}, splits[0].Offsets) {
+		t.Fatalf("want offsets %v, got %v", []int{0, len(input)}, splits[0].Offsets)
+	}
+
+	decoded := bytelevel.Decode(strings.Split(splits[0].Value, ""))
+	if decoded != input {
+		t.Fatalf("want %q after decode, got %q", input, decoded)
+	}
+}
+
 func TestHandlingOfMultipleSpaces(t *testing.T) {
 
 	bytelevel := pretokenizer.NewByteLevel()

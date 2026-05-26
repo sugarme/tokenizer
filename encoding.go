@@ -134,10 +134,54 @@ func NewEncodingFromTokens(tokens []Token, typeId int) (retVal *Encoding) {
 }
 
 func (e *Encoding) Clone() *Encoding {
-	out := new(Encoding)
-	err := util.DeepCopy(e, out)
-	if err != nil {
-		panic(err)
+	out := cloneEncoding(*e)
+	return &out
+}
+
+func cloneRange(r Range) Range {
+	if r == nil {
+		return nil
+	}
+	out := make(Range, len(r))
+	copy(out, r)
+	return out
+}
+
+func rangesEqual(a, b Range) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func cloneEncoding(in Encoding) Encoding {
+	out := Encoding{}
+
+	out.Ids = append([]int(nil), in.Ids...)
+	out.TypeIds = append([]int(nil), in.TypeIds...)
+	out.Tokens = append([]string(nil), in.Tokens...)
+	out.SpecialTokenMask = append([]int(nil), in.SpecialTokenMask...)
+	out.AttentionMask = append([]int(nil), in.AttentionMask...)
+	out.Words = append([]int(nil), in.Words...)
+
+	out.Offsets = make([][]int, len(in.Offsets))
+	for i, o := range in.Offsets {
+		out.Offsets[i] = append([]int(nil), o...)
+	}
+
+	out.Overflowing = make([]Encoding, len(in.Overflowing))
+	for i := range in.Overflowing {
+		out.Overflowing[i] = cloneEncoding(in.Overflowing[i])
+	}
+
+	out.SequenceRanges = make(map[int]Range, len(in.SequenceRanges))
+	for k, r := range in.SequenceRanges {
+		out.SequenceRanges[k] = cloneRange(r)
 	}
 
 	return out
@@ -459,9 +503,15 @@ func (e *Encoding) MergeWith(pair *Encoding, growingOffsets bool) (retVal *Encod
 			start := originalLen + r[0]
 			end := originalLen + r[r.Len()-1] + 1
 			newRange := NewRange(start, end)
-			var oldRange Range
-			util.DeepCopy(e.SequenceRanges[seqId], oldRange)
-			e.SequenceRanges[seqId] = util.Merge(oldRange, newRange)
+			oldRange, ok := e.SequenceRanges[seqId]
+			if !ok || len(oldRange) == 0 {
+				e.SequenceRanges[seqId] = newRange
+				continue
+			}
+			if rangesEqual(oldRange, newRange) {
+				continue
+			}
+			e.SequenceRanges[seqId] = util.Merge(cloneRange(oldRange), newRange)
 		}
 	}
 
@@ -519,8 +569,16 @@ func mergeEncoding(en1, en2 Encoding, growingOffsets bool) Encoding {
 			start := originalLen + r[0]
 			end := originalLen + r[r.Len()-1] + 1
 			newRange := NewRange(start, end)
-			oldRange := en1.SequenceRanges[seqId]
-			sequenceRanges[seqId] = append(oldRange, newRange...)
+			oldRange, ok := en1.SequenceRanges[seqId]
+			if !ok || len(oldRange) == 0 {
+				sequenceRanges[seqId] = newRange
+				continue
+			}
+			if rangesEqual(oldRange, newRange) {
+				sequenceRanges[seqId] = oldRange
+				continue
+			}
+			sequenceRanges[seqId] = util.Merge(cloneRange(oldRange), newRange)
 		}
 	} else {
 		sequenceRanges = en1.SequenceRanges
@@ -586,7 +644,7 @@ func (e *Encoding) pad(targetLength, padId, padTypeId int, padToken string, dire
 		for i := 0; i < len(newTypeIds); i++ {
 			newTypeIds[i] = padTypeId
 		}
-		newTypeIds = append(newTypeIds, e.Ids...)
+		newTypeIds = append(newTypeIds, e.TypeIds...)
 		e.TypeIds = newTypeIds
 
 		newTokens := make([]string, padLength)

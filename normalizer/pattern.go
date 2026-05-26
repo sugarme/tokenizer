@@ -1,12 +1,66 @@
 package normalizer
 
 import (
-	"log"
-	// "reflect"
 	"regexp"
+	"sync"
+	"unicode/utf8"
 
-	"github.com/sugarme/tokenizer/util"
+	"github.com/dlclark/regexp2"
 )
+
+var runeToBytePool = sync.Pool{
+	New: func() any {
+		buf := make([]int, 0, 256)
+		return &buf
+	},
+}
+
+var regexp2MatchPool = sync.Pool{
+	New: func() any {
+		buf := make([][2]int, 0, 16)
+		return &buf
+	},
+}
+
+func getRuneToByteScratch(minCap int) *[]int {
+	buf := runeToBytePool.Get().(*[]int)
+	if cap(*buf) < minCap {
+		*buf = make([]int, 0, minCap)
+	} else {
+		*buf = (*buf)[:0]
+	}
+	return buf
+}
+
+func putRuneToByteScratch(buf *[]int) {
+	const maxRetainedCap = 1 << 20
+	if cap(*buf) > maxRetainedCap {
+		*buf = make([]int, 0, 256)
+	} else {
+		*buf = (*buf)[:0]
+	}
+	runeToBytePool.Put(buf)
+}
+
+func getRegexp2MatchScratch(minCap int) *[][2]int {
+	buf := regexp2MatchPool.Get().(*[][2]int)
+	if cap(*buf) < minCap {
+		*buf = make([][2]int, 0, minCap)
+	} else {
+		*buf = (*buf)[:0]
+	}
+	return buf
+}
+
+func putRegexp2MatchScratch(buf *[][2]int) {
+	const maxRetainedCap = 1 << 14
+	if cap(*buf) > maxRetainedCap {
+		*buf = make([][2]int, 0, 16)
+	} else {
+		*buf = (*buf)[:0]
+	}
+	regexp2MatchPool.Put(buf)
+}
 
 // Pattern is used to split a NormalizedString
 type Pattern interface {
@@ -55,7 +109,7 @@ func (r *RunePattern) FindMatches(inside string) []OffsetsMatch {
 
 	for byteIdx, char := range inside {
 		if char == r.rune {
-			nextIdx := byteIdx + len(string(char))
+			nextIdx := byteIdx + utf8.RuneLen(char)
 			// 1. Add previous unmatched if any
 			if hasPrevious {
 				prev := OffsetsMatch{Offsets: []int{prevStart, byteIdx}, Match: false}
@@ -89,16 +143,18 @@ func (r *RunePattern) FindMatches(inside string) []OffsetsMatch {
 // String is a wrapper of primitive string
 // so that it can implement `Pattern` interface
 type StringPattern struct {
-	string
+	s  string
+	re *regexp.Regexp
 }
 
 func NewStringPattern(s string) *StringPattern {
-	return &StringPattern{s}
+	quoted := regexp.QuoteMeta(s)
+	return &StringPattern{s: s, re: regexp.MustCompile(quoted)}
 }
 
 func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 	// If we try to find the matches with an empty string, just don't match anything
-	if s.string == "" {
+	if s.s == "" {
 		return []OffsetsMatch{
 			{
 				Offsets: []int{0, len(inside)},
@@ -107,16 +163,10 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 		}
 	}
 
-	quoted := regexp.QuoteMeta(s.string)
-
-	re := regexp.MustCompile(quoted)
-
-	return findMatches(re, inside)
+	return findMatches(s.re, inside)
 }
 
-func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
-
-	matches := re.FindAllStringIndex(inside, -1)
+func buildMatchesFromIndices(matches [][]int, inside string) []OffsetsMatch {
 
 	// 0. If no matches, just return
 	if len(matches) == 0 {
@@ -130,7 +180,7 @@ func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 
 	var (
 		currIndex int = 0
-		subs      []OffsetsMatch
+		subs          = make([]OffsetsMatch, 0, len(matches)*2+1)
 	)
 
 	// 1. Sub before matched if any
@@ -184,15 +234,116 @@ func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
 	return subs
 }
 
-type RegexpPattern struct {
-	re *regexp.Regexp
+func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
+	matches := re.FindAllStringIndex(inside, -1)
+	return buildMatchesFromIndices(matches, inside)
 }
 
-func NewRegexpPattern(s string) *RegexpPattern {
-	re := regexp.MustCompile(s)
-	return &RegexpPattern{
-		re: re,
+// collectRegexp2Indices collects all match [start, end) rune offsets from re
+// into dst, reusing the slice to avoid per-call allocation.
+func collectRegexp2Indices(re *regexp2.Regexp, s string, dst [][2]int) [][2]int {
+	dst = dst[:0]
+	m, err := re.FindStringMatch(s)
+	for err == nil && m != nil {
+		dst = append(dst, [2]int{m.Index, m.Index + m.Length})
+		m, err = re.FindNextMatch(m)
 	}
+	return dst
+}
+
+func findMatchesRegexp2(re *regexp2.Regexp, inside string) []OffsetsMatch {
+	asciiOnly := true
+	for i := 0; i < len(inside); i++ {
+		if inside[i] >= utf8.RuneSelf {
+			asciiOnly = false
+			break
+		}
+	}
+
+	var (
+		runeToByte    []int
+		runeToByteBuf *[]int
+	)
+	if !asciiOnly {
+		runeToByteBuf = getRuneToByteScratch(utf8.RuneCountInString(inside) + 1)
+		runeToByte = *runeToByteBuf
+		for byteIdx := range inside {
+			runeToByte = append(runeToByte, byteIdx)
+		}
+		runeToByte = append(runeToByte, len(inside))
+		*runeToByteBuf = runeToByte
+	}
+
+	toByte := func(runeIdx int) int {
+		if runeIdx < 0 {
+			return 0
+		}
+		if asciiOnly {
+			if runeIdx > len(inside) {
+				return len(inside)
+			}
+			return runeIdx
+		}
+		if runeIdx >= len(runeToByte) {
+			return len(inside)
+		}
+		return runeToByte[runeIdx]
+	}
+
+	runeMatchesBuf := getRegexp2MatchScratch(8)
+	runeMatches := collectRegexp2Indices(re, inside, *runeMatchesBuf)
+	if len(runeMatches) == 0 {
+		putRegexp2MatchScratch(runeMatchesBuf)
+		if runeToByteBuf != nil {
+			putRuneToByteScratch(runeToByteBuf)
+		}
+		return []OffsetsMatch{{Offsets: []int{0, len(inside)}, Match: false}}
+	}
+
+	matches := make([]OffsetsMatch, 0, len(runeMatches)*2+1)
+	curr := 0
+	for _, rm := range runeMatches {
+		start := toByte(rm[0])
+		end := toByte(rm[1])
+		if start > curr {
+			matches = append(matches, OffsetsMatch{Offsets: []int{curr, start}, Match: false})
+		}
+		matches = append(matches, OffsetsMatch{Offsets: []int{start, end}, Match: true})
+		curr = end
+	}
+	*runeMatchesBuf = runeMatches
+	putRegexp2MatchScratch(runeMatchesBuf)
+
+	if runeToByteBuf != nil {
+		putRuneToByteScratch(runeToByteBuf)
+	}
+
+	if curr < len(inside) {
+		matches = append(matches, OffsetsMatch{Offsets: []int{curr, len(inside)}, Match: false})
+	}
+
+	return matches
+}
+
+// RegexpPattern uses github.com/dlclark/regexp2 for regex matching,
+// which supports lookaheads, lookbehinds, and other features not
+// available in Go's standard regexp package. This enables compatibility
+// with tokenizer patterns used by GPT-4, Qwen, Llama 3, and other
+// modern models that rely on .NET/PCRE-style regex syntax.
+type RegexpPattern struct {
+	re     *regexp2.Regexp
+	source string
+}
+
+// NewRegexpPattern compiles the given pattern using regexp2 and returns
+// a RegexpPattern that implements the Pattern interface. Panics if the
+// pattern cannot be compiled.
+func NewRegexpPattern(s string) *RegexpPattern {
+	re, err := regexp2.Compile(s, 0)
+	if err != nil {
+		panic(err)
+	}
+	return &RegexpPattern{re: re, source: s}
 }
 
 // FindMatches implements Pattern interface for RegexpPattern
@@ -206,7 +357,7 @@ func (rp *RegexpPattern) FindMatches(inside string) []OffsetsMatch {
 		}
 	}
 
-	return findMatches(rp.re, inside)
+	return findMatchesRegexp2(rp.re, inside)
 }
 
 // PatternFn is a func type to apply pattern
@@ -239,7 +390,7 @@ func (fp *FnPattern) FindMatches(inside string) []OffsetsMatch {
 
 	for byteIdx, char := range inside {
 		if fp.fn(char) {
-			nextIdx := byteIdx + len(string(char))
+			nextIdx := byteIdx + utf8.RuneLen(char)
 			// 1. Add previous unmatched if any
 			if hasPrevious {
 				prev := OffsetsMatch{Offsets: []int{prevStart, byteIdx}, Match: false}
@@ -284,30 +435,14 @@ func NewInvertPattern(p Pattern) *Invert {
 
 // FindMatches implement Pattern interface for Invert
 func (i *Invert) FindMatches(inside string) []OffsetsMatch {
-	var matches []OffsetsMatch
-	typ := util.GetType(i.Pattern)
-	switch typ {
-	case "*StringPattern":
-		matches = i.Pattern.(*StringPattern).FindMatches(inside)
-	case "*RunePattern":
-		matches = i.Pattern.(*RunePattern).FindMatches(inside)
-	case "*FnPattern":
-		matches = i.Pattern.(*FnPattern).FindMatches(inside)
-	case "*RegexpPattern":
-		matches = i.Pattern.(*RegexpPattern).FindMatches(inside)
-
-	default:
-		log.Fatalf("Unsupported type - %q\n", typ)
-	}
-
-	return invert(matches)
+	return invert(i.Pattern.FindMatches(inside))
 }
 
 func invert(matches []OffsetsMatch) (retVal []OffsetsMatch) {
-	var res []OffsetsMatch
-	for _, m := range matches {
+	res := make([]OffsetsMatch, len(matches))
+	for i, m := range matches {
 		m.Match = !m.Match
-		res = append(res, m)
+		res[i] = m
 	}
 
 	return res

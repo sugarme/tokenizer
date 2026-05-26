@@ -14,6 +14,13 @@ func NewSequence(pretokenizers []tokenizer.PreTokenizer) *Sequence {
 	return &Sequence{pretokenizers}
 }
 
+// PreTokenizers returns the underlying pretokenizer slice, allowing
+// callers to inspect the pipeline (e.g., to detect a ByteLevel stage
+// for fast-path optimizations).
+func (p *Sequence) PreTokenizers() []tokenizer.PreTokenizer {
+	return p.pretokenizers
+}
+
 // Implement tokenizer.PreTokenizer for Sequence
 
 func (p *Sequence) PreTokenize(v *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {

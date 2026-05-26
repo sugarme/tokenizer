@@ -29,7 +29,7 @@ func (s *Split) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokeni
 			invert := normalizer.NewInvertPattern(s.Pattern)
 			splits := normalized.Split(invert, s.Behavior)
 
-			var splitIdxs []tokenizer.SplitIdx
+			splitIdxs := make([]tokenizer.SplitIdx, 0, len(splits))
 			for _, s := range splits {
 				normalized := s
 				splitIdx := tokenizer.SplitIdx{Normalized: &normalized, Tokens: nil}
@@ -45,7 +45,7 @@ func (s *Split) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokeni
 		pretok := pretokenized.Split(func(noop int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
 			splits := normalized.Split(s.Pattern, s.Behavior)
 
-			var splitIdxs []tokenizer.SplitIdx
+			splitIdxs := make([]tokenizer.SplitIdx, 0, len(splits))
 			for _, s := range splits {
 				normalized := s
 				splitIdx := tokenizer.SplitIdx{Normalized: &normalized, Tokens: nil}

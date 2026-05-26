@@ -68,10 +68,12 @@ func createByteLevelPreTokenizer(params *util.Params) (tokenizer.PreTokenizer, e
 
 	addPrefixSpace := params.Get("add_prefix_space", false).(bool)
 	trimOffsets := params.Get("trim_offsets", false).(bool)
+	useRegex := params.Get("use_regex", true).(bool)
 
 	return &pretokenizer.ByteLevel{
 		AddPrefixSpace: addPrefixSpace,
 		TrimOffsets:    trimOffsets,
+		UseRegex:       useRegex,
 	}, nil
 }
 

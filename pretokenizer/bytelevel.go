@@ -1,7 +1,6 @@
 package pretokenizer
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/sugarme/tokenizer"
@@ -17,7 +16,7 @@ import (
 // TODO: this RE does not cover the case with trailing whitespace!!!
 const splitRegStr = `'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+`
 
-var splitRE = regexp.MustCompile(splitRegStr)
+var splitPattern = normalizer.NewRegexpPattern(splitRegStr)
 
 var BytesChar map[uint8]string = GenerateBytesChar()
 
@@ -143,6 +142,11 @@ type ByteLevel struct {
 	// Whether the post processing step should trim offsets
 	// to avoid including whitespaces.
 	TrimOffsets bool
+
+	// Whether to apply GPT-2 regex splitting before byte mapping.
+	// This defaults to true and should be disabled when a prior
+	// pre-tokenizer already performs splitting.
+	UseRegex bool
 }
 
 // NewByteLevel returns a default ByteLevel with both
@@ -151,6 +155,7 @@ func NewByteLevel() *ByteLevel {
 	return &ByteLevel{
 		AddPrefixSpace: true,
 		TrimOffsets:    true,
+		UseRegex:       true,
 	}
 }
 
@@ -174,6 +179,12 @@ func (bl *ByteLevel) SetTrimOffsets(v bool) {
 	bl.TrimOffsets = v
 }
 
+// SetUseRegex controls whether byte-level pretokenization applies
+// an additional regex split stage before byte mapping.
+func (bl *ByteLevel) SetUseRegex(v bool) {
+	bl.UseRegex = v
+}
+
 // Implement `PreTokenizer` methods for `ByteLevel`:
 // =================================================
 
@@ -187,10 +198,13 @@ func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*t
 			newNormalized = normalized.Prepend(" ")
 		}
 
-		splitPattern := normalizer.NewRegexpPattern(splitRegStr)
+		if !bl.UseRegex {
+			return []tokenizer.SplitIdx{{Normalized: newNormalized, Tokens: nil}}
+		}
+
 		splits := newNormalized.Split(splitPattern, normalizer.IsolatedBehavior)
 
-		var splitIdx []tokenizer.SplitIdx
+		splitIdx := make([]tokenizer.SplitIdx, 0, len(splits))
 		for _, s := range splits {
 			split := s // NOTE: to deep copy variable otherwise its updated to the last item as we will pass its pointer.
 			splitIdx = append(splitIdx, tokenizer.SplitIdx{Normalized: &split, Tokens: nil})

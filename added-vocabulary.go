@@ -7,7 +7,6 @@ import (
 	"sort"
 	"unicode"
 
-	"github.com/sugarme/regexpset"
 	"github.com/sugarme/tokenizer/normalizer"
 )
 
@@ -180,8 +179,8 @@ func isWordCharacter(r rune) bool {
 
 // matchingSet is a set of regular expression string
 type matchingSet struct {
-	regexSet regexpset.RegexpSet
-	ids      []int
+	ids     []int
+	regexps []*regexp.Regexp
 }
 
 // AddedVocabulary is a vocabulary built on top of the Model
@@ -346,17 +345,18 @@ func (av *AddedVocabulary) refreshAddedTokens(model Model, normalizer normalizer
 		}
 	}
 
-	normSet, err := regexpset.NewRegexpSet(normPatterns)
-	if err != nil {
-		log.Fatal(err)
-	}
-	nnormSet, err := regexpset.NewRegexpSet(nnormPatterns)
-	if err != nil {
-		log.Fatal(err)
+	normRegexps := make([]*regexp.Regexp, len(normPatterns))
+	for i, p := range normPatterns {
+		normRegexps[i] = regexp.MustCompile(p)
 	}
 
-	av.splitNormalizedRe = matchingSet{*normSet, normIds}
-	av.splitRe = matchingSet{*nnormSet, nnormIds}
+	nnormRegexps := make([]*regexp.Regexp, len(nnormPatterns))
+	for i, p := range nnormPatterns {
+		nnormRegexps[i] = regexp.MustCompile(p)
+	}
+
+	av.splitNormalizedRe = matchingSet{normIds, normRegexps}
+	av.splitRe = matchingSet{nnormIds, nnormRegexps}
 }
 
 type idOffsets struct {
@@ -390,11 +390,9 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 		return []idOffsets{{-1, []int{0, 0}}}
 	}
 
-	matches := splitRe.regexSet.Matches(sentence).Matches()
-	var ioPairs []idOffsets
+	ioPairs := make([]idOffsets, 0, len(splitRe.regexps)*2)
 
-	for _, idx := range matches {
-		r := regexp.MustCompile(splitRe.regexSet.Patterns()[idx])
+	for idx, r := range splitRe.regexps {
 		locs := r.FindAllStringIndex(sentence, -1)
 		for _, loc := range locs {
 			id := idx
@@ -403,15 +401,22 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 		}
 	}
 
-	// Sort id-offsets by start then by pattern id
-	sort.Sort(byStart(ioPairs))
-	sort.Sort(byId(ioPairs))
+	// Sort id-offsets by start, then by pattern id.
+	sort.Slice(ioPairs, func(i, j int) bool {
+		if ioPairs[i].offsets[0] != ioPairs[j].offsets[0] {
+			return ioPairs[i].offsets[0] < ioPairs[j].offsets[0]
+		}
+		if ioPairs[i].offsets[1] != ioPairs[j].offsets[1] {
+			return ioPairs[i].offsets[1] < ioPairs[j].offsets[1]
+		}
+		return ioPairs[i].id < ioPairs[j].id
+	})
 
-	// Select the matches, if they overlap, keep them
+	// Select matches greedily. With sort(start, id), overlapping ties pick lowest id.
 	var (
-		i              int         = 0
-		currentOffsets int         = 0
-		splits         []idOffsets = make([]idOffsets, 0)
+		i              int = 0
+		currentOffsets int = 0
+		splits             = make([]idOffsets, 0, len(ioPairs))
 	)
 
 	for i < len(ioPairs) {
@@ -423,20 +428,6 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 			continue
 		}
 
-		// Find out whether having overlapping neighbours.
-		// If so, keep the one with lowest Idx. All other will be skipped
-		// because `currentOffsets` will have been increased.
-		if i+1 < len(ioPairs) {
-			overlapPairs := ioPairs[i:]
-			sort.Sort(byId(overlapPairs))
-			lowestPair := overlapPairs[0] // lowest Id one
-			splits = append(splits, lowestPair)
-			currentOffsets = ioPair.offsets[1]
-			i++
-			continue
-		}
-
-		// Not found overlap neighbours. Just apply itself
 		splits = append(splits, ioPair)
 		currentOffsets = ioPair.offsets[1]
 		i++
@@ -445,7 +436,7 @@ func (av *AddedVocabulary) findMatches(sentence string, splitRe matchingSet) (re
 	// Also, insert the splits in-between added tokens, to split the entire string
 	var (
 		startOffset int = 0
-		finalSplits []idOffsets
+		finalSplits     = make([]idOffsets, 0, len(splits)*2+1)
 	)
 
 	for _, ioPair := range splits {
@@ -501,6 +492,9 @@ func (av *AddedVocabulary) splitWithIndices(sentence *normalizer.NormalizedStrin
 // input sentence `I read a book Yesterday`, if the normalizer is supposed to lowercase
 // everything, we expect a match.
 func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n normalizer.Normalizer) *PreTokenizedString {
+	if len(av.splitRe.regexps) == 0 && len(av.splitNormalizedRe.regexps) == 0 {
+		return NewPreTokenizedString(sequence)
+	}
 
 	pretokenized := NewPreTokenizedString(sequence)
 
@@ -525,10 +519,69 @@ func (av *AddedVocabulary) ExtractAndNormalize(sequence string, n normalizer.Nor
 	return pretok2
 }
 
+// ExtractAndNormalizeFast is like ExtractAndNormalize but creates
+// NormalizedStrings without offset tracking for better performance.
+// Use this when only token IDs are needed and offset mappings are not required.
+func (av *AddedVocabulary) ExtractAndNormalizeFast(sequence string, n normalizer.Normalizer) *PreTokenizedString {
+	if len(av.splitRe.regexps) == 0 && len(av.splitNormalizedRe.regexps) == 0 {
+		return NewPreTokenizedStringFast(sequence)
+	}
+
+	pretokenized := NewPreTokenizedStringFast(sequence)
+
+	pretok1 := pretokenized.Split(func(idx int, seq *normalizer.NormalizedString) []SplitIdx {
+		return av.splitWithIndices(seq, av.splitRe)
+	})
+
+	pretok2 := pretok1.Split(func(i int, seq *normalizer.NormalizedString) []SplitIdx {
+		newSeq := seq
+		var err error
+		if n != nil {
+			newSeq, err = n.Normalize(seq)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return av.splitWithIndices(newSeq, av.splitNormalizedRe)
+	})
+
+	return pretok2
+}
+
 type AddedTokenWithId struct {
 	Id      int        // Id assigned to this token
 	Special bool       // whether this is a special token
 	Token   AddedToken // the target AddedToken
+}
+
+// AddTokensWithIds registers tokens with explicit IDs from the tokenizer.json,
+// preserving the exact ID assignments rather than computing new ones.
+// This is critical for tokenizers with compacted vocabularies where the
+// added_tokens array specifies exact ID values that must be respected.
+func (av *AddedVocabulary) AddTokensWithIds(tokenIds []AddedTokenWithId, model Model, normalizer normalizer.Normalizer) int {
+	added := 0
+	for _, ti := range tokenIds {
+		if ti.Token.Content == "" {
+			continue
+		}
+
+		// Register with the specified ID, unconditionally.
+		av.addedTokenMap[ti.Token.Content] = ti.Id
+		av.addedTokenMapR[ti.Id] = ti.Token.Content
+
+		if ti.Special {
+			if _, exists := av.specialTokensSet[ti.Token.Content]; !exists {
+				av.specialTokens = append(av.specialTokens, ti.Token)
+				av.specialTokensSet[ti.Token.Content] = true
+			}
+		} else {
+			av.addedTokens = append(av.addedTokens, ti.Token)
+		}
+		added++
+	}
+
+	av.refreshAddedTokens(model, normalizer)
+	return added
 }
 
 // Implement Serialize interface for AddedVocabular:
