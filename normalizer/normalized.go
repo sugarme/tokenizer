@@ -640,7 +640,8 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		//      and are just part of the normalized string
 
 		var removingFromOriginal, removingFromNormalized int = 0, 0
-		if totalBytesToRemove > 0 {
+		// Guard: idx may equal len(n.alignments) when removals fall at the very end of the string.
+		if totalBytesToRemove > 0 && idx < len(n.alignments) {
 			start := n.alignments[idx][1]
 			// Bounds check to prevent index out of range panic
 			endIdx := idx + totalBytesToRemove
