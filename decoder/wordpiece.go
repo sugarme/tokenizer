@@ -31,12 +31,9 @@ func NewWordPieceDecoder(prefix string, cleanup bool) *WordPieceDecoder {
 	return d
 }
 
-// DefaultBpeDecoder create a new BpeDecoder with default suffix (`</w>`)
+// DefaultWordpieceDecoder creates a new WordPieceDecoder with default prefix (`##`)
 func DefaultWordpieceDecoder() *WordPieceDecoder {
-	return &WordPieceDecoder{
-		prefix:  "##",
-		cleanup: true,
-	}
+	return NewWordPieceDecoder("##", true)
 }
 
 /*
