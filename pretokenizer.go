@@ -166,6 +166,7 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 			}
 			currRuneIdx += 1
 		}
+		charMap[len(pt.original)] = currRuneIdx
 	case offsetType == Byte:
 		charMap = make(map[int]int, 0)
 
@@ -331,6 +332,8 @@ func NewBytesToCharOffsetConverter(sequence string) *BytesToCharOffsetConverter 
 		n += nbytes
 	}
 
+	// Half-open token spans may end exactly at the end of the input.
+	b2c[len(sequence)] = len(chars)
 	return &BytesToCharOffsetConverter{b2c}
 }
 

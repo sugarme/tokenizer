@@ -268,7 +268,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
 			Id:      id,
-			Offsets: []int{0, charLen},
+			Offsets: []int{0, len(sequence)},
 		}
 		outputTokens = append(outputTokens, token)
 
@@ -280,6 +280,13 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 		start     int  = 0
 		subTokens []tokenizer.Token
 	)
+
+	// Matching uses rune indices; token offsets address the original UTF-8 bytes.
+	byteOffsets := make([]int, 0, charLen+1)
+	for byteIndex := range sequence {
+		byteOffsets = append(byteOffsets, byteIndex)
+	}
+	byteOffsets = append(byteOffsets, len(sequence))
 
 	for start < charLen {
 		end := charLen
@@ -295,7 +302,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 				currStr = &tokenizer.Token{
 					Id:      id,
 					Value:   substr,
-					Offsets: []int{start, end},
+					Offsets: []int{byteOffsets[start], byteOffsets[end]},
 				}
 
 				break
@@ -320,7 +327,7 @@ func (wp WordPiece) Tokenize(sequence string) (retVal []tokenizer.Token, err err
 		token := tokenizer.Token{
 			Value:   wp.unkToken,
 			Id:      id,
-			Offsets: []int{0, charLen},
+			Offsets: []int{0, len(sequence)},
 		}
 
 		outputTokens = append(outputTokens, token)
