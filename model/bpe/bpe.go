@@ -384,13 +384,14 @@ func (b *BPE) MergeWord(w string) *Word {
 		)
 		byteLen = len(string(r))
 
-		// if first rune, add prefix
-		if byteIdx == 0 {
-			s = fmt.Sprintf("%v%v", prefix, string(r))
-		} else if currRuneIdx == len(chars) { // last rune, add suffix
-			s = fmt.Sprintf("%v%v", string(r), suffix)
-		} else { // the rest
-			s = string(r)
+		s = string(r)
+		// Continuation prefixes belong to every rune after the first.
+		if byteIdx > 0 {
+			s = prefix + s
+		}
+		// A one-rune word is also its last rune.
+		if currRuneIdx == len(chars)-1 {
+			s += suffix
 		}
 		currRuneIdx++
 
