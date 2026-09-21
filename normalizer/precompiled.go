@@ -28,7 +28,7 @@ func replace(transformations []ChangeMap, oldPart, newPart string) []ChangeMap {
 	switch {
 	case diff > 0:
 		// If adding some characters, the last diff characters should be == 1
-		for i := n - 1; i >= diff || i >= 0; i-- {
+		for i := n - 1; i >= n-diff; i-- {
 			transformations[i].Changes = 1
 		}
 	case diff < 0:
@@ -47,10 +47,7 @@ type Precompiled struct {
 // Implement Normalizer for spm.Precompiled
 func (m *Precompiled) Normalize(normalized *NormalizedString) (*NormalizedString, error) {
 	original := normalized.GetNormalized()
-	var transformations []ChangeMap
-	for i := 0; i < len(original); i++ {
-		transformations = append(transformations, ChangeMap{})
-	}
+	transformations := make([]ChangeMap, 0, len(original))
 
 	graphemes := uniseg.NewGraphemes(original)
 
