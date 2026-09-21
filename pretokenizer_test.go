@@ -32,6 +32,7 @@ func TestBytesToCharConverter(t *testing.T) {
 		18: 12,
 		19: 13,
 		20: 14,
+		21: 15, // exclusive end of the input
 	}
 
 	got := converter.b2c
