@@ -62,9 +62,9 @@ func (rp *RobertaProcessing) AddedTokens(isPair bool) int {
 func (rp *RobertaProcessing) Process(encoding, pairEncoding *tokenizer.Encoding, addSpecialTokens bool) *tokenizer.Encoding {
 
 	var (
-		newEncoding             *tokenizer.Encoding
+		newEncoding             = encoding
 		newOverflowEncodings    []tokenizer.Encoding
-		newPairEncoding         *tokenizer.Encoding
+		newPairEncoding         = pairEncoding
 		newOverflowPairEncoding []tokenizer.Encoding
 	)
 	if rp.trimOffsets {
