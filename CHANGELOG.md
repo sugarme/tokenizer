@@ -10,7 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `DecodeBatch` data race: results could be lost and came back out of input order.
+- `decoder.DefaultWordpieceDecoder`, `DefaultBpeDecoder` and `DefaultCTC`: `Decode` panicked with a nil `DecoderBase` (this broke `pretrained.BertBaseUncased().Decode`).
+
 ### Changed
+
+- `EncodeBatch` and `DecodeBatch` run at most `GOMAXPROCS` goroutines at a time, not one per input.
+- Encode is 1.4-2x faster with 2.5-3x fewer allocations for WordPiece and byte-level BPE pipelines, and about 70x faster for Unigram (the min vocab score was computed by a full vocab scan on each word). Regexes are no longer compiled on each split, the BERT normalizer skips passes that change nothing, and alignment pairs share backing arrays.
 
 ### Added
 
