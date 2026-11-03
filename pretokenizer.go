@@ -5,6 +5,7 @@ package tokenizer
 import (
 	"fmt"
 	"log"
+	"slices"
 	// "reflect"
 
 	"github.com/sugarme/tokenizer/normalizer"
@@ -174,14 +175,18 @@ func (pt *PreTokenizedString) IntoEncoding(typeId int, wordIdx int, offsetType O
 		return nil, err
 	}
 
+	nTokens := 0
+	for _, split := range pt.splits {
+		nTokens += len(split.tokens)
+	}
 	var (
-		enIds               []int
-		enTokens            []string
-		enWords             []int
-		enTypeIds           []int
-		enOffsets           [][]int
-		enSpecialTokensMask []int
-		enAttentionMask     []int
+		enIds               = slices.Grow([]int(nil), nTokens)
+		enTokens            = slices.Grow([]string(nil), nTokens)
+		enWords             = slices.Grow([]int(nil), nTokens)
+		enTypeIds           = slices.Grow([]int(nil), nTokens)
+		enOffsets           = slices.Grow([][]int(nil), nTokens)
+		enSpecialTokensMask = slices.Grow([]int(nil), nTokens)
+		enAttentionMask     = slices.Grow([]int(nil), nTokens)
 	)
 
 	for idx, split := range pt.splits {

@@ -199,7 +199,7 @@ func (bl *ByteLevel) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*t
 
 	finalPretok := pretok.Normalize(func(normalized *normalizer.NormalizedString) *normalizer.NormalizedString {
 		s := normalized.GetNormalized()
-		var changeMap []normalizer.ChangeMap
+		changeMap := make([]normalizer.ChangeMap, 0, len(s))
 		for _, r := range s {
 			bytes := []byte(string(r))
 			for i, b := range bytes {
