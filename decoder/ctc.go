@@ -30,13 +30,7 @@ func NewCTC(padToken string, wordDelimiterToken string, cleanup bool) *CTC {
 }
 
 func DefaultCTC() *CTC {
-	base := new(DecoderBase)
-	return &CTC{
-		DecoderBase:        base,
-		PadToken:           "<pad>",
-		WordDelimiterToken: "|",
-		Cleanup:            true,
-	}
+	return NewCTC("<pad>", "|", true)
 }
 
 // dedup deduplicates consecutive elements.

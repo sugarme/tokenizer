@@ -67,6 +67,8 @@ func splitOn(s string, shouldSplit shouldSplitFn, includeSplitToken bool) (retVa
 
 type BertPreTokenizer struct{}
 
+var whitespacesPattern = normalizer.NewRegexpPattern(`\s+`)
+
 func NewBertPreTokenizer() *BertPreTokenizer {
 	return &BertPreTokenizer{}
 }
@@ -75,8 +77,7 @@ func NewBertPreTokenizer() *BertPreTokenizer {
 func (bt *BertPreTokenizer) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {
 	pretok := pretokenized.Split(func(noop int, sub *normalizer.NormalizedString) []tokenizer.SplitIdx {
 		var splits []normalizer.NormalizedString
-		whitespace := normalizer.NewRegexpPattern(`\s+`)
-		wsSubs := sub.Split(whitespace, normalizer.RemovedBehavior)
+		wsSubs := sub.Split(whitespacesPattern, normalizer.RemovedBehavior)
 
 		for _, sub := range wsSubs {
 			puncSubs := sub.Split(normalizer.NewFnPattern(isBertPunc), normalizer.IsolatedBehavior)

@@ -29,7 +29,7 @@ func NewBpeDecoder(suffix string) *BpeDecoder {
 
 // DefaultBpeDecoder create a new BpeDecoder with default suffix (`</w>`)
 func DefaultBpeDecoder() *BpeDecoder {
-	return &BpeDecoder{suffix: "</w>"}
+	return NewBpeDecoder("</w>")
 }
 
 /*
