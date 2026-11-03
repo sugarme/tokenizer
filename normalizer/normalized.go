@@ -3,6 +3,7 @@ package normalizer
 import (
 	"bytes"
 	"log"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -173,16 +174,13 @@ func NewNormalizedFrom(s string) (retVal *NormalizedString) {
 // (alignments and alignmentsOriginal) without sharing data
 // (data elements are in different memory locations).
 func createAligns(s string) [][]int {
-	var alignments [][]int
+	alignments := slices.Grow([][]int(nil), len(s))
+	pool := make(pairPool, 0, 2*utf8.RuneCountInString(s))
 	currIdx := 0
-	for i, r := range []rune(s) {
-		charLen := len([]byte(string(r)))
-		var align []int
-		if i == 0 {
-			align = []int{0, charLen}
-		} else {
-			align = []int{currIdx, currIdx + charLen}
-		}
+	for _, r := range s {
+		charLen := utf8.RuneLen(r)
+		// All bytes of a rune share one pair, as before.
+		align := pool.pair(currIdx, currIdx+charLen)
 		for byteIdx := 0; byteIdx < charLen; byteIdx++ {
 			alignments = append(alignments, align)
 		}
@@ -190,6 +188,33 @@ func createAligns(s string) [][]int {
 	}
 
 	return alignments
+}
+
+// pairPool hands out 2-int slices cut from one shared backing array,
+// so each alignment pair is not its own heap allocation.
+type pairPool []int
+
+func (p *pairPool) pair(start, end int) []int {
+	if len(*p)+2 > cap(*p) {
+		// New array, not append: pairs already handed out must keep their memory.
+		*p = make([]int, 0, max(2*cap(*p), 64))
+	}
+	i := len(*p)
+	*p = append(*p, start, end)
+	return (*p)[i : i+2 : i+2]
+}
+
+// shiftAligns copies aligns, each moved by -shift, with no pair shared.
+func shiftAligns(aligns [][]int, shift int) [][]int {
+	if len(aligns) == 0 {
+		return nil
+	}
+	out := make([][]int, len(aligns))
+	pool := make(pairPool, 0, 2*len(aligns))
+	for i, a := range aligns {
+		out[i] = pool.pair(a[0]-shift, a[1]-shift)
+	}
+	return out
 }
 
 func NewNormalizedString(original, normalized string, alignments, alignmentsOriginal [][]int, originalShift int) *NormalizedString {
@@ -288,14 +313,13 @@ func (n *NormalizedString) ConvertOffset(inputRange *Range) (retVal *Range) {
 // Range returns a substring of the NORMALIZED string
 func (n *NormalizedString) Range(r *Range) (retVal string) {
 
-	bytes := []byte(n.normalized)
 	switch r.indexOn {
 	case OriginalTarget:
 		nRange := n.ConvertOffset(r)
-		retVal = string(bytes[nRange.start:nRange.end])
+		retVal = n.normalized[nRange.start:nRange.end]
 	case NormalizedTarget:
 		nRange := r.IntoFullRange(n.Len())
-		retVal = string(bytes[nRange.start:nRange.end])
+		retVal = n.normalized[nRange.start:nRange.end]
 	}
 
 	return retVal
@@ -304,14 +328,13 @@ func (n *NormalizedString) Range(r *Range) (retVal string) {
 // RangeOriginal returns substring of ORIGINAL string
 func (n *NormalizedString) RangeOriginal(r *Range) (retVal string) {
 
-	bytes := []byte(n.original)
 	switch r.indexOn {
 	case NormalizedTarget:
 		oRange := n.ConvertOffset(r)
-		retVal = string(bytes[oRange.start:oRange.end])
+		retVal = n.original[oRange.start:oRange.end]
 	case OriginalTarget:
 		oRange := r.IntoFullRange(n.LenOriginal())
-		retVal = string(bytes[oRange.start:oRange.end])
+		retVal = n.original[oRange.start:oRange.end]
 	default:
 		log.Fatalf("Invalid Range type: %v\n", r.indexOn)
 	}
@@ -396,23 +419,11 @@ func (n *NormalizedString) Slice(inputRange *Range) (retVal *NormalizedString) {
 		oShift = r[1]
 	}
 
-	var (
-		sOriginal, sNormalized           string
-		sAlignments, sAlignmentsOriginal [][]int
-		sOriginalShift                   int
-	)
-
-	sOriginal = n.RangeOriginal(fullRange)
-	sNormalized = n.Range(fullRange)
-	for _, a := range n.alignments[nRange.start:nRange.end] {
-		sAlignment := []int{a[0] - nShift, a[1] - nShift}
-		sAlignments = append(sAlignments, sAlignment)
-	}
-	for _, a := range n.alignmentsOriginal[oRange.start:oRange.end] {
-		sAlignmentOriginal := []int{a[0] - oShift, a[1] - oShift}
-		sAlignmentsOriginal = append(sAlignmentsOriginal, sAlignmentOriginal)
-	}
-	sOriginalShift = n.originalShift + oRange.start
+	sOriginal := n.RangeOriginal(fullRange)
+	sNormalized := n.Range(fullRange)
+	sAlignments := shiftAligns(n.alignments[nRange.start:nRange.end], nShift)
+	sAlignmentsOriginal := shiftAligns(n.alignmentsOriginal[oRange.start:oRange.end], oShift)
+	sOriginalShift := n.originalShift + oRange.start
 
 	return &NormalizedString{
 		original:           sOriginal,
@@ -551,12 +562,14 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	// NOTE. `oShift` and `offset` here are different from ones inside previous block
 	oShift := -(initialRemoved)
 	offset := initialRemoved + nRange.start
-	var normalizedAlignments [][]int
-
-	// log.Printf("Applying transformations...\n")
-	var (
-		normalizedRunes []rune
-	)
+	newLen := 0
+	for _, item := range changeMap {
+		newLen += len(item.RuneVal)
+	}
+	normalizedAlignments := slices.Grow([][]int(nil), newLen)
+	var normalized strings.Builder
+	normalized.Grow(newLen)
+	pool := make(pairPool, 0, 2*len(changeMap))
 
 	replacedNormalized.Reset() // make sure iterating from begining
 	for _, item := range changeMap {
@@ -675,9 +688,9 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 			// log.Printf("Change in size for the current char: %v\n", replacedCharSizeChange)
 			// log.Printf("Change in size in the original alignment for the current char: %v\n", replacedCharSizeChangeOriginal)
 
-			var newAlignments [][]int
+			newAlignments := make([][]int, 0, len(alignments))
 			for _, offsets := range alignments {
-				var newAlign []int = make([]int, 2)
+				newAlign := pool.pair(0, 0)
 
 				// A new char is being added, we need to extend the current
 				// alignment. No need to apply the shift in this case as it
@@ -756,7 +769,7 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 		}
 
 		// Then we keep only the char for string reconstruction
-		normalizedRunes = append(normalizedRunes, []rune(item.RuneVal)...)
+		normalized.WriteString(item.RuneVal)
 
 		// fmt.Printf("replacedCharSize: %v\n", replacedCharSize)
 		// fmt.Printf("totalBytesToRemove: %v\n", totalBytesToRemove)
@@ -768,23 +781,19 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	if oShift != 0 {
 		// log.Printf("Shifting the end  from %v using shift: %v\n", endShiftStart, oShift)
 
-		var endShift [][]int
-		for _, item := range n.alignments[endShiftStart:] {
-			endShift = append(endShift, item)
-		}
-		endRange := expandAlignments(endShift)
+		endRange := expandAlignments(n.alignments[endShiftStart:])
 
 		// log.Printf("End range: %+v\n", endRange)
 
 		if endRange != nil {
 			alignments := n.alignmentsOriginal[endRange[0]:endRange[1]]
-			var newAlignments [][]int
 			if len(alignments) > 0 {
+				newAlignments := make([][]int, 0, len(alignments))
 				// log.Printf("Alignments before shifting: %+v\n", alignments)
 				for _, offsets := range alignments {
 					newOffset0 := applySign(offsets[0], oShift)
 					newOffset1 := applySign(offsets[1], oShift)
-					newAlignments = append(newAlignments, []int{newOffset0, newOffset1})
+					newAlignments = append(newAlignments, pool.pair(newOffset0, newOffset1))
 				}
 				aligns := append(n.alignmentsOriginal[:endRange[0]], newAlignments...)
 				aligns = append(aligns, n.alignmentsOriginal[endRange[1]:]...)
@@ -795,30 +804,14 @@ func (n *NormalizedString) TransformRange(inputRange *Range, changeMap []ChangeM
 	}
 
 	// replace alignments with new ones in range
-	var newAlignments [][]int
-	// fmt.Printf("nRange: %v\n", nRange)
-	// fmt.Printf("normalizedAlignments: %+v\n", normalizedAlignments)
-	// fmt.Printf("alignments to be replaced: %v\n", n.alignments[nRange.start:nRange.end])
-	// fmt.Printf("normalized alignments before action: %v\n", n.alignments)
-	if len(n.alignments[:nRange.start]) == 0 { // at the beginning
-		newAlignments = append(normalizedAlignments, n.alignments[nRange.end:]...)
-	} else { // in the middle
-		var beforeAligns, afterAligns [][]int
-		for i, a := range n.alignments {
-			if i < nRange.start {
-				beforeAligns = append(beforeAligns, a)
-			}
-			if i >= nRange.end {
-				afterAligns = append(afterAligns, a)
-			}
-		}
-		newAlignments = append(beforeAligns, normalizedAlignments...)
-		newAlignments = append(newAlignments, afterAligns...)
-	}
+	newAlignments := slices.Grow([][]int(nil), nRange.start+len(normalizedAlignments)+len(n.alignments)-nRange.end)
+	newAlignments = append(newAlignments, n.alignments[:nRange.start]...)
+	newAlignments = append(newAlignments, normalizedAlignments...)
+	newAlignments = append(newAlignments, n.alignments[nRange.end:]...)
 	n.alignments = newAlignments
 
 	// Finally, change the `normalized` string
-	newNormalized := n.normalized[:nRange.start] + string(normalizedRunes) + n.normalized[nRange.end:]
+	newNormalized := n.normalized[:nRange.start] + normalized.String() + n.normalized[nRange.end:]
 	n.normalized = newNormalized
 
 	// log.Printf("New normalized alignments: %+v\nNew original alignments: %+v\n", n.alignments, n.alignmentsOriginal)
@@ -1204,6 +1197,7 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 	var splits []OffsetsMatch
 	switch behavior {
 	case IsolatedBehavior:
+		splits = make([]OffsetsMatch, 0, len(matches))
 		for _, m := range matches {
 			m.Match = false
 			splits = append(splits, m)
@@ -1275,6 +1269,9 @@ func (n *NormalizedString) Split(pattern Pattern, behavior SplitDelimiterBehavio
 
 	// Then split according to the computed splits
 	var slices []NormalizedString
+	if len(splits) > 0 {
+		slices = make([]NormalizedString, 0, len(splits))
+	}
 	for _, split := range splits {
 		if !split.Match {
 			slice := n.Slice(NewRange(split.Offsets[0], split.Offsets[1], NormalizedTarget))
