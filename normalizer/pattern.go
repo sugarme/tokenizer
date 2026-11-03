@@ -90,10 +90,11 @@ func (r *RunePattern) FindMatches(inside string) []OffsetsMatch {
 // so that it can implement `Pattern` interface
 type StringPattern struct {
 	string
+	re *regexp.Regexp
 }
 
 func NewStringPattern(s string) *StringPattern {
-	return &StringPattern{s}
+	return &StringPattern{s, regexp.MustCompile(regexp.QuoteMeta(s))}
 }
 
 func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
@@ -107,11 +108,7 @@ func (s *StringPattern) FindMatches(inside string) []OffsetsMatch {
 		}
 	}
 
-	quoted := regexp.QuoteMeta(s.string)
-
-	re := regexp.MustCompile(quoted)
-
-	return findMatches(re, inside)
+	return findMatches(s.re, inside)
 }
 
 func findMatches(re *regexp.Regexp, inside string) []OffsetsMatch {
