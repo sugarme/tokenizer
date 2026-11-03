@@ -42,6 +42,7 @@ type Unigram struct {
 	unkID         *int
 	bytesFallback bool
 	fuseUnk       bool
+	minScore      float64 // lowest vocab score, used for the unknown token penalty
 	// Cache for tokenization
 	cache *Catch.Cache
 }
@@ -103,14 +104,16 @@ func (ub *UnigramBuilder) Build() (*Unigram, error) {
 		}
 	}
 
-	return &Unigram{
+	u := &Unigram{
 		vocab:         ub.config.vocab,
 		tokenToIDs:    tokenToIDs,
 		unkID:         ub.config.unkID,
 		bytesFallback: ub.config.bytesFallback,
 		fuseUnk:       ub.config.fuseUnk,
 		cache:         Catch.New(CacheExpiredTime*time.Minute, CacheCleanTime*time.Minute),
-	}, nil
+	}
+	u.minScore = u.getMinScore()
+	return u, nil
 }
 
 // New creates a new Unigram model with the given vocabulary and options
@@ -328,7 +331,7 @@ func (u *Unigram) tokenizeWithViterbi(sequence string) ([]string, error) {
 
 	// Constant for unknown token penalty, matching the Rust implementation
 	const kUnkPenalty float64 = 10.0
-	unkScore := u.getMinScore() - kUnkPenalty
+	unkScore := u.minScore - kUnkPenalty
 
 	// For each position in the lattice
 	for i := 0; i < n; i++ {
