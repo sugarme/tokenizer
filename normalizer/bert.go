@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"strings"
 	"unicode"
 )
 
@@ -106,7 +107,15 @@ func IsChinese(c rune) bool {
 	return isChinese(c)
 }
 
+func isCleanTextRemoved(r rune) bool {
+	return r == 0 || r == 0xfffd || isControl(r)
+}
+
 func doCleanText(n *NormalizedString) *NormalizedString {
+	// Whitespace is only rewritten next to a removed rune, so with nothing to remove this is a no-op.
+	if !strings.ContainsFunc(n.normalized, isCleanTextRemoved) {
+		return n
+	}
 
 	s := n.normalized
 	var changeMap []ChangeMap
@@ -122,7 +131,7 @@ func doCleanText(n *NormalizedString) *NormalizedString {
 	// Then, clean up
 	var removed int = 0
 	for _, r := range revRunes {
-		if r == 0 || r == 0xfffd || isControl(r) {
+		if isCleanTextRemoved(r) {
 			removed += 1
 		} else {
 			if removed > 0 {
@@ -153,6 +162,9 @@ func doCleanText(n *NormalizedString) *NormalizedString {
 }
 
 func doHandleChineseChars(n *NormalizedString) *NormalizedString {
+	if !strings.ContainsFunc(n.normalized, isChinese) {
+		return n
+	}
 	var changeMap []ChangeMap
 	runes := []rune(n.normalized)
 	for _, r := range runes {
