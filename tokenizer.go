@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"runtime"
 	"strings"
 
 	// "regexp"
@@ -641,19 +642,17 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 	var (
 		encodings []Encoding = make([]Encoding, len(inputs))
 		eg        errgroup.Group
-		mu        = &sync.Mutex{}
 	)
+	eg.SetLimit(runtime.GOMAXPROCS(0))
 
-	// Encoding concurrently
+	// Encoding concurrently. Each goroutine writes only its own index, so no lock is needed.
 	for i := range inputs {
 		eg.Go(func() error {
 			e, err := t.Encode(inputs[i], addSpecialTokens)
 			if err != nil {
 				return err
 			}
-			mu.Lock()
 			encodings[i] = *e
-			mu.Unlock()
 			return nil
 		})
 	}
@@ -672,22 +671,18 @@ func (t *Tokenizer) EncodeBatch(inputs []EncodeInput, addSpecialTokens bool) (re
 
 // DecodeBatch decodes all sentences in concurrency
 func (t *Tokenizer) DecodeBatch(sentences [][]int, skipSpecialTokens bool) []string {
-	var decodings []string
-	var wg sync.WaitGroup
+	decodings := make([]string, len(sentences))
+	var eg errgroup.Group
+	eg.SetLimit(runtime.GOMAXPROCS(0))
 
-	wg.Add(len(sentences))
-
-	// Decoding concurrently
-	for i := 0; i < len(sentences); i++ {
-		go func(i int) {
-			defer wg.Done()
-
-			s := t.Decode(sentences[i], skipSpecialTokens)
-			decodings = append(decodings, s)
-		}(i)
+	// Decoding concurrently. Each goroutine writes only its own index.
+	for i := range sentences {
+		eg.Go(func() error {
+			decodings[i] = t.Decode(sentences[i], skipSpecialTokens)
+			return nil
+		})
 	}
-
-	wg.Wait()
+	eg.Wait()
 
 	return decodings
 }
