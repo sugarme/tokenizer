@@ -19,12 +19,11 @@ func DefaultWhitespace() *Whitespace {
 
 var _ tokenizer.PreTokenizer = new(Whitespace)
 
+var wordsInvertPattern = normalizer.NewInvertPattern(normalizer.NewRegexpPattern(`\w+|[^\w\s]+`))
+
 func (p *Whitespace) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {
 	pretok := pretokenized.Split(func(noop int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
-		s := `\w+|[^\w\s]+`
-		rePattern := normalizer.NewRegexpPattern(s)
-		invert := normalizer.NewInvertPattern(rePattern)
-		splits := normalized.Split(invert, normalizer.RemovedBehavior)
+		splits := normalized.Split(wordsInvertPattern, normalizer.RemovedBehavior)
 
 		var splitIdxs []tokenizer.SplitIdx
 		for _, s := range splits {

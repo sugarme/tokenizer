@@ -71,14 +71,15 @@ func DefaultMetaspace() *Metaspace {
 	return NewMetaspace("▁", true) // NOTE. `▁`  != `_`
 }
 
+var whitespacePattern = normalizer.NewRegexpPattern(`\s`)
+
 // PreTokenize implements PreTokenizer interface
 func (m *Metaspace) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*tokenizer.PreTokenizedString, error) {
+	replacement := normalizer.NewRegexpPattern(m.Replacement)
 	// func(int, *normalizer.NormalizedString) []SplitIdx
 	splitFn := func(idx int, normalized *normalizer.NormalizedString) []tokenizer.SplitIdx {
 		var splits []normalizer.NormalizedString
-		whitespace := normalizer.NewRegexpPattern(`\s`)
-
-		normalized = normalized.Replace(whitespace, m.StrRep)
+		normalized = normalized.Replace(whitespacePattern, m.StrRep)
 
 		// log.Printf("normalized: %+v\n", normalized)
 
@@ -98,7 +99,6 @@ func (m *Metaspace) PreTokenize(pretokenized *tokenizer.PreTokenizedString) (*to
 			// Never prepend
 		}
 
-		replacement := normalizer.NewRegexpPattern(m.Replacement)
 		splits = normalized.Split(replacement, normalizer.MergedWithNextBehavior)
 
 		// log.Printf("splits: %+v\n", splits)
